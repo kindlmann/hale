@@ -1,5 +1,5 @@
 /*
-  hale: support for minimalist scientific visualization
+  Hale: support for minimalist scientific visualization
   Copyright (C) 2014  University of Chicago
 
   This software is provided 'as-is', without any express or implied
@@ -20,9 +20,9 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "hale.hpp"
+#include "Hale.h"
 
-namespace hale {
+namespace Hale {
 
 /* Converts a teem enum to an openGL enum */
 GLuint

@@ -33,7 +33,7 @@
 
 /* any glm includes? */
 
-namespace hale {
+namespace Hale {
 
 /*
 ** viewerMode* enum

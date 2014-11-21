@@ -1,5 +1,5 @@
 #
-# hale: support for minimalist scientific visualization
+# Hale: support for minimalist scientific visualization
 # Copyright (C) 2014  University of Chicago
 #
 # This software is provided 'as-is', without any express or implied
@@ -31,7 +31,7 @@ CXX = g++
 AR = ar cqs
 CXXFLAGS = -Wall -std=c++11
 
-HDR = hale.hpp
+HDR = Hale.h
 SRCS = enums.cpp utils.cpp
 OBJS = $(SRCS:.cpp=.o)
 

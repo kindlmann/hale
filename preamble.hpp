@@ -1,5 +1,5 @@
 /*
-  hale: support for minimalist scientific visualization
+  Hale: support for minimalist scientific visualization
   Copyright (C) 2014  University of Chicago
 
   This software is provided 'as-is', without any express or implied
