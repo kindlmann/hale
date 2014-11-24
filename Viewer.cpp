@@ -123,61 +123,57 @@ void Viewer::mouseButtonCB(GLFWwindow *gwin, int button,
             : "release"), mods,
            vwr->_button[0] ? "_" : "^", vwr->_button[1] ? "_" : "^");
   }
-  if (!( vwr->_button[0] || vwr->_button[1] )) {
-    /* both buttons up => stop interacting with camera; we're done */
-    vwr->_mode = viewerModeNone;
-    return;
-  }
-  if (vwr->_button[0] && vwr->_button[1]) {
-    /* weird; both bottons down: ambiguous => we're done */
-    vwr->_mode = viewerModeNone;
-    return;
-  }
-  /* else only one button is down */
   glfwGetCursorPos(gwin, &xpos, &ypos);
   xf = xpos/vwr->_width;
   yf = ypos/vwr->_height;
-  if (!( 0 < xf && xf < 1 && 0 < yf && yf < 1 )) {
-    /* click didn't seem to be inside window; nothing to do */
+  /* lots of conditions can lead to ceasing interactions with camera */
+  if ( !(vwr->_button[0] || vwr->_button[1])
+       /* both buttons up => we're done */
+       ||
+       (vwr->_button[0] && vwr->_button[1])
+       /* weird; both buttons down: ambiguous => we're done */
+       ||
+       !( 0 < xf && xf < 1 && 0 < yf && yf < 1 )
+       /* click didn't seem to be inside window; nothing to do */ ) {
     vwr->_mode = viewerModeNone;
-    return;
-  }
-  /*
-  ** Else click was inside window; figure out new camera interaction mode.
-  ** Diagram of how clicking in different parts of the window do
-  ** different things with the camera.  "foo/bar" means that foo
-  ** happens with left click, and bar happens with right click
-  **     x=0                                     x=1
-  ** y=0  +---------------------------------------+
-  **      | \          X  RotateV/TranslateV    / |
-  **      |   \  . . . . . . . . . . . . . .  /   |
-  **      |     :                           :     |
-  **      |     :                           :     |
-  **      |     :                           :     |
-  **      |     :                           :  X RotateU/
-  **      |     :     X RotateUV/           :    TranslateU
-  **      |     :       TranslateUV         :     |
-  **      |  X Fov                          :     |
-  **      |     :                           :     |
-  **      |     :                           :     |
-  **      |     :                           :     |
-  **      |. . . . . . . . . . . . . . . . . \    |
-  **      |  X  :      X  RotateN/TranslateN   \  |
-  ** y=1  +--|------------------------------------+
-  **         \__ Dolly/Depth
-  */
-  if (xf <= MARG && yf > 1-MARG) {
-    vwr->_mode = (vwr->_button[0] ? viewerModeDolly : viewerModeDepth);
-  } else if (xf <= MARG && xf <= yf) {
-    vwr->_mode = viewerModeFov;
-  } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
-    vwr->_mode = (vwr->_button[0] ? viewerModeRotateV : viewerModeTranslateV);
-  } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
-    vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
-  } else if (yf > 1-MARG && 1-xf >= 1-yf) {
-    vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeTranslateN);
   } else {
-    vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
+    /*
+    ** Else click was inside window; figure out new camera interaction mode.
+    ** Diagram of how clicking in different parts of the window do
+    ** different things with the camera.  "foo/bar" means that foo
+    ** happens with left click, and bar happens with right click
+    **     x=0                                     x=1
+    ** y=0  +---------------------------------------+
+    **      | \          X  RotateV/TranslateV    / |
+    **      |   \  . . . . . . . . . . . . . .  /   |
+    **      |     :                           :     |
+    **      |     :                           :     |
+    **      |     :                           :     |
+    **      |     :                           :  X RotateU/
+    **      |     :     X RotateUV/           :    TranslateU
+    **      |     :       TranslateUV         :     |
+    **      |  X Fov                          :     |
+    **      |     :                           :     |
+    **      |     :                           :     |
+    **      |     :                           :     |
+    **      |. . . . . . . . . . . . . . . . . \    |
+    **      |  X  :      X  RotateN/TranslateN   \  |
+    ** y=1  +--|------------------------------------+
+    **         \__ Dolly/Depth
+    */
+    if (xf <= MARG && yf > 1-MARG) {
+      vwr->_mode = (vwr->_button[0] ? viewerModeDolly : viewerModeDepth);
+    } else if (xf <= MARG && xf <= yf) {
+      vwr->_mode = viewerModeFov;
+    } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateV : viewerModeTranslateV);
+    } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
+    } else if (yf > 1-MARG && 1-xf >= 1-yf) {
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeTranslateN);
+    } else {
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
+    }
   }
   if (vwr->verbose()) {
     printf("  @ (%g,%g) -> (%g,%g) -> %s\n", xpos, ypos, xf, yf,
