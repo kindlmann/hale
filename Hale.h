@@ -23,11 +23,13 @@
 #ifndef HALE_INCLUDED
 #define HALE_INCLUDED
 
+#if 0
 #ifdef __APPLE__
 #  include <OpenGL/gl3.h>
 #  define __gl_h_ /* to avoid: "warning: gl.h and gl3.h are both included" */
 #else
 #  include <GL/gl3.h>
+#endif
 #endif
 
 #include <teem/meet.h> /* will include all other teem headers */
@@ -35,6 +37,7 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 
+#define GLFW_INCLUDE_GLCOREARB
 #include <GLFW/glfw3.h>
 
 namespace Hale {
