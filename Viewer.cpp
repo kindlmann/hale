@@ -20,6 +20,26 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
+/*
+** TODO:
+
+map mouse motions to camera updates
+
+connect camera to uniform variables used by shader
+
+should the viewer do re-render by backback?  Or assume caller can re-render?
+(e.g. changing from perspective to orthographic)
+
+handle retina displays
+
+viewer capture/dump
+
+generating hest options
+
+interpreting hest options
+
+*/
+
 #include "Hale.h"
 
 /* the fraction of window width along its border that will be treated
@@ -49,30 +69,22 @@ static int buttonIdx(int button, int mods) {
   return ret;
 }
 
-static void
-cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
-  static const char me[]="cursorPosCB";
-  Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
-
-  if (vwr->verbose() > 1) {
-    printf("%s(%g,%g): hello\n", me, xx, yy);
-  }
-  return;
-}
-
-static void
-windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
+void
+Viewer::windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="windowSizeCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
   if (vwr->verbose()) {
     printf("%s(%d,%d)\n", me, newWidth, newHeight);
   }
+  vwr->_width = newWidth;
+  vwr->_height = newHeight;
+  vwr->cameraUpdate();
   return;
 }
 
-static void
-keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
+void
+Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
@@ -88,8 +100,8 @@ keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   return;
 }
 
-static void
-windowCloseCB(GLFWwindow *gwin) {
+void
+Viewer::windowCloseCB(GLFWwindow *gwin) {
   static const char me[]="windowCloseCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
@@ -101,8 +113,8 @@ windowCloseCB(GLFWwindow *gwin) {
   return;
 }
 
-void Viewer::mouseButtonCB(GLFWwindow *gwin, int button,
-                           int action, int mods) {
+void
+Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   static const char me[]="mouseButtonCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   double xpos, ypos, xf, yf;
@@ -138,7 +150,7 @@ void Viewer::mouseButtonCB(GLFWwindow *gwin, int button,
     vwr->_mode = viewerModeNone;
   } else {
     /*
-    ** Else click was inside window; figure out new camera interaction mode.
+    ** else click was inside window; figure out new camera interaction mode.
     ** Diagram of how clicking in different parts of the window do
     ** different things with the camera.  "foo/bar" means that foo
     ** happens with left click, and bar happens with right click
@@ -177,6 +189,18 @@ void Viewer::mouseButtonCB(GLFWwindow *gwin, int button,
   }
   if (vwr->verbose()) {
     printf("  @ (%g,%g) -> (%g,%g) -> %s\n", xpos, ypos, xf, yf,
+           airEnumStr(viewerMode, vwr->_mode));
+  }
+  return;
+}
+
+void
+Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
+  static const char me[]="cursorPosCB";
+  Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+
+  if (vwr->verbose() && vwr->_mode != viewerModeNone) {
+    printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
   return;
@@ -243,11 +267,6 @@ VEC_GET_SET(up)
 
 int Viewer::width() { return _width; }
 int Viewer::height() { return _height; }
-void Viewer::widthHeight(int ww, int hh) {
-  _width = ww;
-  _height = hh;
-  cameraUpdate();
-}
 
 double Viewer::fov() { return _camera->fov; }
 void Viewer::fov(double ff) {
@@ -267,10 +286,10 @@ void Viewer::orthographic(bool ortho) {
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
 
-
 void Viewer::cameraUpdate() {
   static const char me[]="Hale::Viewer::cameraUpdate";
 
+  _camera->aspect = static_cast<double>(_width)/_height;
   if (limnCameraUpdate(_camera)) {
     char *err = biffGetDone(LIMN);
     fprintf(stderr, "%s: camera problem:\n%s", me, err);

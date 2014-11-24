@@ -100,7 +100,8 @@ class Viewer {
 
   int width();
   int height();
-  void widthHeight(int ww, int hh);
+  /* no way to set width and height because that's handled by
+     responding to GLFW resize events */
 
   glm::vec3 from();
   void from(glm::vec3);
@@ -127,6 +128,10 @@ class Viewer {
   int _mode;                 // from Hale::viewerMode* enum
 
   GLFWwindow *_window;
+  static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
+  static void windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);
+  static void keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods);
+  static void windowCloseCB(GLFWwindow *gwin);
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
 
   void cameraUpdate();
