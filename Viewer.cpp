@@ -76,8 +76,13 @@ keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
-  if (vwr->verbose() > 1) {
+  if (vwr->verbose()) {
     printf("%s(%d,%d,%d,%d)\n", me, key, scancode, action, mods);
+  }
+  if (GLFW_KEY_Q == key && GLFW_PRESS == action && mods) {
+    /* this is where we handle modifer+'q' as 'quit' on linux;
+       actually *any* modifier will do. */
+    finishing = true;
   }
 
   return;
