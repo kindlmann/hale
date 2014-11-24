@@ -29,6 +29,7 @@ namespace Hale {
 const char *
 _viewerModeStr[HALE_VIEWER_MODE_MAX+1] = {
   "unknown mode",
+  "none",
   "fov",
   "depth",
   "rotate-UV",
@@ -55,4 +56,27 @@ _viewerMode = {
 airEnum *
 viewerMode = &_viewerMode;
 
-}
+/* ------------------------------------------------------------- */
+
+const char *
+_finishingStatusStr[HALE_VIEWER_MODE_MAX+1] = {
+  "unknown finishing status",
+  "not",
+  "okay",
+  "error"
+};
+
+airEnum
+_finishingStatus = {
+  "finishing status",
+  HALE_FINISHING_STATUS_MAX,
+  _finishingStatusStr, NULL,
+  NULL,
+  NULL, NULL,
+  AIR_FALSE
+};
+
+airEnum *
+finishingStatus = &_finishingStatus;
+
+} // namespace Hale

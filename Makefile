@@ -28,11 +28,11 @@ GLM = /usr/local/include/glm/
 IPATH = -I$(TEEM)/include -I$(GLM)
 
 CXX = g++
-AR = ar cqs
-CXXFLAGS = -Wall -std=c++11
+AR = ar crs
+CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
-SRCS = enums.cpp utils.cpp
+SRCS = enums.cpp utils.cpp Viewer.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 DEST = $(HOME)/hale-install
