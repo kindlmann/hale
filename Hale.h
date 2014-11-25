@@ -95,45 +95,54 @@ class Viewer {
   explicit Viewer(int width,  int height, const char *label);
   ~Viewer();
 
-  int verbose();
+  /* set/get verbosity level */
   void verbose(int);
+  int verbose();
 
+  /* get width and height of window in screen-space, which is not the same
+     (on high-DPI display) as dimensions of frame buffer.  There are no
+     methods for setting width and height because that's handled by
+     responding to GLFW resize events */
   int width();
   int height();
-  /* no way to set width and height because that's handled by
-     responding to GLFW resize events */
 
-  glm::vec3 from();
-  void from(glm::vec3);
-  glm::vec3 at();
-  void at(glm::vec3);
-  glm::vec3 up();
-  void up(glm::vec3);
+  /* set/get world-space look-from, look-at, and pseudo-up */
+  void from(glm::vec3); glm::vec3 from();
+  void at(glm::vec3);   glm::vec3 at();
+  void up(glm::vec3);   glm::vec3 up();
 
-  double fov();
+  /* set/get vertical field-of-view, in degrees */
   void fov(double);
+  double fov();
 
-  bool upFix();
+  /* set/get whether to fix the "up" vector during camera movements */
   void upFix(bool);
+  bool upFix();
 
-  bool orthographic();
+  /* set/get whether to use orthographic (not perspective) projection */
   void orthographic(bool);
+  bool orthographic();
 
+  /* swap render buffers in window */
   void bufferSwap();
  private:
-  bool _button[2];   // true iff button (left [0] or right [1]) is now down
-  int _verbose, _width, _height;
-  limnCamera *_camera;       // the camera we update, and own;
+  bool _button[2];     // true iff button (left:0, right:1) is down
+  int _verbose;
+  limnCamera *_camera; // the camera we manage
   bool _upFix;
-  int _mode;                 // from Hale::viewerMode* enum
+  int _mode;           // from Hale::viewerMode* enum
+  GLFWwindow *_window; // the window we manage
+  int _pixDensity,
+    _widthScreen, _heightScreen,
+    _widthBuffer, _heightBuffer;
 
-  GLFWwindow *_window;
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
-  static void windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);
+  static void framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);
   static void keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods);
   static void windowCloseCB(GLFWwindow *gwin);
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
 
+  void shapeUpdate();
   void cameraUpdate();
 };
 

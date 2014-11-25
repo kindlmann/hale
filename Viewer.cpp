@@ -30,9 +30,7 @@ connect camera to uniform variables used by shader
 should the viewer do re-render by backback?  Or assume caller can re-render?
 (e.g. changing from perspective to orthographic)
 
-handle retina displays
-
-viewer capture/dump
+viewer capture/dump to image
 
 generating hest options
 
@@ -69,6 +67,12 @@ static int buttonIdx(int button, int mods) {
   return ret;
 }
 
+/*
+** GLK believes that the window size callback is not needed:
+** any window resize will also resize the framebuffer, and
+** moving a window between display of different pixel densities
+** will resize the framebuffer (but not the window)
+
 void
 Viewer::windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="windowSizeCB";
@@ -77,8 +81,28 @@ Viewer::windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   if (vwr->verbose()) {
     printf("%s(%d,%d)\n", me, newWidth, newHeight);
   }
-  vwr->_width = newWidth;
-  vwr->_height = newHeight;
+  vwr->_widthScreen = newWidth;
+  vwr->_heightScreen = newHeight;
+  glfwGetFramebufferSize(gwin, &(vwr->_widthBuffer), &(vwr->_heightBuffer));
+  vwr->shapeUpdate();
+  vwr->cameraUpdate();
+  return;
+}
+
+*/
+
+void
+Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
+  static const char me[]="framebufferSizeCB";
+  Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+
+  if (vwr->verbose()) {
+    printf("%s(%d,%d)\n", me, newWidth, newHeight);
+  }
+  vwr->_widthBuffer = newWidth;
+  vwr->_heightBuffer = newHeight;
+  glfwGetWindowSize(gwin, &(vwr->_widthScreen), &(vwr->_heightScreen));
+  vwr->shapeUpdate();
   vwr->cameraUpdate();
   return;
 }
@@ -119,10 +143,10 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   double xpos, ypos, xf, yf;
 
-  /* because on Macs you can "right-click" downwards, via modifier keys,
-     but then release the modifier keys before releasing the button,
-     so the logic of releasing the right button seems unworkable.
-     Hence *any* release, is interpreted as a release of both buttons */
+  /* on Macs you can "right-click" downwards, via modifier keys, but then
+     release the modifier keys before releasing the button, so tracking the
+     logic of releasing the "right-click" get get messy.  Hence *any*
+     release, is interpreted as a release of both buttons */
   if (GLFW_RELEASE == action) {
     vwr->_button[0] = vwr->_button[1] = false;
   } else { /* button press */
@@ -136,8 +160,8 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
            vwr->_button[0] ? "_" : "^", vwr->_button[1] ? "_" : "^");
   }
   glfwGetCursorPos(gwin, &xpos, &ypos);
-  xf = xpos/vwr->_width;
-  yf = ypos/vwr->_height;
+  xf = xpos/vwr->_widthScreen;
+  yf = ypos/vwr->_heightScreen;
   /* lots of conditions can lead to ceasing interactions with camera */
   if ( !(vwr->_button[0] || vwr->_button[1])
        /* both buttons up => we're done */
@@ -214,8 +238,8 @@ Viewer::Viewer(int width, int height, const char *label) {
   _camera = limnCameraNew();
   _upFix = false;
   _mode = viewerModeNone;
-  _width = width;
-  _height = height;
+  _widthScreen = width;
+  _heightScreen = height;
 
   // http://www.glfw.org/docs/latest/window.html
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Use OpenGL Core v3.2
@@ -230,14 +254,18 @@ Viewer::Viewer(int width, int height, const char *label) {
             me, width, height);
     finishing = true;
   }
+  glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
 
   glfwMakeContextCurrent(_window);
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
   glfwSetCursorPosCallback(_window, cursorPosCB);
   glfwSetMouseButtonCallback(_window, mouseButtonCB);
-  glfwSetWindowSizeCallback(_window, windowSizeCB);
+  // glfwSetWindowSizeCallback(_window, windowSizeCB);
+  glfwSetFramebufferSizeCallback(_window, framebufferSizeCB);
   glfwSetKeyCallback(_window, keyCB);
   glfwSetWindowCloseCallback(_window, windowCloseCB);
+
+  shapeUpdate();
 }
 
 Viewer::~Viewer() {
@@ -265,8 +293,8 @@ VEC_GET_SET(from)
 VEC_GET_SET(at)
 VEC_GET_SET(up)
 
-int Viewer::width() { return _width; }
-int Viewer::height() { return _height; }
+int Viewer::width() { return _widthScreen; }
+int Viewer::height() { return _heightScreen; }
 
 double Viewer::fov() { return _camera->fov; }
 void Viewer::fov(double ff) {
@@ -285,11 +313,19 @@ void Viewer::orthographic(bool ortho) {
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
+void Viewer::shapeUpdate() {
+  static const char me[]="Hale::Viewer::shapeUpdate";
+
+  _pixDensity = _widthBuffer/_widthScreen;
+  _camera->aspect = static_cast<double>(_widthBuffer)/_heightBuffer;
+  fprintf(stderr, "%s: density = %d; aspect = %g\n", me, _pixDensity, _camera->aspect);
+
+  /* HEY: GL viewport transform */
+}
 
 void Viewer::cameraUpdate() {
   static const char me[]="Hale::Viewer::cameraUpdate";
 
-  _camera->aspect = static_cast<double>(_width)/_height;
   if (limnCameraUpdate(_camera)) {
     char *err = biffGetDone(LIMN);
     fprintf(stderr, "%s: camera problem:\n%s", me, err);
@@ -300,7 +336,6 @@ void Viewer::cameraUpdate() {
   }
 
   /* HEY: update GL transforms for camera */
-
 }
 
 } // namespace Hale
