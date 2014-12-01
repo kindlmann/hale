@@ -49,6 +49,23 @@ Camera::Camera(glm::vec3 from, glm::vec3 at, glm::vec3 up,
 int Camera::verbose() { return _verbose; }
 void Camera::verbose(int vv) { _verbose = vv; }
 
+void Camera::init(glm::vec3 from, glm::vec3 at, glm::vec3 up,
+                  double fov, double aspect,
+                  double clipNear, double clipFar,
+                  bool orthographic) {
+
+  _from = from;
+  _at = at;
+  _up = up;
+  _fov = fov;
+  _aspect = aspect;
+  _clipNear = clipNear;
+  _clipFar = clipFar;
+  _orthographic = orthographic;
+  updateView();
+  updateProject();
+}
+
 glm::vec3 Camera::from() { return _from; }
 glm::vec3 Camera::at() { return _at; }
 glm::vec3 Camera::up() { return _up; }
@@ -100,8 +117,16 @@ glm::mat4 Camera::project() { return _project; }
 const float *Camera::viewPtr() { return glm::value_ptr(_view); }
 const float *Camera::projectPtr() { return glm::value_ptr(_project); }
 
+glm::vec3 Camera::U() { return _uu; }
+glm::vec3 Camera::V() { return _vv; }
+glm::vec3 Camera::N() { return _nn; }
+
 void Camera::updateView() {
   //static const char me[]="Camera::updateView";
+
+  _nn = glm::normalize(_at - _from);
+  _uu = glm::normalize(glm::cross(_nn, _up));
+  _vv = glm::cross(_nn, _uu);
 
   /*
   glm::vec3 nn = glm::normalize(_at - _from);

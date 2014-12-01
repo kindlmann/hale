@@ -112,6 +112,12 @@ class Camera {
   void verbose(int);
   int verbose();
 
+  /* set everything at once, as if at initialization */
+  void init(glm::vec3 from, glm::vec3 at, glm::vec3 up,
+            double fov, double aspect,
+            double clipNear, double clipFar,
+            bool orthographic);
+
   /* set/get world-space look-from, look-at, and pseudo-up */
   void from(glm::vec3); glm::vec3 from();
   void at(glm::vec3);   glm::vec3 at();
@@ -134,6 +140,7 @@ class Camera {
   /* basis vectors of view space */
   glm::vec3 U();
   glm::vec3 V();
+  glm::vec3 N();
 
  private:
   int _verbose;
@@ -144,6 +151,7 @@ class Camera {
   bool _orthographic;
 
   /* derived parameters */
+  glm::vec3 _uu, _vv, _nn; // view-space basis
   glm::mat4 _view, _project;
 
   void updateView();
@@ -155,19 +163,21 @@ class Camera {
    the events in order to handle how the camera is updated */
 class Viewer {
  public:
-  explicit Viewer(int width,  int height, const char *label, Camera cam0);
+  explicit Viewer(int width,  int height, const char *label);
   ~Viewer();
 
+  /* the camera we update with user interactions */
   Camera camera;
 
   /* set/get verbosity level */
   void verbose(int);
   int verbose();
 
-  /* get width and height of window in screen-space, which is not the same
-     (on high-DPI display) as dimensions of frame buffer.  There are no
-     methods for setting width and height because that's handled by
-     responding to GLFW resize events */
+  /* get width and height of window in screen-space, which is not always
+     the same as dimensions of frame buffer (on high-DPI displays, the
+     frame buffer size is larger than the nominal size of the window).
+     There are no methods for setting width and height because that's
+     handled by responding to GLFW resize events */
   int width();
   int height();
 
@@ -177,12 +187,14 @@ class Viewer {
 
   /* swap render buffers in window */
   void bufferSwap();
+
+  GLFWwindow *_window; // the window we manage
  private:
   bool _button[2];     // true iff button (left:0, right:1) is down
   int _verbose;
   bool _upFix;
   int _mode;           // from Hale::viewerMode* enum
-  GLFWwindow *_window; // the window we manage
+  // GLFWwindow *_window; // the window we manage
   int _pixDensity,
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;

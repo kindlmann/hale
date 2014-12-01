@@ -25,10 +25,10 @@
 
 map mouse motions to camera updates
 
-connect camera to uniform variables used by shader
-
 change near and far back to being at-relative
 change FOV to being in degrees
+remove use of glm::lookat and glm::perspective
+make _window private again
 
 should the viewer do re-render by backback?  Or assume caller can re-render?
 (e.g. changing from perspective to orthographic)
@@ -232,7 +232,7 @@ void
 Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
-  double deltaX, deltaY;
+  float deltaX, deltaY;
 
   if (viewerModeNone == vwr->_mode) {
     /* nothing to do here */
@@ -243,11 +243,16 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
-  deltaX = xx - vwr->_lastX;
-  deltaY = yy - vwr->_lastY;
+  deltaX = 0.01*(xx - vwr->_lastX);
+  deltaY = 0.01*(yy - vwr->_lastY);
 
+  glm::vec3 eye = glm::normalize(vwr->camera.from() - vwr->camera.at());
+  glm::vec3 uu = vwr->camera.U();
+  glm::vec3 vv = vwr->camera.V();
   switch(vwr->_mode) {
   case viewerModeRotateUV:
+    eye = glm::normalize(eye);
+    vwr->camera.from(eye);
     break;
   case viewerModeFov:
     break;
@@ -277,15 +282,9 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   return;
 }
 
-Viewer::Viewer(int width, int height, const char *label, Camera cam0)
-  /* ? default camera constructor, needed even though
-     cam0 is a required argument to Viewer constructor ? */
-  : camera(glm::vec3(5,0,0), glm::vec3(0,0,0), glm::vec3(0,0,1),
-           10, 2, 1, 10, false) {
-
+Viewer::Viewer(int width, int height, const char *label) {
   static const char me[]="Hale::Viewer::Viewer";
 
-  camera = cam0;
   _button[0] = _button[1] = false;
   _verbose = 1;
   _upFix = false;
@@ -340,25 +339,14 @@ void Viewer::shapeUpdate() {
   static const char me[]="Hale::Viewer::shapeUpdate";
 
   _pixDensity = _widthBuffer/_widthScreen;
-  double aspect = static_cast<double>(_widthBuffer)/_heightBuffer;
-  fprintf(stderr, "%s: density = %d; aspect = %g\n", me, _pixDensity, aspect);
-
+  camera.aspect(static_cast<double>(_widthBuffer)/_heightBuffer);
+  fprintf(stderr, "!%s: density = %d; aspect = %g\n", me, _pixDensity, camera.aspect());
   glViewport(0, 0, _widthBuffer, _heightBuffer);
 }
 
 void Viewer::cameraUpdate() {
   // static const char me[]="Hale::Viewer::cameraUpdate";
 
-  /*
-  if (limnCameraUpdate(_camera)) {
-    char *err = biffGetDone(LIMN);
-    fprintf(stderr, "%s: camera problem:\n%s", me, err);
-    free(err); return;
-  }
-  if (!_upFix) {
-    ELL_3V_SCALE(_camera->up, -1, _camera->V);
-  }
-  */
 
   /* HEY: update GL transforms for camera */
 }
