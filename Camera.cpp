@@ -97,6 +97,8 @@ void Camera::orthographic(bool ortho) {
 
 glm::mat4 Camera::view() { return _view; }
 glm::mat4 Camera::project() { return _project; }
+const float *Camera::viewPtr() { return glm::value_ptr(_view); }
+const float *Camera::projectPtr() { return glm::value_ptr(_project); }
 
 void Camera::updateView() {
   //static const char me[]="Camera::updateView";
@@ -123,12 +125,13 @@ void Camera::updateView() {
   ** or, V points up (not down), and N points towards eye (not away)
   */
   _view = glm::lookAt(_from, _at, _up);
+  //fprintf(stderr, "!%s: &_view = %p\n", me, glm::value_ptr(_view));
 
   return;
 }
 
 void Camera::updateProject() {
-  // static const char me[]="Camera::updateProject";
+  //static const char me[]="Camera::updateProject";
 
   double vspNear, vspFar;
   if (0) {
@@ -139,6 +142,7 @@ void Camera::updateProject() {
     vspFar = _clipFar;
   }
   _project = glm::perspective(_fov, _aspect, vspNear, vspFar);
+  //fprintf(stderr, "!%s: &_project = %p\n", me, glm::value_ptr(_project));
 
   return;
 }

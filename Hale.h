@@ -128,6 +128,8 @@ class Camera {
      determined by the above parameters */
   glm::mat4 view();
   glm::mat4 project();
+  const float *viewPtr();
+  const float *projectPtr();
 
   /* basis vectors of view space */
   glm::vec3 U();

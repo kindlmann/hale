@@ -23,3 +23,4 @@
 #define GLM_FORCE_RADIANS
 #include <glm/gtc/matrix_transform.hpp> // for glm::lookAt(), glm::perspective()
 #include <glm/gtx/string_cast.hpp> // for glm::to_string()
+#include <glm/gtc/type_ptr.hpp> // for glm::value_ptr()
