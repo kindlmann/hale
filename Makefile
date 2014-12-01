@@ -32,6 +32,7 @@ AR = ar crs
 CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
+PRIV_HDR = privateHale.h
 SRCS = enums.cpp utils.cpp Camera.cpp Viewer.cpp
 OBJS = $(SRCS:.cpp=.o)
 
@@ -41,7 +42,7 @@ DEST_HDR = $(DEST)/include/$(HDR)
 
 all: $(LIB)
 
-$(OBJS): $(HDR)
+$(OBJS): $(HDR) $(PRIV_HDR)
 
 .cpp.o:
 	$(CXX) -c $(CXXFLAGS) $(IPATH) -o $@ $<
