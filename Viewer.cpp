@@ -27,6 +27,9 @@ map mouse motions to camera updates
 
 connect camera to uniform variables used by shader
 
+change near and far back to being at-relative
+change FOV to being in degrees
+
 should the viewer do re-render by backback?  Or assume caller can re-render?
 (e.g. changing from perspective to orthographic)
 
@@ -39,6 +42,7 @@ interpreting hest options
 */
 
 #include "Hale.h"
+#include "privateHale.h"
 
 /* the fraction of window width along its border that will be treated
    as its margin, to support the different kinds of interactions
@@ -68,10 +72,10 @@ static int buttonIdx(int button, int mods) {
 }
 
 /*
-** GLK believes that the window size callback is not needed:
-** any window resize will also resize the framebuffer, and
-** moving a window between display of different pixel densities
-** will resize the framebuffer (but not the window)
+** GLK believes that the window size callback is not actually needed: any
+** window resize will also resize the framebuffer, and moving a window
+** between display of different pixel densities will resize the framebuffer
+** (but not the window)
 
 void
 Viewer::windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
@@ -211,6 +215,12 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
     }
   }
+  if (viewerModeNone != vwr->_mode) {
+    vwr->_lastX = vwr->_lastY = AIR_NAN;
+  } else {
+    vwr->_lastX = xpos;
+    vwr->_lastY = ypos;
+  }
   if (vwr->verbose()) {
     printf("  @ (%g,%g) -> (%g,%g) -> %s\n", xpos, ypos, xf, yf,
            airEnumStr(viewerMode, vwr->_mode));
@@ -222,24 +232,67 @@ void
 Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+  double deltaX, deltaY;
 
-  if (vwr->verbose() && vwr->_mode != viewerModeNone) {
+  if (viewerModeNone == vwr->_mode) {
+    /* nothing to do here */
+    return;
+  }
+  /* else we are moving the camera around */
+  if (vwr->verbose()) {
     printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
+  deltaX = xx - vwr->_lastX;
+  deltaY = yy - vwr->_lastY;
+
+  switch(vwr->_mode) {
+  case viewerModeRotateUV:
+    break;
+  case viewerModeFov:
+    break;
+  case viewerModeDepth:
+    break;
+  case viewerModeRotateU:
+    break;
+  case viewerModeRotateV:
+    break;
+  case viewerModeRotateN:
+    break;
+  case viewerModeDolly:
+    break;
+  case viewerModeTranslateUV:
+    break;
+  case viewerModeTranslateU:
+    break;
+  case viewerModeTranslateV:
+    break;
+  case viewerModeTranslateN:
+    break;
+  }
+
+  vwr->_lastX = xx;
+  vwr->_lastY = yy;
+  vwr->cameraUpdate();
   return;
 }
 
-Viewer::Viewer(int width, int height, const char *label) {
+Viewer::Viewer(int width, int height, const char *label, Camera cam0)
+  /* ? default camera constructor, needed even though
+     cam0 is a required argument to Viewer constructor ? */
+  : camera(glm::vec3(5,0,0), glm::vec3(0,0,0), glm::vec3(0,0,1),
+           10, 2, 1, 10, false) {
+
   static const char me[]="Hale::Viewer::Viewer";
 
+  camera = cam0;
   _button[0] = _button[1] = false;
   _verbose = 1;
-  _camera = limnCameraNew();
   _upFix = false;
   _mode = viewerModeNone;
   _widthScreen = width;
   _heightScreen = height;
+  _lastX = _lastY = AIR_NAN;
 
   // http://www.glfw.org/docs/latest/window.html
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Use OpenGL Core v3.2
@@ -269,47 +322,17 @@ Viewer::Viewer(int width, int height, const char *label) {
 }
 
 Viewer::~Viewer() {
-  limnCameraNix(_camera);
   glfwDestroyWindow(_window);
 }
 
 int Viewer::verbose() { return _verbose; }
 void Viewer::verbose(int vv) { _verbose = vv; }
 
-#define VEC_GET_SET(WHAT)                             \
-  glm::vec3                                           \
-  Viewer::WHAT() {                                    \
-    return glm::vec3(_camera->WHAT[0],                \
-                     _camera->WHAT[1],                \
-                     _camera->WHAT[2]);               \
-  }                                                   \
-  void                                                \
-  Viewer::WHAT(glm::vec3 vv) {                        \
-    ELL_3V_SET(_camera->WHAT, vv[0], vv[1], vv[2]);   \
-    cameraUpdate();                                   \
-  }
-
-VEC_GET_SET(from)
-VEC_GET_SET(at)
-VEC_GET_SET(up)
-
 int Viewer::width() { return _widthScreen; }
 int Viewer::height() { return _heightScreen; }
 
-double Viewer::fov() { return _camera->fov; }
-void Viewer::fov(double ff) {
-  _camera->fov = ff;
-  cameraUpdate();
-}
-
 bool Viewer::upFix() { return _upFix; }
 void Viewer::upFix(bool upf) { _upFix = upf; }
-
-bool Viewer::orthographic() { return _camera->orthographic ? true : false; }
-void Viewer::orthographic(bool ortho) {
-  _camera->orthographic = ortho ? AIR_TRUE : AIR_FALSE;
-  cameraUpdate();
-}
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
@@ -317,15 +340,16 @@ void Viewer::shapeUpdate() {
   static const char me[]="Hale::Viewer::shapeUpdate";
 
   _pixDensity = _widthBuffer/_widthScreen;
-  _camera->aspect = static_cast<double>(_widthBuffer)/_heightBuffer;
-  fprintf(stderr, "%s: density = %d; aspect = %g\n", me, _pixDensity, _camera->aspect);
+  double aspect = static_cast<double>(_widthBuffer)/_heightBuffer;
+  fprintf(stderr, "%s: density = %d; aspect = %g\n", me, _pixDensity, aspect);
 
-  /* HEY: GL viewport transform */
+  glViewport(0, 0, _widthBuffer, _heightBuffer);
 }
 
 void Viewer::cameraUpdate() {
-  static const char me[]="Hale::Viewer::cameraUpdate";
+  // static const char me[]="Hale::Viewer::cameraUpdate";
 
+  /*
   if (limnCameraUpdate(_camera)) {
     char *err = biffGetDone(LIMN);
     fprintf(stderr, "%s: camera problem:\n%s", me, err);
@@ -334,6 +358,7 @@ void Viewer::cameraUpdate() {
   if (!_upFix) {
     ELL_3V_SCALE(_camera->up, -1, _camera->V);
   }
+  */
 
   /* HEY: update GL transforms for camera */
 }

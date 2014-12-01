@@ -23,9 +23,12 @@
 #ifndef HALE_INCLUDED
 #define HALE_INCLUDED
 
+#include <iostream>
+
 #include <teem/meet.h> /* will include all other teem headers */
 
-#define GLM_FORCE_RADIANS
+/* we don't #define GLM_FORCE_RADIANS here because who knows
+   what Hale users will expect or need; see privateHale.h */
 #include <glm/glm.hpp>
 
 // Let GLFW sort out out how to include the OpenGL3 headers
@@ -87,13 +90,73 @@ extern void done();
 extern void errorGLFW(int errnum, const char *errstr);
 extern GLuint limnToGLPrim(int type);
 
+/* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
+   image-plane distance (because the range along U and V is wholly
+   determined by fov and aspect), there is no control of right-vs-left
+   handed coordinates (it is always right-handed: U increases to the right,
+   V increases downward), and clipNear and clipFar are always relative to
+   look-at point.
+   HEY as short-term hack, near and far are relative to eye */
+class Camera {
+ public:
+  explicit Camera(glm::vec3 from = glm::vec3(3,4,5),
+                  glm::vec3 at = glm::vec3(0,0,0),
+                  glm::vec3 up = glm::vec3(0,0,1),
+                  double fov = 0.8f,
+                  double aspect = 1.3333333,
+                  double clipNear = 5, // -2,
+                  double clipFar = 9, // 2,
+                  bool orthographic = false);
+
+  /* set/get verbosity level */
+  void verbose(int);
+  int verbose();
+
+  /* set/get world-space look-from, look-at, and pseudo-up */
+  void from(glm::vec3); glm::vec3 from();
+  void at(glm::vec3);   glm::vec3 at();
+  void up(glm::vec3);   glm::vec3 up();
+
+  /* setters, getters */
+  void fov(double);        double fov();
+  void aspect(double);     double aspect();
+  void clipNear(double);   double clipNear();
+  void clipFar(double);    double clipFar();
+  void orthographic(bool); bool orthographic();
+
+  /* the (world-to-)view and projection transforms
+     determined by the above parameters */
+  glm::mat4 view();
+  glm::mat4 project();
+
+  /* basis vectors of view space */
+  glm::vec3 U();
+  glm::vec3 V();
+
+ private:
+  int _verbose;
+
+  /* essential camera parameters */
+  glm::vec3 _from, _at, _up;
+  double _fov, _aspect, _clipNear, _clipFar;
+  bool _orthographic;
+
+  /* derived parameters */
+  glm::mat4 _view, _project;
+
+  void updateView();
+  void updateProject();
+};
+
 /* Viewer.cpp: Viewer contains and manages a GLFW window, including the
    camera that defines the view within the viewer.  We intercept all
    the events in order to handle how the camera is updated */
 class Viewer {
  public:
-  explicit Viewer(int width,  int height, const char *label);
+  explicit Viewer(int width,  int height, const char *label, Camera cam0);
   ~Viewer();
+
+  Camera camera;
 
   /* set/get verbosity level */
   void verbose(int);
@@ -106,35 +169,22 @@ class Viewer {
   int width();
   int height();
 
-  /* set/get world-space look-from, look-at, and pseudo-up */
-  void from(glm::vec3); glm::vec3 from();
-  void at(glm::vec3);   glm::vec3 at();
-  void up(glm::vec3);   glm::vec3 up();
-
-  /* set/get vertical field-of-view, in degrees */
-  void fov(double);
-  double fov();
-
   /* set/get whether to fix the "up" vector during camera movements */
   void upFix(bool);
   bool upFix();
-
-  /* set/get whether to use orthographic (not perspective) projection */
-  void orthographic(bool);
-  bool orthographic();
 
   /* swap render buffers in window */
   void bufferSwap();
  private:
   bool _button[2];     // true iff button (left:0, right:1) is down
   int _verbose;
-  limnCamera *_camera; // the camera we manage
   bool _upFix;
   int _mode;           // from Hale::viewerMode* enum
   GLFWwindow *_window; // the window we manage
   int _pixDensity,
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;
+  double _lastX, _lastY; // last clicked position, in screen space
 
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
   static void framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);

@@ -32,7 +32,7 @@ AR = ar crs
 CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
-SRCS = enums.cpp utils.cpp Viewer.cpp
+SRCS = enums.cpp utils.cpp Camera.cpp Viewer.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 DEST = $(HOME)/hale-install
