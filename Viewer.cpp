@@ -23,12 +23,9 @@
 /*
 ** TODO:
 
-map mouse motions to camera updates
+fix rotateV (and that part of rotateUV) in the case of upFix
 
-change near and far back to being at-relative
-change FOV to being in degrees
-remove use of glm::lookat and glm::perspective
-make _window private again
+consider removing use of glm::lookat and glm::perspective
 
 should the viewer do re-render by backback?  Or assume caller can re-render?
 (e.g. changing from perspective to orthographic)
@@ -47,7 +44,7 @@ interpreting hest options
 /* the fraction of window width along its border that will be treated
    as its margin, to support the different kinds of interactions
    triggered there */
-#define MARG 0.16
+#define MARG 0.18
 
 namespace Hale {
 
@@ -123,6 +120,17 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
     /* this is where we handle modifer+'q' as 'quit' on linux;
        actually *any* modifier will do. */
     finishing = true;
+  } else if (GLFW_KEY_U == key && GLFW_PRESS == action) {
+    vwr->_upFix = !vwr->_upFix;
+    if (vwr->verbose()) {
+      printf("%s: fixed-up is now %s\n", me, vwr->_upFix ? "on" : "off");
+    }
+  } else if (GLFW_KEY_O == key && GLFW_PRESS == action) {
+    vwr->camera.orthographic(!vwr->camera.orthographic());
+    if (vwr->verbose()) {
+      printf("%s: projection is %s\n", me,
+             vwr->camera.orthographic() ? "orthographic" : "perspective");
+    }
   }
 
   return;
@@ -192,30 +200,31 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
     **      |     :                           :  X RotateU/
     **      |     :     X RotateUV/           :    TranslateU
     **      |     :       TranslateUV         :     |
-    **      |  X Fov                          :     |
     **      |     :                           :     |
+    **      |  X Fov/DepthScale               :     |
     **      |     :                           :     |
     **      |     :                           :     |
     **      |. . . . . . . . . . . . . . . . . \    |
-    **      |  X  :      X  RotateN/TranslateN   \  |
+    **      |  X  :      X  RotateN/Dolly        \  |
     ** y=1  +--|------------------------------------+
-    **         \__ Dolly/Depth
+    **         \__ Vertigo/DepthTranslate
     */
     if (xf <= MARG && yf > 1-MARG) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeDolly : viewerModeDepth);
+      vwr->_mode = (vwr->_button[0] ? viewerModeVertigo : viewerModeDepthTranslate);
     } else if (xf <= MARG && xf <= yf) {
-      vwr->_mode = viewerModeFov;
+      vwr->_mode = (vwr->_button[0] ? viewerModeFov : viewerModeDepthScale);
     } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateV : viewerModeTranslateV);
     } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
     } else if (yf > 1-MARG && 1-xf >= 1-yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeTranslateN);
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeDolly);
     } else {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
     }
   }
   if (viewerModeNone != vwr->_mode) {
+    /* reset the information about last position */
     vwr->_lastX = vwr->_lastY = AIR_NAN;
   } else {
     vwr->_lastX = xpos;
@@ -232,47 +241,131 @@ void
 Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
-  float deltaX, deltaY;
+  float vsize, ssize, frcX, frcY, rotX, rotY, trnX, trnY;
 
   if (viewerModeNone == vwr->_mode) {
     /* nothing to do here */
     return;
   }
+  if (!AIR_EXISTS(vwr->_lastX) || !AIR_EXISTS(vwr->_lastY)) {
+    /* this is our first time through there; we don't have a previous
+       position recorded, so all we can do is record the position and do
+       the real work the next time we're here */
+    vwr->_lastX = xx;
+    vwr->_lastY = yy;
+    return;
+  }
   /* else we are moving the camera around */
-  if (vwr->verbose()) {
+  if (vwr->verbose() > 1) {
     printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
-  deltaX = 0.01*(xx - vwr->_lastX);
-  deltaY = 0.01*(yy - vwr->_lastY);
-
-  glm::vec3 eye = glm::normalize(vwr->camera.from() - vwr->camera.at());
+  /* "dangle" is Fov, Vertigo, and Depth modes */
+  float angle0 = atan2(vwr->_lastY - vwr->height()/2,
+                       vwr->_lastX - vwr->width()/2);
+  float angle1 = atan2(yy - vwr->height()/2,
+                       xx - vwr->width()/2);
+  float dangle = angle1 - angle0;
+  if (dangle < -AIR_PI) {
+    dangle += 2*AIR_PI;
+  } else if (dangle > AIR_PI) {
+    dangle -= 2*AIR_PI;
+  }
+  dangle *= 1.5;
+  ssize = sqrt(vwr->width()*vwr->width() + vwr->height()*vwr->height());
+  frcX = (vwr->_lastX - xx)/ssize;
+  frcY = (vwr->_lastY - yy)/ssize;
+  rotX = 4*frcX;
+  rotY = 4*frcY;
+  glm::vec3 toeye = vwr->camera.from() - vwr->camera.at();
+  float elen = glm::length(toeye);
+  vsize = elen*sin(vwr->camera.fov()*AIR_PI/360);
+  trnX = 4*frcX*vsize;
+  trnY = 4*frcY*vsize;
+  toeye /= elen;
   glm::vec3 uu = vwr->camera.U();
   glm::vec3 vv = vwr->camera.V();
-  switch(vwr->_mode) {
+  glm::vec3 nn = vwr->camera.N();
+  switch (vwr->_mode) {
   case viewerModeRotateUV:
-    eye = glm::normalize(eye);
-    vwr->camera.from(eye);
-    break;
-  case viewerModeFov:
-    break;
-  case viewerModeDepth:
-    break;
   case viewerModeRotateU:
-    break;
   case viewerModeRotateV:
+    switch (vwr->_mode) {
+    case viewerModeRotateUV:
+      toeye = glm::normalize(toeye + rotX*uu + rotY*vv);
+      break;
+    case viewerModeRotateU:
+      toeye = glm::normalize(toeye + rotY*vv);
+      break;
+    case viewerModeRotateV:
+      toeye = glm::normalize(toeye + rotX*uu);
+      break;
+    }
+    vwr->camera.from(vwr->camera.at() + elen*toeye);
+    if (!vwr->_upFix) {
+      vwr->camera.reup();
+    }
     break;
   case viewerModeRotateN:
+    if (!vwr->_upFix) {
+      // HEY scaling here seems a hack; what's the right answer?
+      vwr->camera.up(glm::normalize(vwr->camera.up() - 0.685f*dangle*uu));
+    }
     break;
   case viewerModeDolly:
+    vwr->camera.from(vwr->camera.from() - 0.5f*dangle*nn);
+    vwr->camera.at(vwr->camera.at() - 0.5f*dangle*nn);
+    break;
+  case viewerModeFov:
+    {
+      /* the idea is that we want to make it hard to reach FOVs of 0 and
+         180.  So we treat those limits as the -pi/2,pi/2 limits of atan(),
+         and manipulate the FOV in the "tangent" space (ha ha, bad pun) */
+      double ff = vwr->camera.fov();
+      ff = AIR_AFFINE(0, ff, 180, -AIR_PI/2, AIR_PI/2);
+      ff = tan(ff);
+      ff -= 0.8*dangle; // set for qualitative effect, not math correctness
+      ff = atan(ff);
+      ff = AIR_AFFINE(-AIR_PI/2, ff, AIR_PI/2, 0, 180);
+      vwr->camera.fov(ff);
+    }
+    break;
+  case viewerModeDepthScale:
+  case viewerModeDepthTranslate:
+    {
+      double lognear = log((elen + vwr->camera.clipNear())/elen);
+      double logfar = log((elen + vwr->camera.clipFar())/elen);
+      if (viewerModeDepthScale == vwr->_mode) {
+        double logscl = pow(2, dangle);
+        lognear *= logscl;
+        logfar *= logscl;
+      } else {
+        lognear += 0.09*dangle;
+        logfar += 0.09*dangle;
+      }
+      vwr->camera.clipNear(exp(lognear)*elen - elen);
+      vwr->camera.clipFar(exp(logfar)*elen - elen);
+    }
+    break;
+  case viewerModeVertigo:
+    if (!vwr->camera.orthographic()) {
+      glm::vec3 nfrom = vwr->camera.from() + dangle*nn;
+      double ndist = glm::length(nfrom - vwr->camera.at());
+      vwr->camera.from(nfrom);
+      vwr->camera.fov(asin(vsize/ndist)*360/AIR_PI);
+    }
     break;
   case viewerModeTranslateUV:
+    vwr->camera.from(vwr->camera.from() + trnX*uu + trnY*vv);
+    vwr->camera.at(vwr->camera.at() + trnX*uu + trnY*vv);
     break;
   case viewerModeTranslateU:
+    vwr->camera.from(vwr->camera.from() + trnY*vv);
+    vwr->camera.at(vwr->camera.at() + trnY*vv);
     break;
   case viewerModeTranslateV:
-    break;
-  case viewerModeTranslateN:
+    vwr->camera.from(vwr->camera.from() + trnX*uu);
+    vwr->camera.at(vwr->camera.at() + trnX*uu);
     break;
   }
 

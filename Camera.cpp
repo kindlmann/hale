@@ -82,7 +82,13 @@ void Camera::at(glm::vec3 aa) {
 void Camera::up(glm::vec3 uu) {
   _up = uu;
   updateView();
-  updateProject(); // maybe not needed
+}
+
+void Camera::reup() {
+  glm::vec3 edir = glm::normalize(_from - _at);
+  _up -= edir*glm::dot(_up, edir);
+  glm::normalize(_up);
+  updateView();
 }
 
 double Camera::fov() { return _fov; }
@@ -158,15 +164,18 @@ void Camera::updateView() {
 void Camera::updateProject() {
   //static const char me[]="Camera::updateProject";
 
-  double vspNear, vspFar;
-  if (0) {
-    vspNear = glm::length(_at - _from) + _clipNear;
-    vspFar = glm::length(_at - _from) + _clipFar;
+  glm::vec3 diff = _at - _from;
+  double dist = glm::length(diff);
+  double vspNear = dist + _clipNear;
+  double vspFar = dist + _clipFar;
+  double fangle = _fov*AIR_PI/360;
+  if (_orthographic) {
+    double vMax = dist*sin(fangle);
+    double uMax = _aspect*vMax;
+    _project = glm::ortho(-uMax, uMax, -vMax, vMax, vspNear, vspFar);
   } else {
-    vspNear = _clipNear;
-    vspFar = _clipFar;
+    _project = glm::perspective(2*fangle, _aspect, vspNear, vspFar);
   }
-  _project = glm::perspective(_fov, _aspect, vspNear, vspFar);
   //fprintf(stderr, "!%s: &_project = %p\n", me, glm::value_ptr(_project));
 
   return;

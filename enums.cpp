@@ -31,16 +31,17 @@ _viewerModeStr[HALE_VIEWER_MODE_MAX+1] = {
   "unknown mode",
   "none",
   "fov",
-  "depth",
+  "depth-scale",
+  "depth-translate",
   "rotate-UV",
   "rotate-U",
   "rotate-V",
   "rotate-N",
-  "dolly",
+  "vertigo",
   "translate-UV",
   "translate-U",
   "translate-V",
-  "translate-N"
+  "dolly"
 };
 
 airEnum

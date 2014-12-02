@@ -47,28 +47,34 @@ namespace Hale {
 ** viewerMode* enum
 **
 ** The GUI modes that the viewer can be in. In Fov and Depth (distance from
-** near to far adjusted), the eye and look-at point are both fixed. The eye
-** moves around a fixed look-at point in the Rotate and Dolly modes. The eye
-** and look-at points move together in the Translate modes.
+** near to far adjusted), the look-from and look-at point are both fixed. The
+** eye moves around a fixed look-at point in the Rotate and Vertigo
+** modes. The eye and look-at points move together in the Translate modes.
 */
 enum {
-  viewerModeUnknown,     /*  0 */
-  viewerModeNone,        /*  1: buttons released => no camera interaction */
-  viewerModeFov,         /*  2: standard "zoom" */
-  viewerModeDepth,       /*  3: adjust distance between near and far planes */
-  viewerModeRotateUV,    /*  4: usual rotate (around look-at point) */
-  viewerModeRotateU,     /*  5: rotate around horizontal axis */
-  viewerModeRotateV,     /*  6: rotate around vertical axis */
-  viewerModeRotateN,     /*  7: in-plane rotate (around at point) */
-  viewerModeDolly,       /*  8: fix at, move from, adjust fov: the effect is
-                                direct control on the amount of perspective */
-  viewerModeTranslateUV, /*  9: usual translate */
-  viewerModeTranslateU,  /* 10: translate only horizontal */
-  viewerModeTranslateV,  /* 11: translate only vertical */
-  viewerModeTranslateN,  /* 12: translate from *and* at along view direction */
+  viewerModeUnknown,        /*  0 */
+  viewerModeNone,           /*  1: buttons released => no camera
+                                interaction */
+  viewerModeFov,            /*  2: standard "zoom" */
+  viewerModeDepthScale,     /*  3: scale distance between near and far
+                                clipping planes */
+  viewerModeDepthTranslate, /*  4: shift near and far planes (together)
+                                towards or away from eye point */
+  viewerModeRotateUV,       /*  5: usual rotate (around look-at point) */
+  viewerModeRotateU,        /*  6: rotate around horizontal axis */
+  viewerModeRotateV,        /*  7: rotate around vertical axis */
+  viewerModeRotateN,        /*  8: in-plane rotate (around at point) */
+  viewerModeVertigo,        /*  9: fix at, move from, adjust fov: the effect
+                                is direct control on amount of perspective
+                                (aka dolly zoom, c.f. Hitchcock's Vertigo) */
+  viewerModeTranslateUV,    /* 10: usual translate */
+  viewerModeTranslateU,     /* 11: translate only horizontal */
+  viewerModeTranslateV,     /* 12: translate only vertical */
+  viewerModeDolly,          /* 13: could be called TranslateN: translate from
+                               *and* at along view direction */
   viewerModeLast
 };
-#define HALE_VIEWER_MODE_MAX 12
+#define HALE_VIEWER_MODE_MAX   13
 
 enum {
   finishingStatusUnknown,      /* 0 */
@@ -104,8 +110,8 @@ class Camera {
                   glm::vec3 up = glm::vec3(0,0,1),
                   double fov = 0.8f,
                   double aspect = 1.3333333,
-                  double clipNear = 5, // -2,
-                  double clipFar = 9, // 2,
+                  double clipNear = -2,
+                  double clipFar = 2,
                   bool orthographic = false);
 
   /* set/get verbosity level */
@@ -122,6 +128,9 @@ class Camera {
   void from(glm::vec3); glm::vec3 from();
   void at(glm::vec3);   glm::vec3 at();
   void up(glm::vec3);   glm::vec3 up();
+
+  /* make up orthogonal to at-from */
+  void reup();
 
   /* setters, getters */
   void fov(double);        double fov();
@@ -188,13 +197,12 @@ class Viewer {
   /* swap render buffers in window */
   void bufferSwap();
 
-  GLFWwindow *_window; // the window we manage
  private:
   bool _button[2];     // true iff button (left:0, right:1) is down
   int _verbose;
   bool _upFix;
   int _mode;           // from Hale::viewerMode* enum
-  // GLFWwindow *_window; // the window we manage
+  GLFWwindow *_window; // the window we manage
   int _pixDensity,
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;
