@@ -460,7 +460,7 @@ void Viewer::shapeUpdate() {
   _pixDensity = _widthBuffer/_widthScreen;
   camera.aspect(static_cast<double>(_widthBuffer)/_heightBuffer);
   fprintf(stderr, "!%s: density = %d; aspect = %g\n", me, _pixDensity, camera.aspect());
-  glViewport(0, 0, _widthBuffer, _heightBuffer);
+  /* not needed? glViewport(0, 0, _widthBuffer, _heightBuffer); */
 }
 
 void Viewer::cameraUpdate() {
