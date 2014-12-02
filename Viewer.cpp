@@ -23,8 +23,6 @@
 /*
 ** TODO:
 
-fix rotateV (and that part of rotateUV) in the case of upFix
-
 consider removing use of glm::lookat and glm::perspective
 
 should the viewer do re-render by backback?  Or assume caller can re-render?
@@ -242,6 +240,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   float vsize, ssize, frcX, frcY, rotX, rotY, trnX, trnY;
+  glm::vec3 nfrom; // new from; used in various cases
 
   if (viewerModeNone == vwr->_mode) {
     /* nothing to do here */
@@ -260,18 +259,22 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
-  /* "dangle" is Fov, Vertigo, and Depth modes */
+  /* "dangle" is for the modes accessed on the left and bottom sides of the
+     window; things for which its nice to be able to make a large change
+     (larger than would fit with only vertical or horizontal cursor
+     motion) */
   float angle0 = atan2(vwr->_lastY - vwr->height()/2,
                        vwr->_lastX - vwr->width()/2);
   float angle1 = atan2(yy - vwr->height()/2,
                        xx - vwr->width()/2);
   float dangle = angle1 - angle0;
+  /* undo the wrapping to [0,2*pi] */
   if (dangle < -AIR_PI) {
     dangle += 2*AIR_PI;
   } else if (dangle > AIR_PI) {
     dangle -= 2*AIR_PI;
   }
-  dangle *= 1.5;
+  // dangle *= 1.5;
   ssize = sqrt(vwr->width()*vwr->width() + vwr->height()*vwr->height());
   frcX = (vwr->_lastX - xx)/ssize;
   frcY = (vwr->_lastY - yy)/ssize;
@@ -293,28 +296,48 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     switch (vwr->_mode) {
     case viewerModeRotateUV:
       toeye = glm::normalize(toeye + rotX*uu + rotY*vv);
+      nfrom = vwr->camera.at() + elen*toeye;
       break;
     case viewerModeRotateU:
       toeye = glm::normalize(toeye + rotY*vv);
+      nfrom = vwr->camera.at() + elen*toeye;
       break;
     case viewerModeRotateV:
-      toeye = glm::normalize(toeye + rotX*uu);
+      if (!vwr->_upFix) {
+        toeye = glm::normalize(toeye + rotX*uu);
+        nfrom = vwr->camera.at() + elen*toeye;
+      } else {
+        /* in this one case, we move along cylinders wrapped around up,
+           instead of along spheres.  We have to decompose the vector
+           to the eye into parts "cpar" parallel with up, and
+           "cort" orthogonal to up, and only update cpar */
+        glm::vec3 up = vwr->camera.up();
+        glm::vec3 diff = vwr->camera.from() - vwr->camera.at();
+        glm::vec3 cpar = up*glm::dot(diff, up);
+        glm::vec3 cort = diff - cpar;
+        float rad = glm::length(cort);
+        cort /= rad;
+        cort = glm::normalize(cort + rotX*uu);
+        nfrom = vwr->camera.at() + rad*cort + cpar;
+      }
       break;
     }
-    vwr->camera.from(vwr->camera.at() + elen*toeye);
+    vwr->camera.from(nfrom);
     if (!vwr->_upFix) {
       vwr->camera.reup();
     }
     break;
   case viewerModeRotateN:
     if (!vwr->_upFix) {
-      // HEY scaling here seems a hack; what's the right answer?
-      vwr->camera.up(glm::normalize(vwr->camera.up() - 0.685f*dangle*uu));
+      vwr->camera.up(glm::normalize(vwr->camera.up() - dangle*uu));
     }
     break;
   case viewerModeDolly:
-    vwr->camera.from(vwr->camera.from() - 0.5f*dangle*nn);
-    vwr->camera.at(vwr->camera.at() - 0.5f*dangle*nn);
+    vwr->camera.from(vwr->camera.from() - dangle*nn);
+    /* to be consistent with Translate{U,V,UV}, we move both
+       "from" and "at" here, though sometimes it is nice to be
+       able to move only "from", leaving "at" as is */
+    vwr->camera.at(vwr->camera.at() - dangle*nn);
     break;
   case viewerModeFov:
     {
@@ -324,7 +347,8 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
       double ff = vwr->camera.fov();
       ff = AIR_AFFINE(0, ff, 180, -AIR_PI/2, AIR_PI/2);
       ff = tan(ff);
-      ff -= 0.8*dangle; // set for qualitative effect, not math correctness
+      // scaling here for qualitative effect, not math correctness
+      ff -= -0.9f*dangle;
       ff = atan(ff);
       ff = AIR_AFFINE(-AIR_PI/2, ff, AIR_PI/2, 0, 180);
       vwr->camera.fov(ff);
@@ -349,7 +373,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     break;
   case viewerModeVertigo:
     if (!vwr->camera.orthographic()) {
-      glm::vec3 nfrom = vwr->camera.from() + dangle*nn;
+      nfrom = vwr->camera.from() + 1.2f*dangle*nn;
       double ndist = glm::length(nfrom - vwr->camera.at());
       vwr->camera.from(nfrom);
       vwr->camera.fov(asin(vsize/ndist)*360/AIR_PI);
