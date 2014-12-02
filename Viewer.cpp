@@ -25,6 +25,8 @@
 
 consider removing use of glm::lookat and glm::perspective
 
+with up fix, make it harder to get from-at aligned with up
+
 should the viewer do re-render by backback?  Or assume caller can re-render?
 (e.g. changing from perspective to orthographic)
 
@@ -111,7 +113,7 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
-  if (vwr->verbose()) {
+  if (vwr->verbose() > 1) {
     printf("%s(%d,%d,%d,%d)\n", me, key, scancode, action, mods);
   }
   if (GLFW_KEY_Q == key && GLFW_PRESS == action && mods) {
