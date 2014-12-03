@@ -108,7 +108,7 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="framebufferSizeCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
-  if (vwr->verbose()) {
+  if (vwr->verbose() > 1) {
     printf("%s(%d,%d)\n", me, newWidth, newHeight);
   }
   vwr->_widthBuffer = newWidth;
@@ -450,6 +450,8 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  /* should look into using this!
+     glfwWindowHint(GLFW_SAMPLES, 0); */
   _label = label ? label : "Viewer";
   _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
   if (!_window) {
