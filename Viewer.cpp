@@ -28,6 +28,9 @@ figure out relationship between basis implied by glm::lookat, and {U,V,N}
 
 with up fix, make it harder to get from-at aligned with up
 
+make something like 90 degrees be upper limit on FOV, to be
+enforced with both FOV and Vertigo controls
+
 viewer capture/dump to image
 
 generating hest options
@@ -114,8 +117,8 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   vwr->_widthBuffer = newWidth;
   vwr->_heightBuffer = newHeight;
   glfwGetWindowSize(gwin, &(vwr->_widthScreen), &(vwr->_heightScreen));
-  vwr->title();
   vwr->shapeUpdate();
+  vwr->title();
   return;
 }
 
@@ -142,6 +145,11 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
       printf("%s: projection is %s\n", me,
              vwr->camera.orthographic() ? "orthographic" : "perspective");
     }
+  } else if (GLFW_KEY_V == key && GLFW_PRESS == action) {
+    int vv = vwr->verbose();
+    vv += mods ? -1 : 1;
+    vv = vv < 0 ? 0 : vv;
+    vwr->verbose(vv);
   }
 
   return;
@@ -283,7 +291,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     return;
   }
   /* else we are moving the camera around */
-  if (vwr->verbose() > 1) {
+  if (vwr->verbose() > 2) {
     printf("%s(%g,%g): (%s) hello\n", me, xx, yy,
            airEnumStr(viewerMode, vwr->_mode));
   }
@@ -381,7 +389,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
       ff = AIR_AFFINE(0, ff, 180, -AIR_PI/2, AIR_PI/2);
       ff = tan(ff);
       // scaling here for qualitative effect, not math correctness
-      ff -= -0.9f*dangle;
+      ff -= 0.9f*dangle;
       ff = atan(ff);
       ff = AIR_AFFINE(-AIR_PI/2, ff, AIR_PI/2, 0, 180);
       vwr->camera.fov(ff);
@@ -406,8 +414,10 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     break;
   case viewerModeVertigo:
     if (vwr->camera.orthographic()) {
-      fprintf(stderr, "%s: (no effect from %s w/ orthographic projection)\n",
-              me, airEnumStr(viewerMode, viewerModeVertigo));
+      if (vwr->verbose()) {
+        fprintf(stderr, "%s: (no effect from %s w/ orthographic projection)\n",
+                me, airEnumStr(viewerMode, viewerModeVertigo));
+      }
     } else {
       glm::vec3 teye = vwr->camera.from() - vwr->camera.at();
       float odist = glm::length(teye);
@@ -441,7 +451,7 @@ Viewer::Viewer(int width, int height, const char *label) {
   static const char me[]="Hale::Viewer::Viewer";
 
   _button[0] = _button[1] = false;
-  _verbose = 1;
+  _verbose = 0;
   _upFix = false;
   _mode = viewerModeNone;
   _refreshCB = NULL;
@@ -465,8 +475,6 @@ Viewer::Viewer(int width, int height, const char *label) {
     finishing = true;
   }
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
-  _pixDensity = _widthBuffer/_widthScreen;
-  title(); // now that we have pixel density
 
   glfwMakeContextCurrent(_window);
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
@@ -479,6 +487,7 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwSetWindowRefreshCallback(_window, windowRefreshCB);
 
   shapeUpdate();
+  title();
 }
 
 Viewer::~Viewer() {
@@ -486,7 +495,16 @@ Viewer::~Viewer() {
 }
 
 int Viewer::verbose() { return _verbose; }
-void Viewer::verbose(int vv) { _verbose = vv; }
+void Viewer::verbose(int vv) {
+  static const char me[]="Viewer::verbose";
+  if (_verbose && !vv) {
+    fprintf(stderr, "%s: now 0 (silent)\n", me);
+  }
+  _verbose = vv;
+  if (vv) {
+    fprintf(stderr, "%s: now %d\n", me, vv);
+  }
+}
 
 int Viewer::width() { return _widthScreen; }
 int Viewer::height() { return _heightScreen; }
