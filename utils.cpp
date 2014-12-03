@@ -38,7 +38,7 @@ init() {
   iret = glfwInit();
   fprintf(stderr, "%s: glfwInit returned %d (%s)\n", me, iret,
           (GL_TRUE == iret
-           ? "GL_TRUE"
+           ? "GL_TRUE (all's well)"
            : (GL_FALSE == iret
               ? "GL_FALSE"
               : "what?")));
