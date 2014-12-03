@@ -23,7 +23,7 @@
 /*
 ** TODO:
 
-consider removing use of glm::lookat and glm::perspective, in any case
+consider removing use of glm::lookat and glm::perspective, in any case:
 figure out relationship between basis implied by glm::lookat, and {U,V,N}
 
 with up fix, make it harder to get from-at aligned with up
@@ -450,7 +450,7 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  /* should look into using this!
+  /* HEY HEY should look into using this!
      glfwWindowHint(GLFW_SAMPLES, 0); */
   _label = label ? label : "Viewer";
   _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
@@ -499,7 +499,7 @@ void *Viewer::refreshData() { return _refreshData; }
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
-/*
+/* HEY HEY finish this
 int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {
   static const char me[]="Hale::Viewer::bufferSave";
 

@@ -99,12 +99,12 @@ extern void errorGLFW(int errnum, const char *errstr);
 extern GLuint limnToGLPrim(int type);
 
 /* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
-   image-plane distance (because the range along U and V is wholly
-   determined by fov and aspect), there is no control of right-vs-left
-   handed coordinates (it is always right-handed: U increases to the right,
-   V increases downward), and clipNear and clipFar are always relative to
-   look-at point.
-   HEY as short-term hack, near and far are relative to eye */
+   image-plane distance (because the range along U and V is wholly determined
+   by fov and aspect), there is no control of right-vs-left handed
+   coordinates (it is always right-handed: U increases to the right, V
+   increases downward HEY HEY is that actually true, with use of
+   glm::view()?), and clipNear and clipFar are always relative to look-at
+   point. */
 class Camera {
  public:
   explicit Camera(glm::vec3 from = glm::vec3(3,4,5),
