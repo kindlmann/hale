@@ -310,7 +310,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   rotY = 4*frcY;
   glm::vec3 toeye = vwr->camera.from() - vwr->camera.at();
   float elen = glm::length(toeye);
-  vsize = elen*sin(vwr->camera.fov()*AIR_PI/360);
+  vsize = elen*tan(vwr->camera.fov()*AIR_PI/360);
   trnX = 4*frcX*vsize;
   trnY = 4*frcY*vsize;
   toeye /= elen;
@@ -405,11 +405,16 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     }
     break;
   case viewerModeVertigo:
-    if (!vwr->camera.orthographic()) {
-      nfrom = vwr->camera.from() + 1.2f*dangle*nn;
-      double ndist = glm::length(nfrom - vwr->camera.at());
-      vwr->camera.from(nfrom);
-      vwr->camera.fov(asin(vsize/ndist)*360/AIR_PI);
+    if (vwr->camera.orthographic()) {
+      fprintf(stderr, "%s: (no effect from %s w/ orthographic projection)\n",
+              me, airEnumStr(viewerMode, viewerModeVertigo));
+    } else {
+      glm::vec3 teye = vwr->camera.from() - vwr->camera.at();
+      float odist = glm::length(teye);
+      teye /= odist;
+      float ndist = exp(log(odist) - 0.9f*dangle);
+      vwr->camera.from(ndist*teye + vwr->camera.at());
+      vwr->camera.fov(atan(vsize/ndist)*360/AIR_PI);
     }
     break;
   case viewerModeTranslateUV:
