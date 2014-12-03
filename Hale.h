@@ -43,6 +43,8 @@
 
 namespace Hale {
 
+typedef void (*ViewerRefresher)(void*);
+
 /*
 ** viewerMode* enum
 **
@@ -182,6 +184,9 @@ class Viewer {
   void verbose(int);
   int verbose();
 
+  /* set window title */
+  void title();
+
   /* get width and height of window in screen-space, which is not always
      the same as dimensions of frame buffer (on high-DPI displays, the
      frame buffer size is larger than the nominal size of the window).
@@ -194,28 +199,41 @@ class Viewer {
   void upFix(bool);
   bool upFix();
 
+  /* set/get refresh callback, and its data */
+  void refreshCB(ViewerRefresher cb);
+  ViewerRefresher refreshCB();
+  void refreshData(void *data);
+  void *refreshData();
+
   /* swap render buffers in window */
   void bufferSwap();
 
+  /* save current view to image */
+  // int bufferSave(Nrrd *nrgba, Nrrd *ndepth);
+
  private:
   bool _button[2];     // true iff button (left:0, right:1) is down
+  std::string _label;
   int _verbose;
   bool _upFix;
   int _mode;           // from Hale::viewerMode* enum
-  GLFWwindow *_window; // the window we manage
+  ViewerRefresher _refreshCB;
+  void * _refreshData;
+
   int _pixDensity,
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;
   double _lastX, _lastY; // last clicked position, in screen space
 
+  GLFWwindow *_window; // the window we manage
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
   static void framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);
   static void keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods);
   static void windowCloseCB(GLFWwindow *gwin);
+  static void windowRefreshCB(GLFWwindow *gwin);
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
 
   void shapeUpdate();
-  void cameraUpdate();
 };
 
 } // namespace Hale

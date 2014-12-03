@@ -86,8 +86,7 @@ void Camera::up(glm::vec3 uu) {
 
 void Camera::reup() {
   glm::vec3 edir = glm::normalize(_from - _at);
-  _up -= edir*glm::dot(_up, edir);
-  glm::normalize(_up);
+  _up = glm::normalize(_up - glm::dot(_up, edir)*edir);
   updateView();
 }
 

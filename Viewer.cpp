@@ -23,12 +23,10 @@
 /*
 ** TODO:
 
-consider removing use of glm::lookat and glm::perspective
+consider removing use of glm::lookat and glm::perspective, in any case
+figure out relationship between basis implied by glm::lookat, and {U,V,N}
 
 with up fix, make it harder to get from-at aligned with up
-
-should the viewer do re-render by backback?  Or assume caller can re-render?
-(e.g. changing from perspective to orthographic)
 
 viewer capture/dump to image
 
@@ -86,11 +84,24 @@ Viewer::windowSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   vwr->_heightScreen = newHeight;
   glfwGetFramebufferSize(gwin, &(vwr->_widthBuffer), &(vwr->_heightBuffer));
   vwr->shapeUpdate();
-  vwr->cameraUpdate();
   return;
 }
 
 */
+
+void
+Viewer::title() {
+  char xd[128], buff[128];
+
+  if (1 != _pixDensity) {
+    sprintf(xd, "x%d", _pixDensity);
+  } else {
+    strcpy(xd, "");
+  }
+  sprintf(buff, " (%d,%d)%s", _widthScreen, _heightScreen, xd);
+  std::string title = _label + buff;
+  glfwSetWindowTitle(_window, title.c_str());
+}
 
 void
 Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
@@ -103,8 +114,8 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   vwr->_widthBuffer = newWidth;
   vwr->_heightBuffer = newHeight;
   glfwGetWindowSize(gwin, &(vwr->_widthScreen), &(vwr->_heightScreen));
+  vwr->title();
   vwr->shapeUpdate();
-  vwr->cameraUpdate();
   return;
 }
 
@@ -121,9 +132,9 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
        actually *any* modifier will do. */
     finishing = true;
   } else if (GLFW_KEY_U == key && GLFW_PRESS == action) {
-    vwr->_upFix = !vwr->_upFix;
+    vwr->upFix(!vwr->upFix());
     if (vwr->verbose()) {
-      printf("%s: fixed-up is now %s\n", me, vwr->_upFix ? "on" : "off");
+      printf("%s: fixed-up is now %s\n", me, vwr->upFix() ? "on" : "off");
     }
   } else if (GLFW_KEY_O == key && GLFW_PRESS == action) {
     vwr->camera.orthographic(!vwr->camera.orthographic());
@@ -145,6 +156,21 @@ Viewer::windowCloseCB(GLFWwindow *gwin) {
     printf("%s()\n", me);
   }
   finishing = true;
+
+  return;
+}
+
+void
+Viewer::windowRefreshCB(GLFWwindow *gwin) {
+  static const char me[]="windowRefreshCB";
+  Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+
+  if (vwr->verbose() > 1) {
+    printf("%s()\n", me);
+  }
+  if (vwr->_refreshCB) {
+    vwr->_refreshCB(vwr->_refreshData);
+  }
 
   return;
 }
@@ -317,6 +343,11 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
         glm::vec3 diff = vwr->camera.from() - vwr->camera.at();
         glm::vec3 cpar = up*glm::dot(diff, up);
         glm::vec3 cort = diff - cpar;
+        /*
+        fprintf(stderr, "%s: |diff| = %g; |cpar| = %g; |cort| = %g (|up|=%g)\n", me,
+                glm::length(diff), glm::length(cpar), glm::length(cort),
+                glm::length(up));
+        */
         float rad = glm::length(cort);
         cort /= rad;
         cort = glm::normalize(cort + rotX*uu);
@@ -397,10 +428,10 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
 
   vwr->_lastX = xx;
   vwr->_lastY = yy;
-  vwr->cameraUpdate();
   return;
 }
 
+/* constructor */
 Viewer::Viewer(int width, int height, const char *label) {
   static const char me[]="Hale::Viewer::Viewer";
 
@@ -408,6 +439,8 @@ Viewer::Viewer(int width, int height, const char *label) {
   _verbose = 1;
   _upFix = false;
   _mode = viewerModeNone;
+  _refreshCB = NULL;
+  _refreshData = NULL;
   _widthScreen = width;
   _heightScreen = height;
   _lastX = _lastY = AIR_NAN;
@@ -417,15 +450,16 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
-  _window = glfwCreateWindow(width, height,
-                             label ? label : "Viewer", NULL, NULL);
+  _label = label ? label : "Viewer";
+  _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
   if (!_window) {
     fprintf(stderr, "%s: glfwCreateWindow(%d,%d) failed\n",
             me, width, height);
     finishing = true;
   }
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
+  _pixDensity = _widthBuffer/_widthScreen;
+  title(); // now that we have pixel density
 
   glfwMakeContextCurrent(_window);
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
@@ -435,6 +469,7 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwSetFramebufferSizeCallback(_window, framebufferSizeCB);
   glfwSetKeyCallback(_window, keyCB);
   glfwSetWindowCloseCallback(_window, windowCloseCB);
+  glfwSetWindowRefreshCallback(_window, windowRefreshCB);
 
   shapeUpdate();
 }
@@ -450,24 +485,36 @@ int Viewer::width() { return _widthScreen; }
 int Viewer::height() { return _heightScreen; }
 
 bool Viewer::upFix() { return _upFix; }
-void Viewer::upFix(bool upf) { _upFix = upf; }
+void Viewer::upFix(bool upf) {
+  _upFix = upf;
+  camera.reup();
+}
+
+void Viewer::refreshCB(ViewerRefresher cb) { _refreshCB = cb; }
+ViewerRefresher Viewer::refreshCB() { return _refreshCB; }
+void Viewer::refreshData(void *data) { _refreshData = data; }
+void *Viewer::refreshData() { return _refreshData; }
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
+/*
+int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {
+  static const char me[]="Hale::Viewer::bufferSave";
+
+  if (!nrgba && !ndepth) { // huh; no output requested?
+    return 0;
+  }
+
+  return 0;
+}
+*/
+
 void Viewer::shapeUpdate() {
-  static const char me[]="Hale::Viewer::shapeUpdate";
+  // static const char me[]="Hale::Viewer::shapeUpdate";
 
   _pixDensity = _widthBuffer/_widthScreen;
   camera.aspect(static_cast<double>(_widthBuffer)/_heightBuffer);
-  fprintf(stderr, "!%s: density = %d; aspect = %g\n", me, _pixDensity, camera.aspect());
   glViewport(0, 0, _widthBuffer, _heightBuffer);
-}
-
-void Viewer::cameraUpdate() {
-  // static const char me[]="Hale::Viewer::cameraUpdate";
-
-
-  /* HEY: update GL transforms for camera */
 }
 
 } // namespace Hale
