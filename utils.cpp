@@ -27,37 +27,7 @@ namespace Hale {
 bool
 finishing = false;
 
-int
-init() {
-  static const char me[]="Hale::init";
-  int iret;
-
-  nrrdSanityOrDie(me);
-  /* install GLFW error hander, then try glfwInit */
-  glfwSetErrorCallback(errorGLFW);
-  iret = glfwInit();
-  fprintf(stderr, "%s: glfwInit returned %d (%s)\n", me, iret,
-          (GL_TRUE == iret
-           ? "GL_TRUE; all's well"
-           : (GL_FALSE == iret
-              ? "GL_FALSE"
-              : "what?")));
-  if (GL_TRUE != iret) {
-    fprintf(stderr, "%s: trouble with glfwInit\n", me);
-    return 1;
-  }
-
-  return 0;
-}
-
-void
-done() {
-  // HEY should have a way of taking mops to clean up
-  glfwTerminate();
-  return;
-}
-
-void
+static void
 errorGLFW(int errnum, const char *errstr) {
   static int count = 0;
   static const char me[]="Hale::errorGLFW";
@@ -107,6 +77,36 @@ errorGLFW(int errnum, const char *errstr) {
     fprintf(stderr, "%s: too many calls; bye\n", me);
     exit(1);
   }
+  return;
+}
+
+int
+init() {
+  static const char me[]="Hale::init";
+  int iret;
+
+  nrrdSanityOrDie(me);
+  /* install GLFW error hander, then try glfwInit */
+  glfwSetErrorCallback(errorGLFW);
+  iret = glfwInit();
+  fprintf(stderr, "%s: glfwInit returned %d (%s)\n", me, iret,
+          (GL_TRUE == iret
+           ? "GL_TRUE; all's well"
+           : (GL_FALSE == iret
+              ? "GL_FALSE"
+              : "what?")));
+  if (GL_TRUE != iret) {
+    fprintf(stderr, "%s: trouble with glfwInit\n", me);
+    return 1;
+  }
+
+  return 0;
+}
+
+void
+done() {
+  // HEY should have a way of taking mops to clean up
+  glfwTerminate();
   return;
 }
 

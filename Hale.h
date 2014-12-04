@@ -95,7 +95,6 @@ extern airEnum *finishingStatus;
 extern bool finishing;
 extern int init();
 extern void done();
-extern void errorGLFW(int errnum, const char *errstr);
 extern GLuint limnToGLPrim(int type);
 extern char *fileContents(const char *fname);
 extern GLint shaderNew(GLint shtype, const char *filename);

@@ -1,0 +1,23 @@
+
+organizing shaders, uniforms, attributes, etc:
+
+getting list of attributes and uniforms
+http://stackoverflow.com/questions/440144/in-opengl-is-there-a-way-to-get-a-list-of-all-uniforms-attribs-used-by-a-shade
+
+------- Viewer ----------
+
+consider removing use of glm::lookat and glm::perspective, in any case:
+figure out relationship between basis implied by glm::lookat, and {U,V,N}
+
+with up fix, make it harder to get from-at aligned with up
+
+make something like 90 degrees be upper limit on FOV, to be
+enforced with both FOV and Vertigo controls
+
+viewer capture/dump to image
+https://www.opengl.org/discussion_boards/showthread.php/177931-glReadPixels-fails-to-read-the-content-of-the-color-buffer
+https://www.opengl.org/sdk/docs/man/html/glReadPixels.xhtml
+
+generating hest options
+
+interpreting hest options

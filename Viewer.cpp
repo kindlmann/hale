@@ -20,25 +20,6 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-/*
-** TODO:
-
-consider removing use of glm::lookat and glm::perspective, in any case:
-figure out relationship between basis implied by glm::lookat, and {U,V,N}
-
-with up fix, make it harder to get from-at aligned with up
-
-make something like 90 degrees be upper limit on FOV, to be
-enforced with both FOV and Vertigo controls
-
-viewer capture/dump to image
-
-generating hest options
-
-interpreting hest options
-
-*/
-
 #include "Hale.h"
 #include "privateHale.h"
 
