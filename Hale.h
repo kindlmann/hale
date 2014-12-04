@@ -97,6 +97,8 @@ extern int init();
 extern void done();
 extern void errorGLFW(int errnum, const char *errstr);
 extern GLuint limnToGLPrim(int type);
+extern char *fileContents(const char *fname);
+extern GLint shaderNew(GLint shtype, const char *filename);
 
 /* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
    image-plane distance (because the range along U and V is wholly determined

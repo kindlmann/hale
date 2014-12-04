@@ -141,4 +141,73 @@ limnToGLPrim(int type) {
   return ret;
 }
 
+char *
+fileContents(const char *fname) {
+  static const char me[]="Hale::fileContents";
+  char *ret;
+  FILE *file;
+  long len;
+
+  if (!fname) {
+    fprintf(stderr, "%s: got NULL fname", me);
+    return NULL;
+  }
+  if (!(file = fopen(fname, "r"))) {
+    fprintf(stderr, "%s: couldn't open \"%s\" for reading", me, fname);
+    return NULL;
+  }
+  /* learn length of file contents */
+  fseek(file, 0L, SEEK_END);
+  len = ftell(file);
+  fseek(file, 0L, SEEK_SET);
+  ret = (char*)malloc(len+1);
+  if (!ret) {
+    fprintf(stderr, "%s: allocation failure", me);
+    fclose(file);
+    return NULL;
+  }
+  /* copy file into string */
+  fread(ret, 1, len, file);
+  ret[len] = '\0';
+  fclose(file);
+  return ret;
+}
+
+GLint
+shaderNew(GLint shtype, const char *filename) {
+  static const char me[]="Hale::shaderNew";
+  GLuint shaderId;
+  GLint status;
+  char *shaderTxt;
+
+  shaderId = glCreateShader(shtype);
+  if (!shaderId) {
+    /* HEY should be using glGetError? */
+    fprintf(stderr, "%s: trouble creating shader of type %d", me, shtype);
+    return 0;
+  }
+  if (!(shaderTxt = fileContents(filename))) {
+    fprintf(stderr, "%s: trouble reading from \"%s\"", me, filename);
+    return 0;
+  }
+  glShaderSource(shaderId, 1, (const GLchar **)(&shaderTxt), NULL);
+  glCompileShader(shaderId);
+  glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
+  if (GL_FALSE == status) {
+    GLint logSize;
+    char *logMsg;
+    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
+    if (logSize) {
+      logMsg = (char*)malloc(logSize);
+      glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
+      fprintf(stderr, "%s: shader compiler error:\n%s", me, logMsg);
+      glDeleteShader(shaderId);
+      free(logMsg);
+    }
+    return 0;
+  }
+  return shaderId;
+}
+
+
 } // namespace Hale
