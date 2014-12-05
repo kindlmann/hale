@@ -108,10 +108,10 @@ extern GLint shaderNew(GLint shtype, const char *filename);
    point. */
 class Camera {
  public:
-  explicit Camera(glm::vec3 from = glm::vec3(3,4,5),
-                  glm::vec3 at = glm::vec3(0,0,0),
-                  glm::vec3 up = glm::vec3(0,0,1),
-                  double fov = 0.8f,
+  explicit Camera(glm::vec3 from = glm::vec3(3.0f,4.0f,5.0f),
+                  glm::vec3 at = glm::vec3(0.0f,0.0f,0.0f),
+                  glm::vec3 up = glm::vec3(0.0f,0.0f,1.0f),
+                  double fov = 0.8,
                   double aspect = 1.3333333,
                   double clipNear = -2,
                   double clipFar = 2,
