@@ -46,6 +46,12 @@ namespace Hale {
 typedef void (*ViewerRefresher)(void*);
 
 /*
+** enums.cpp: Various C enums are used to representing things with
+** integers, and the airEnum provides mappings between strings and the
+** corresponding integers
+*/
+
+/*
 ** viewerMode* enum
 **
 ** The GUI modes that the viewer can be in. In Fov and Depth (distance from
@@ -72,32 +78,36 @@ enum {
   viewerModeTranslateUV,    /* 10: usual translate */
   viewerModeTranslateU,     /* 11: translate only horizontal */
   viewerModeTranslateV,     /* 12: translate only vertical */
-  viewerModeDolly,          /* 13: could be called TranslateN: translate from
+  viewerModeDolly           /* 13: could be called TranslateN: translate from
                                *and* at along view direction */
-  viewerModeLast
 };
-#define HALE_VIEWER_MODE_MAX   13
+extern airEnum *viewerMode;
 
 enum {
-  finishingStatusUnknown,      /* 0 */
-  finishingStatusNot,          /* 1: we're still running */
-  finishingStatusOkay,         /* 2: we're quitting gracefully */
-  finishingStatusError,        /* 3: we're exiting with error */
-  finishingStatusLast
+  vertAttrIndxUnknown = -1, /* -1: (0 is a valid index) */
+  vertAttrIndxXYZ,          /*  0: XYZ position */
+  vertAttrIndxXYZW,         /*  1: XYZW position */
+  vertAttrIndxNorm,         /*  2: 3-vector normal */
+  vertAttrIndxRGB,          /*  3: RGB color */
+  vertAttrIndxRGBA,         /*  4: RGBA color */
 };
-#define HALE_FINISHING_STATUS_MAX 3
+extern airEnum *vertAttrIndx;
 
-/* enums.cpp */
-extern airEnum *viewerMode;
+enum {
+  finishingStatusUnknown,   /* 0 */
+  finishingStatusNot,       /* 1: we're still running */
+  finishingStatusOkay,      /* 2: we're quitting gracefully */
+  finishingStatusError      /* 3: we're exiting with error */
+};
 extern airEnum *finishingStatus;
+
 
 /* utils.cpp */
 extern bool finishing;
 extern int init();
 extern void done();
 extern GLuint limnToGLPrim(int type);
-extern char *fileContents(const char *fname);
-extern GLint shaderNew(GLint shtype, const char *filename);
+extern void glErrorCheck(std::string whence, std::string context);
 
 /* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
    image-plane distance (because the range along U and V is wholly determined
@@ -235,6 +245,28 @@ class Viewer {
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
 
   void shapeUpdate();
+};
+
+/*
+** Program.cpp: a GLSL shader program contains shader objects for vertex and
+** fragment shaders (can easily add a geometry shader when needed)
+*/
+
+extern GLchar *fileContents(const char *fname);                         
+extern GLint shaderNew(GLint shtype, const GLchar *shaderSrc);                   
+
+class Program {
+ public:
+  explicit Program(const char *vertFname, const char *fragFname);
+  ~Program();
+  void compile();
+  void bind(GLuint idx, const GLchar *name);
+  void link();
+  GLint uniformLocation(const GLchar *name);
+  void use();
+ private:
+  GLint _vertId, _fragId, _progId;
+  GLchar *_vertCode, *_fragCode;
 };
 
 } // namespace Hale

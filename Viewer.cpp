@@ -472,6 +472,7 @@ Viewer::Viewer(int width, int height, const char *label) {
 }
 
 Viewer::~Viewer() {
+  //static const char me[]="Viewer::~Viewer";
   glfwDestroyWindow(_window);
 }
 

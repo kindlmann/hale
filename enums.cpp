@@ -26,28 +26,29 @@ namespace Hale {
 
 /* ------------------------------------------------------------- */
 
+#define VIEWER_MODE_NUM 13
 const char *
-_viewerModeStr[HALE_VIEWER_MODE_MAX+1] = {
-  "unknown mode",
-  "none",
-  "fov",
-  "depth-scale",
-  "depth-translate",
-  "rotate-UV",
-  "rotate-U",
-  "rotate-V",
-  "rotate-N",
-  "vertigo",
-  "translate-UV",
-  "translate-U",
-  "translate-V",
-  "dolly"
+_viewerModeStr[VIEWER_MODE_NUM+1] = {
+  "unknown mode",    /* (0) */
+  "none",            /*  1 */
+  "fov",             /*  2 */
+  "depth-scale",     /*  3 */
+  "depth-translate", /*  4 */
+  "rotate-UV",       /*  5 */
+  "rotate-U",        /*  6 */
+  "rotate-V",        /*  7 */
+  "rotate-N",        /*  8 */
+  "vertigo",         /*  9 */
+  "translate-UV",    /* 10 */
+  "translate-U",     /* 11 */
+  "translate-V",     /* 12 */
+  "dolly"            /* 13 */
 };
 
 airEnum
 _viewerMode = {
   "viewer mode",
-  HALE_VIEWER_MODE_MAX,
+  VIEWER_MODE_NUM,
   _viewerModeStr, NULL,
   NULL,
   NULL, NULL,
@@ -59,18 +60,20 @@ viewerMode = &_viewerMode;
 
 /* ------------------------------------------------------------- */
 
+#define FINISHING_STATUS_NUM 3
+
 const char *
-_finishingStatusStr[HALE_VIEWER_MODE_MAX+1] = {
-  "unknown finishing status",
-  "not",
-  "okay",
-  "error"
+_finishingStatusStr[FINISHING_STATUS_NUM+1] = {
+  "unknown finishing status", /* (0) */
+  "not",                      /* 1 */
+  "okay",                     /* 2 */
+  "error"                     /* 3 */
 };
 
 airEnum
 _finishingStatus = {
   "finishing status",
-  HALE_FINISHING_STATUS_MAX,
+  FINISHING_STATUS_NUM,
   _finishingStatusStr, NULL,
   NULL,
   NULL, NULL,
@@ -79,5 +82,31 @@ _finishingStatus = {
 
 airEnum *
 finishingStatus = &_finishingStatus;
+
+/* ------------------------------------------------------------- */
+
+#define VERT_ATTR_INDX_NUM 5
+const char *
+_vertAttrIndxStr[VERT_ATTR_INDX_NUM+1] = {
+  "unknown vert attr index", /* (-1) */
+  "xyz",                     /*  0 */
+  "xyzw",                    /*  1 */
+  "norm",                    /*  2 */
+  "rgb"                      /*  3 */
+  "rgba"                     /*  4 */
+};
+
+airEnum
+_vertAttrIndex = {
+  "vertex attribute index",
+  VERT_ATTR_INDX_NUM,
+  _vertAttrIndxStr, NULL,
+  NULL,
+  NULL, NULL,
+  AIR_FALSE
+};
+
+airEnum *
+vertAttrIndex = &_vertAttrIndex;
 
 } // namespace Hale

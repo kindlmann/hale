@@ -17,6 +17,7 @@ enforced with both FOV and Vertigo controls
 viewer capture/dump to image
 https://www.opengl.org/discussion_boards/showthread.php/177931-glReadPixels-fails-to-read-the-content-of-the-color-buffer
 https://www.opengl.org/sdk/docs/man/html/glReadPixels.xhtml
+https://www.opengl.org/wiki/Framebuffer_Object
 
 generating hest options
 

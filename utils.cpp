@@ -85,16 +85,22 @@ init() {
   static const char me[]="Hale::init";
   int iret;
 
+  /* sanity check for Teem */
   nrrdSanityOrDie(me);
+
+  /* need any sanity checks of our own? */
+
   /* install GLFW error hander, then try glfwInit */
   glfwSetErrorCallback(errorGLFW);
   iret = glfwInit();
+  /*
   fprintf(stderr, "%s: glfwInit returned %d (%s)\n", me, iret,
           (GL_TRUE == iret
            ? "GL_TRUE; all's well"
            : (GL_FALSE == iret
               ? "GL_FALSE"
               : "what?")));
+  */
   if (GL_TRUE != iret) {
     fprintf(stderr, "%s: trouble with glfwInit\n", me);
     return 1;
@@ -141,73 +147,49 @@ limnToGLPrim(int type) {
   return ret;
 }
 
-char *
-fileContents(const char *fname) {
-  static const char me[]="Hale::fileContents";
-  char *ret;
-  FILE *file;
-  long len;
-
-  if (!fname) {
-    fprintf(stderr, "%s: got NULL fname", me);
-    return NULL;
-  }
-  if (!(file = fopen(fname, "r"))) {
-    fprintf(stderr, "%s: couldn't open \"%s\" for reading", me, fname);
-    return NULL;
-  }
-  /* learn length of file contents */
-  fseek(file, 0L, SEEK_END);
-  len = ftell(file);
-  fseek(file, 0L, SEEK_SET);
-  ret = (char*)malloc(len+1);
-  if (!ret) {
-    fprintf(stderr, "%s: allocation failure", me);
-    fclose(file);
-    return NULL;
-  }
-  /* copy file into string */
-  fread(ret, 1, len, file);
-  ret[len] = '\0';
-  fclose(file);
-  return ret;
-}
-
-GLint
-shaderNew(GLint shtype, const char *filename) {
-  static const char me[]="Hale::shaderNew";
-  GLuint shaderId;
-  GLint status;
-  char *shaderTxt;
-
-  shaderId = glCreateShader(shtype);
-  if (!shaderId) {
-    /* HEY should be using glGetError? */
-    fprintf(stderr, "%s: trouble creating shader of type %d", me, shtype);
-    return 0;
-  }
-  if (!(shaderTxt = fileContents(filename))) {
-    fprintf(stderr, "%s: trouble reading from \"%s\"", me, filename);
-    return 0;
-  }
-  glShaderSource(shaderId, 1, (const GLchar **)(&shaderTxt), NULL);
-  glCompileShader(shaderId);
-  glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
-  if (GL_FALSE == status) {
-    GLint logSize;
-    char *logMsg;
-    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
-    if (logSize) {
-      logMsg = (char*)malloc(logSize);
-      glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
-      fprintf(stderr, "%s: shader compiler error:\n%s", me, logMsg);
-      glDeleteShader(shaderId);
-      free(logMsg);
+/*
+** Hey: check out https://www.opengl.org/wiki/Debug_Output
+** (core in version 4.3)
+*/
+void
+glErrorCheck(std::string whence, std::string context) {
+  std::string desc;
+  GLenum err = glGetError();
+  if (GL_NO_ERROR != err) {
+    switch (err) {
+    case GL_INVALID_ENUM:
+      desc = "GL_INVALID_ENUM";
+      break;
+    case GL_INVALID_VALUE:
+      desc = "GL_INVALID_VALUE";
+      break;
+    case GL_INVALID_OPERATION:
+      desc = "GL_INVALID_OPERATION";
+      break;
+    case GL_INVALID_FRAMEBUFFER_OPERATION:
+      desc = "GL_INVALID_FRAMEBUFFER_OPERATION";
+      break;
+    case GL_OUT_OF_MEMORY:
+      desc = "GL_OUT_OF_MEMORY";
+      break;
+      /* These seem to be for older versions of OpenGL
+    case GL_STACK_OVERFLOW:
+      desc = "GL_STACK_OVERFLOW";
+      break;
+    case GL_STACK_UNDERFLOW:
+      desc = "GL_STACK_UNDERFLOW";
+      break;
+    case GL_TABLE_TOO_LARGE:
+      desc = "GL_TABLE_TOO_LARGE";
+      break;
+      */
+    default:
+      desc = "unknown error value " + std::to_string(static_cast<int>(err));
+      break;
     }
-    return 0;
+    throw std::runtime_error(whence + ": " + context + ": glGetError(): " + desc);
   }
-  return shaderId;
+  return;
 }
-
 
 } // namespace Hale
