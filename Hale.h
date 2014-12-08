@@ -292,9 +292,11 @@ class Program {
   // will add more of these as needed
   void uniform(std::string, glm::vec3);
   void uniform(std::string, glm::mat4);
+  // these are the basis of uniform()'s implementation, and they should
+  // perhaps be private, but this way they're accessible to experts
+  std::map<std::string,GLint> uniformLocation;
+  std::map<std::string,glEnumItem> uniformType;
  private:
-  std::map<std::string,GLint> _uniformLocation;
-  std::map<std::string,glEnumItem> _uniformType;
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
 };

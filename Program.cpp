@@ -151,20 +151,20 @@ Program::use() {
   GLint uniN, uniI, uniSize;
   GLenum uniType;
   char uniName[512];
-  _uniformLocation.clear();
-  _uniformType.clear();
+  uniformLocation.clear();
+  uniformType.clear();
   glGetProgramiv(_progId, GL_ACTIVE_UNIFORMS, &uniN);
   glErrorCheck(me, "glGetProgramiv(GL_ACTIVE_UNIFORMS)");
   for (uniI=0; uniI<uniN; uniI++) {
     glGetActiveUniform(_progId, uniI, sizeof(uniName), NULL, &uniSize, &uniType, uniName);
     glErrorCheck(me, std::string("glGetActiveUniform(") + std::to_string(uniI) + ")");
-    _uniformType[uniName] = glEnumDesc[uniType];
+    uniformType[uniName] = glEnumDesc[uniType];
     GLint uniLoc = glGetUniformLocation(_progId, uniName);
     glErrorCheck(me, std::string("glGetUniformLocation(") + uniName + ")");
     if (-1 == uniLoc) {
       throw std::runtime_error(me + ": " + uniName + " is not a known uniform name");
     }
-    _uniformLocation[uniName] = uniLoc;
+    uniformLocation[uniName] = uniLoc;
     /*
     fprintf(stderr, "%s: uni[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
             uniI, uniName, glEnumDesc[uniType].enumStr.c_str(), uniSize,
@@ -177,41 +177,32 @@ Program::use() {
 void
 Program::uniform(std::string name, glm::vec3 vv) {
   static const std::string me="Program::uniform";
-  auto iter = _uniformType.find(name);
-  if (_uniformType.end() == iter) {
+  auto iter = uniformType.find(name);
+  if (uniformType.end() == iter) {
     throw std::runtime_error(me + ": " + name + " is not an active uniform");
   }
   glEnumItem ii = iter->second;
   if (GL_FLOAT_VEC3 != ii.enumVal) {
     throw std::runtime_error(me + ": " + name + " is a " + ii.glslStr + " but got a vec3");
   }
-  glUniform3fv(_uniformLocation[name], 1, glm::value_ptr(vv));
+  glUniform3fv(uniformLocation[name], 1, glm::value_ptr(vv));
   glErrorCheck(me, std::string("glUniform3fv(") + name + ")");
 }
 
+// HEY: what's right way to avoid copy+paste?
 void
 Program::uniform(std::string name, glm::mat4 vv) {
   static const std::string me="Program::uniform";
-  auto iter = _uniformType.find(name);
-  if (_uniformType.end() == iter) {
+  auto iter = uniformType.find(name);
+  if (uniformType.end() == iter) {
     throw std::runtime_error(me + ": " + name + " is not an active uniform");
   }
   glEnumItem ii = iter->second;
   if (GL_FLOAT_MAT4 != ii.enumVal) {
     throw std::runtime_error(me + ": " + name + " is a " + ii.glslStr + " but got a mat4");
   }
-  glUniformMatrix4fv(_uniformLocation[name], 1, 0, glm::value_ptr(vv));
+  glUniformMatrix4fv(uniformLocation[name], 1, 0, glm::value_ptr(vv));
   glErrorCheck(me, std::string("glUniformMatrix4fv(") + name + ")");
 }
-
-/*
-GLint
-Program::uniformLocation(const char *name) {
-  static const std::string me="Hale::Program::uniformLocation";
-  GLint id = glGetUniformLocation(_progId, name);
-  glErrorCheck(me, std::string("glGetUniformLocation(") + name + ")");
-  return id;
-}
-*/
 
 }
