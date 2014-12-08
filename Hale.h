@@ -24,6 +24,7 @@
 #define HALE_INCLUDED
 
 #include <iostream>
+#include <stdexcept>
 
 #include <teem/meet.h> /* will include all other teem headers */
 
@@ -257,7 +258,7 @@ class Program {
   explicit Program(const char *vertFname, const char *fragFname);
   ~Program();
   void compile();
-  void bind(GLuint idx, const GLchar *name);
+  void bindAttribute(GLuint idx, const GLchar *name);
   void link();
   GLint uniformLocation(const GLchar *name);
   void use();

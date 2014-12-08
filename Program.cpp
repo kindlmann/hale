@@ -112,10 +112,10 @@ Program::compile() {
 }
 
 void
-Program::bind(GLuint idx, const GLchar *name) {
-  static const std::string me="Hale::Program::bind";
+Program::bindAttribute(GLuint idx, const GLchar *name) {
+  static const std::string me="Hale::Program::bindAttribute";
   glBindAttribLocation(_progId, idx, name);
-  glErrorCheck(me, "glBindAttribLocation");
+  glErrorCheck(me, std::string("glBindAttribLocation(") + name + ")");
 }
 
 GLint
