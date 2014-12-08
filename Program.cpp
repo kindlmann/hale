@@ -159,8 +159,12 @@ Program::use() {
     glGetActiveUniform(_progId, uniI, sizeof(uniName), NULL, &uniSize, &uniType, uniName);
     glErrorCheck(me, std::string("glGetActiveUniform(") + std::to_string(uniI) + ")");
     _uniformType[uniName] = glEnumDesc[uniType];
-    _uniformLocation[uniName] = glGetUniformLocation(_progId, uniName);
+    GLint uniLoc = glGetUniformLocation(_progId, uniName);
     glErrorCheck(me, std::string("glGetUniformLocation(") + uniName + ")");
+    if (-1 == uniLoc) {
+      throw std::runtime_error(me + ": " + uniName + " is not a known uniform name");
+    }
+    _uniformLocation[uniName] = uniLoc;
     /*
     fprintf(stderr, "%s: uni[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
             uniI, uniName, glEnumDesc[uniType].enumStr.c_str(), uniSize,
