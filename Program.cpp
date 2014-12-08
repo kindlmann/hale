@@ -25,7 +25,7 @@
 
 namespace Hale {
 
-GLchar *
+static GLchar *
 fileContents(const char *fname) {
   static const std::string me = "Hale::fileContents";
   GLchar *ret;
@@ -50,7 +50,7 @@ fileContents(const char *fname) {
   return ret;
 }
 
-GLint
+static GLint
 shaderNew(GLint shtype, const GLchar *shaderSrc) {
   static const std::string me = "Hale::shaderNew";
   GLuint shaderId;

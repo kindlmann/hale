@@ -104,7 +104,7 @@ extern airEnum *finishingStatus;
 
 /* utils.cpp */
 extern bool finishing;
-extern int init();
+extern void init();
 extern void done();
 extern GLuint limnToGLPrim(int type);
 extern void glErrorCheck(std::string whence, std::string context);
@@ -251,9 +251,6 @@ class Viewer {
 ** Program.cpp: a GLSL shader program contains shader objects for vertex and
 ** fragment shaders (can easily add a geometry shader when needed)
 */
-
-extern GLchar *fileContents(const char *fname);                         
-extern GLint shaderNew(GLint shtype, const GLchar *shaderSrc);                   
 
 class Program {
  public:

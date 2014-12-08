@@ -80,13 +80,13 @@ errorGLFW(int errnum, const char *errstr) {
   return;
 }
 
-int
+void
 init() {
-  static const char me[]="Hale::init";
+  static const std::string me="Hale::init";
   int iret;
 
   /* sanity check for Teem */
-  nrrdSanityOrDie(me);
+  nrrdSanityOrDie(me.c_str());
 
   /* need any sanity checks of our own? */
 
@@ -102,11 +102,9 @@ init() {
               : "what?")));
   */
   if (GL_TRUE != iret) {
-    fprintf(stderr, "%s: trouble with glfwInit\n", me);
-    return 1;
+    throw std::runtime_error(me + ": glfwInit failed");
   }
-
-  return 0;
+  return;
 }
 
 void
