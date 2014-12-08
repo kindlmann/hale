@@ -32,8 +32,22 @@
    what Hale users will expect or need; see privateHale.h */
 #include <glm/glm.hpp>
 
-// Let GLFW sort out out how to include the OpenGL3 headers
-#define GLFW_INCLUDE_GLCOREARB
+
+/*
+** We want to restrict ourself to Core OpenGL, but have found that on at least
+** one Linux System, using "#define GLFW_INCLUDE_GLCOREARB" caused things like
+** glGetError and glViewport to not be defined.  Conversely, on that same
+** linux machine, functions like glCreateShader and glShaderSource were not
+** defined unless there was '#define GL_GLEXT_PROTOTYPES", even though
+** <https://www.opengl.org/registry/ABI/> suggests that GL_GLEXT_PROTOTYPES is
+** something one queries with #ifdef rather than #define'ing.  HEY: Some
+** expertise here would be nice.
+*/
+#if defined(__APPLE_CC__)
+#  define GLFW_INCLUDE_GLCOREARB
+#else
+#  define GL_GLEXT_PROTOTYPES
+#endif
 /* NB: on at least one Linux system that was missing GL/glcorearb.h,
    GLK followed advice from here:
    http://oglplus.org/oglplus/html/oglplus_getting_it_going.html and
