@@ -25,13 +25,17 @@
 
 #include <iostream>
 #include <stdexcept>
+#include <map>
 
-#include <teem/meet.h> /* will include all other teem headers */
+/* This will include all the Teem headers at once */
+#include <teem/meet.h>
 
-/* we don't #define GLM_FORCE_RADIANS here because who knows
-   what Hale users will expect or need; see privateHale.h */
+/*
+** We don't #define GLM_FORCE_RADIANS here because who knows what Hale users
+** will expect or need. Hale's own source does use GLM_FORCE_RADIANS but
+** that's in privateHale.h
+*/
 #include <glm/glm.hpp>
-
 
 /*
 ** We want to restrict ourself to Core OpenGL, but have found that on at least
@@ -123,6 +127,16 @@ extern void init();
 extern void done();
 extern GLuint limnToGLPrim(int type);
 extern void glErrorCheck(std::string whence, std::string context);
+typedef struct {
+  /* copy of the same enum value used for indexing into glEnumDesc */
+  GLenum enumVal;
+  /* string of the GLenum value, e.g. "GL_FLOAT", "GL_FLOAT_MAT4" */
+  std::string enumStr;
+  /* string for corresponding glsl type, e.g. "float", "mat4" */
+  std::string glslStr;
+} glEnumItem;
+/* gadget to map GLenum values to something readable */
+extern std::map<GLenum,glEnumItem> glEnumDesc;
 
 /* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
    image-plane distance (because the range along U and V is wholly determined
@@ -274,9 +288,13 @@ class Program {
   void compile();
   void bindAttribute(GLuint idx, const GLchar *name);
   void link();
-  GLint uniformLocation(const GLchar *name);
   void use();
+  // will add more of these as needed
+  void uniform(std::string, glm::vec3);
+  void uniform(std::string, glm::mat4);
  private:
+  std::map<std::string,GLint> _uniformLocation;
+  std::map<std::string,glEnumItem> _uniformType;
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
 };
