@@ -100,6 +100,13 @@ void
 Program::compile() {
   static const std::string me="Hale::Program::compile";
 
+  /* would need these if you can re-use a Hale::Program
+     with different shader sources
+  glDeleteShader(_vertId);
+  glDeleteShader(_fragId);
+  glDeleteProgram(_progId);
+  */
+
   _vertId = shaderNew(GL_VERTEX_SHADER, _vertCode);
   _fragId = shaderNew(GL_FRAGMENT_SHADER, _fragCode);
   _progId = glCreateProgram();
