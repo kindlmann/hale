@@ -122,6 +122,10 @@ void
 Program::bindAttribute(GLuint idx, const GLchar *name) {
   static const std::string me="Hale::Program::bindAttribute";
   glBindAttribLocation(_progId, idx, name);
+  /* had hoped to use something like glGetVertexAttribiv to learn
+     about the type of variable "name" (to enable the kind of type
+     checking we support for uniforms), but those functions don't even
+     take a program index ... */
   glErrorCheck(me, std::string("glBindAttribLocation(") + name + ")");
 }
 
