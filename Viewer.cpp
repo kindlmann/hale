@@ -30,6 +30,24 @@
 
 namespace Hale {
 
+/* The idea is that FOV itself is not really a quantity that makes sense
+   to vary in a uniform way, because we should not be easily able to get
+   to fovMin and fovMax. So we "unwarp" fov so that fovMax and fovMin
+   are where they should be, at +/- infinity. */
+static double fovUnwarp(double fov) {
+  double fff;
+  fff = AIR_AFFINE(fovMin, fov, fovMax, -AIR_PI/2, AIR_PI/2);
+  fff = tan(fff);
+  return fff;
+}
+static double fovWarp(double fff) {
+  double fov;
+  fff = atan(fff);
+  fov = AIR_AFFINE(-AIR_PI/2, fff, AIR_PI/2, fovMin, fovMax);
+  return fov;
+}
+
+
 /* utility for mapping GLFW's button and modifier info into either
    "left button" (return 0) or "right button" (return 1). This
    is the one place to implement conventions for what things on a Mac
@@ -210,30 +228,30 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
     **      | \          X  RotateV/TranslateV    / |
     **      |   \  . . . . . . . . . . . . . .  /   |
     **      |     :                           :     |
+    **      |  X Zoom/DepthScale              :     |
     **      |     :                           :     |
-    **      |     :                           :     |
-    **      |     :                           :  X RotateU/
-    **      |     :     X RotateUV/           :    TranslateU
-    **      |     :       TranslateUV         :     |
-    **      |     :                           :     |
-    **      |  X Fov/DepthScale               :     |
-    **      |     :                           :     |
-    **      |     :                           :     |
+    **      |     :    V                      :  X RotateU/
+    **      |     :   ^     X RotateUV/       :    TranslateU
+    **      |     :   |       TranslateUV     :     |
+    **      |     :   |                       :     |
+    **      |     :   |                       :     |
+    **      |     :   |                       :     |
+    **      |     :   o-------> U             :     |
     **      |. . . . . . . . . . . . . . . . . \    |
-    **      |  X  :      X  RotateN/Dolly        \  |
+    **      |  X  :  X  RotateN/DepthTranslate   \  |
     ** y=1  +--|------------------------------------+
-    **         \__ Vertigo/DepthTranslate
+    **         \__ Vertigo/Fov
     */
     if (xf <= MARG && yf > 1-MARG) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeVertigo : viewerModeDepthTranslate);
+      vwr->_mode = (vwr->_button[0] ? viewerModeVertigo : viewerModeFov);
     } else if (xf <= MARG && xf <= yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeFov : viewerModeDepthScale);
+      vwr->_mode = (vwr->_button[0] ? viewerModeZoom : viewerModeDepthScale);
     } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateV : viewerModeTranslateV);
     } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
     } else if (yf > 1-MARG && 1-xf >= 1-yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeDolly);
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeDepthTranslate);
     } else {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
     }
@@ -258,6 +276,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   float vsize, ssize, frcX, frcY, rotX, rotY, trnX, trnY;
   glm::vec3 nfrom; // new from; used in various cases
+  double fff; // tmp var
 
   if (viewerModeNone == vwr->_mode) {
     /* nothing to do here */
@@ -299,30 +318,27 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
   rotY = 4*frcY;
   glm::vec3 toeye = vwr->camera.from() - vwr->camera.at();
   float elen = glm::length(toeye);
+  toeye /= elen;
   vsize = elen*tan(vwr->camera.fov()*AIR_PI/360);
   trnX = 4*frcX*vsize;
   trnY = 4*frcY*vsize;
-  toeye /= elen;
   glm::vec3 uu = vwr->camera.U();
   glm::vec3 vv = vwr->camera.V();
-  glm::vec3 nn = vwr->camera.N();
+  // glm::vec3 nn = vwr->camera.N();
   switch (vwr->_mode) {
   case viewerModeRotateUV:
   case viewerModeRotateU:
   case viewerModeRotateV:
     switch (vwr->_mode) {
     case viewerModeRotateUV:
-      toeye = glm::normalize(toeye + rotX*uu + rotY*vv);
-      nfrom = vwr->camera.at() + elen*toeye;
+      nfrom = vwr->camera.at() + elen*glm::normalize(toeye + rotX*uu - rotY*vv);
       break;
     case viewerModeRotateU:
-      toeye = glm::normalize(toeye + rotY*vv);
-      nfrom = vwr->camera.at() + elen*toeye;
+      nfrom = vwr->camera.at() + elen*glm::normalize(toeye - rotY*vv);
       break;
     case viewerModeRotateV:
       if (!vwr->_upFix) {
-        toeye = glm::normalize(toeye + rotX*uu);
-        nfrom = vwr->camera.at() + elen*toeye;
+        nfrom = vwr->camera.at() + elen*glm::normalize(toeye + rotX*uu);
       } else {
         /* in this one case, we move along cylinders wrapped around up,
            instead of along spheres.  We have to decompose the vector
@@ -354,27 +370,18 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
       vwr->camera.up(glm::normalize(vwr->camera.up() - dangle*uu));
     }
     break;
-  case viewerModeDolly:
-    vwr->camera.from(vwr->camera.from() - dangle*nn);
-    /* to be consistent with Translate{U,V,UV}, we move both
-       "from" and "at" here, though sometimes it is nice to be
-       able to move only "from", leaving "at" as is */
-    vwr->camera.at(vwr->camera.at() - dangle*nn);
+  case viewerModeZoom:
+    {
+      float rescale = exp(-0.3*dangle);
+      vwr->camera.clipNear(rescale*vwr->camera.clipNear());
+      vwr->camera.clipFar(rescale*vwr->camera.clipFar());
+      vwr->camera.from(vwr->camera.at() + rescale*elen*toeye);
+    }
     break;
   case viewerModeFov:
-    {
-      /* the idea is that we want to make it hard to reach FOVs of 0 and
-         180.  So we treat those limits as the -pi/2,pi/2 limits of atan(),
-         and manipulate the FOV in the "tangent" space (ha ha, bad pun) */
-      double ff = vwr->camera.fov();
-      ff = AIR_AFFINE(0, ff, 180, -AIR_PI/2, AIR_PI/2);
-      ff = tan(ff);
-      // scaling here for qualitative effect, not math correctness
-      ff -= 0.9f*dangle;
-      ff = atan(ff);
-      ff = AIR_AFFINE(-AIR_PI/2, ff, AIR_PI/2, 0, 180);
-      vwr->camera.fov(ff);
-    }
+    fff = fovUnwarp(vwr->camera.fov());
+    // scaling here for qualitative effect, not math correctness
+    vwr->camera.fov(fovWarp(fff - 0.9*dangle));
     break;
   case viewerModeDepthScale:
   case viewerModeDepthTranslate:
@@ -400,21 +407,20 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
                 me, airEnumStr(viewerMode, viewerModeVertigo));
       }
     } else {
-      glm::vec3 teye = vwr->camera.from() - vwr->camera.at();
-      float odist = glm::length(teye);
-      teye /= odist;
-      float ndist = exp(log(odist) - 0.9f*dangle);
-      vwr->camera.from(ndist*teye + vwr->camera.at());
-      vwr->camera.fov(atan(vsize/ndist)*360/AIR_PI);
+      fff = fovUnwarp(vwr->camera.fov());
+      double newfov = fovWarp(fff + 0.9*dangle);
+      vwr->camera.fov(newfov);
+      float newelen = vsize/tan(newfov*AIR_PI/360);
+      vwr->camera.from(vwr->camera.at() + newelen*toeye);
     }
     break;
   case viewerModeTranslateUV:
-    vwr->camera.from(vwr->camera.from() + trnX*uu + trnY*vv);
-    vwr->camera.at(vwr->camera.at() + trnX*uu + trnY*vv);
+    vwr->camera.from(vwr->camera.from() + trnX*uu - trnY*vv);
+    vwr->camera.at(vwr->camera.at() + trnX*uu - trnY*vv);
     break;
   case viewerModeTranslateU:
-    vwr->camera.from(vwr->camera.from() + trnY*vv);
-    vwr->camera.at(vwr->camera.at() + trnY*vv);
+    vwr->camera.from(vwr->camera.from() - trnY*vv);
+    vwr->camera.at(vwr->camera.at() - trnY*vv);
     break;
   case viewerModeTranslateV:
     vwr->camera.from(vwr->camera.from() + trnX*uu);
@@ -446,7 +452,7 @@ Viewer::Viewer(int width, int height, const char *label) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  /* HEY HEY should look into using this!
+  /* look into using this!
      glfwWindowHint(GLFW_SAMPLES, 0); */
   _label = label ? label : "Viewer";
   _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
@@ -504,7 +510,7 @@ void *Viewer::refreshData() { return _refreshData; }
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
-/* HEY HEY finish this
+/*
 int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {
   static const char me[]="Hale::Viewer::bufferSave";
 

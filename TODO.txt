@@ -1,18 +1,11 @@
 
-organizing shaders, uniforms, attributes, etc:
-
-getting list of attributes and uniforms
-http://stackoverflow.com/questions/440144/in-opengl-is-there-a-way-to-get-a-list-of-all-uniforms-attribs-used-by-a-shade
-
 ------- Viewer ----------
 
-consider removing use of glm::lookat and glm::perspective, in any case:
-figure out relationship between basis implied by glm::lookat, and {U,V,N}
+verify that things still work reasonably if the geometry is 100 times bigger
 
 with up fix, make it harder to get from-at aligned with up
 
-make something like 90 degrees be upper limit on FOV, to be
-enforced with both FOV and Vertigo controls
+limit results of depthscale so that you don't get near z-fighting
 
 viewer capture/dump to image
 https://www.opengl.org/discussion_boards/showthread.php/177931-glReadPixels-fails-to-read-the-content-of-the-color-buffer
@@ -22,3 +15,6 @@ https://www.opengl.org/wiki/Framebuffer_Object
 generating hest options
 
 interpreting hest options
+
+how can use "glfwWindowHint(GLFW_SAMPLES, N);"?  Note that it has to be set at
+window-creation time, not adjusted after the fact ...

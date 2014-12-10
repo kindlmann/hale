@@ -42,7 +42,7 @@ _viewerModeStr[VIEWER_MODE_NUM+1] = {
   "translate-UV",    /* 10 */
   "translate-U",     /* 11 */
   "translate-V",     /* 12 */
-  "dolly"            /* 13 */
+  "zoom"             /* 13 */
 };
 
 airEnum

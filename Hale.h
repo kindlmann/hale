@@ -97,8 +97,10 @@ enum {
   viewerModeTranslateUV,    /* 10: usual translate */
   viewerModeTranslateU,     /* 11: translate only horizontal */
   viewerModeTranslateV,     /* 12: translate only vertical */
-  viewerModeDolly           /* 13: could be called TranslateN: translate from
-                               *and* at along view direction */
+  viewerModeZoom            /* 13: scale from-at distance by moving from
+                               (while fixing at), and also scale the clipping
+                               plane distances.  The effect is that the world
+                               is being scaled relative to camera */
 };
 extern airEnum *viewerMode;
 

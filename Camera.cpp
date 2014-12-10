@@ -36,7 +36,7 @@ Camera::Camera(glm::vec3 from, glm::vec3 at, glm::vec3 up,
   _from = from;
   _at = at;
   _up = up;
-  _fov = fov;
+  _fov = AIR_CLAMP(fovMin/fovPerc, fov, fovMax*fovPerc);
   _aspect = aspect;
   _clipNear = clipNear;
   _clipFar = clipFar;
@@ -57,7 +57,7 @@ void Camera::init(glm::vec3 from, glm::vec3 at, glm::vec3 up,
   _from = from;
   _at = at;
   _up = up;
-  _fov = fov;
+  _fov = AIR_CLAMP(fovMin/fovPerc, fov, fovMax*fovPerc);
   _aspect = aspect;
   _clipNear = clipNear;
   _clipFar = clipFar;
@@ -97,7 +97,7 @@ double Camera::clipFar() { return _clipFar; }
 bool Camera::orthographic() { return _orthographic; }
 
 void Camera::fov(double vv) {
-  _fov = vv;
+  _fov = AIR_CLAMP(fovMin, vv, fovMax);
   updateProject();
 }
 void Camera::aspect(double aa) {
@@ -127,35 +127,22 @@ glm::vec3 Camera::V() { return _vv; }
 glm::vec3 Camera::N() { return _nn; }
 
 void Camera::updateView() {
-  //static const char me[]="Camera::updateView";
+  // static const char me[]="Camera::updateView";
 
-  _nn = glm::normalize(_at - _from);
-  _uu = glm::normalize(glm::cross(_nn, _up));
-  _vv = glm::cross(_nn, _uu);
-
-  /*
-  glm::vec3 nn = glm::normalize(_at - _from);
-  //std::cout << me << ": nn = " << glm::to_string(nn) << std::endl;
-  glm::vec3 uu = glm::normalize(glm::cross(nn, _up));
-  //std::cout << me << ": uu = " << glm::to_string(uu) << std::endl;
-  glm::vec3 vv = glm::cross(nn, uu);
-  //std::cout << me << ": vv = " << glm::to_string(vv) << std::endl;
-  glm::mat4 rot(glm::mat3(uu.x, vv.x, nn.x, // 1st column
-                          uu.y, vv.y, nn.y,
-                          uu.z, vv.z, nn.z));
-  //std::cout << me << ": rot = " << glm::to_string(rot) << std::endl;
-  glm::mat4 translate;
-  translate[3] = glm::vec4(-_from, 1);
-  //std::cout << me << ": translate = " << glm::to_string(translate) << std::endl;
-  _view = rot * translate;
-  //std::cout << me << ": " << glm::to_string(_view) << std::endl;
-
-  ** relative to Teem/Hale's way of setting up the view transform,
-  ** this view transform negates the second and third basis vector;
-  ** or, V points up (not down), and N points towards eye (not away)
-  */
   _view = glm::lookAt(_from, _at, _up);
-  //fprintf(stderr, "!%s: &_view = %p\n", me, glm::value_ptr(_view));
+
+  // not actually needed: _viewInv = glm::inverse(_view);
+
+  /* N points *towards* eye, from look-at; same as if by
+     _nn = glm::vec3(_viewInv * glm::vec4(0, 0, 1, 0)) */
+  _nn = glm::normalize(_from - _at);
+  /* U points towards right; same as if by
+     _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); */
+  _uu = glm::normalize(glm::cross(_up, _nn));
+  /* V is screen-space up; same as if by
+     _vv = glm::vec3(_viewInv * glm::vec4(0, 1, 0, 0));
+  */
+  _vv = glm::cross(_nn, _uu);
 
   return;
 }
