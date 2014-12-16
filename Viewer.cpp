@@ -463,7 +463,6 @@ Viewer::Viewer(int width, int height, const char *label) {
   }
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
 
-  glfwMakeContextCurrent(_window);
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
   glfwSetCursorPosCallback(_window, cursorPosCB);
   glfwSetMouseButtonCallback(_window, mouseButtonCB);
@@ -509,6 +508,8 @@ void Viewer::refreshData(void *data) { _refreshData = data; }
 void *Viewer::refreshData() { return _refreshData; }
 
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
+
+void Viewer::current() { glfwMakeContextCurrent(_window); }
 
 /*
 int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {

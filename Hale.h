@@ -250,6 +250,9 @@ class Viewer {
   /* swap render buffers in window */
   void bufferSwap();
 
+  /* makes context of this GLFW window current */
+  void current();
+
   /* save current view to image */
   // int bufferSave(Nrrd *nrgba, Nrrd *ndepth);
 
@@ -282,7 +285,6 @@ class Viewer {
 ** Program.cpp: a GLSL shader program contains shader objects for vertex and
 ** fragment shaders (can easily add a geometry shader when needed)
 */
-
 class Program {
  public:
   explicit Program(const char *vertFname, const char *fragFname);
