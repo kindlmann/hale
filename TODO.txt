@@ -1,4 +1,30 @@
 
+Polydata object to handle on-GPU buffer management
+
+Specialized window for AntTweakBar parameters
+
+Specialized window just for displaying a 2D RGB image
+
+create a "3D scene" object:
+ - viewer should take scene as input
+ - background color, or background gradient (how to implement this?)
+ - all polydata to render
+ - ability to reset camera to see whatever's in the scene
+
+how should things like depth-cueing be handled?
+ - is it a property of the camera, or the viewer, or the scene?
+ - its needed in the fragment shader, but controlled by the Viewer (right?)
+
+where should information about rendering speed (or framerates) be
+measured and organized?
+
+Things from Deft to recreate (starting with most important)
+ - basic isocontouring program (reorganize Roman's code for this)
+ - Volume, as container for a gageContext
+ - Colormapping
+ - Triplane
+ - TensorGlyph
+
 ------- Viewer ----------
 
 verify that things still work reasonably if the geometry is 100 times bigger
