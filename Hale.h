@@ -97,31 +97,41 @@ enum {
   viewerModeTranslateUV,    /* 10: usual translate */
   viewerModeTranslateU,     /* 11: translate only horizontal */
   viewerModeTranslateV,     /* 12: translate only vertical */
-  viewerModeZoom            /* 13: scale from-at distance by moving from
+  viewerModeZoom,           /* 13: scale from-at distance by moving from
                                (while fixing at), and also scale the clipping
                                plane distances.  The effect is that the world
                                is being scaled relative to camera */
+  viewerModeLast
 };
 extern airEnum *viewerMode;
 
+/*
+** Though it is somewhat limiting, for now we tie these to the
+** limnPolyDataInfo (even copying the order!), and the contents of
+** limnPolyData. Note however that the limnPolyData->xyzw position
+** information is always set, and is thus not included in the
+** limnPolyDataInfo enum, but obviously needs to be listed as a vertex
+** attribute here
+*/
 enum {
-  vertAttrIndxUnknown = -1, /* -1: (0 is a valid index) */
-  vertAttrIndxXYZ,          /*  0: XYZ position */
-  vertAttrIndxXYZW,         /*  1: XYZW position */
-  vertAttrIndxNorm,         /*  2: 3-vector normal */
-  vertAttrIndxRGB,          /*  3: RGB color */
-  vertAttrIndxRGBA,         /*  4: RGBA color */
+  vertAttrIdxUnknown = -1, /* -1: (0 is a valid index) */
+  vertAttrIdxXYZW,         /*  0: XYZW position */
+  vertAttrIdxRGBA,         /*  1: RGBA color */
+  vertAttrIdxNorm,         /*  2: 3-vector normal */
+  vertAttrIdxTex2,         /*  3: (s,t) texture coords */
+  vertAttrIdxTang,         /*  4: unit-length surface tangent 3-vectors */
+  vertAttrIdxLast          /*  5 */
 };
-extern airEnum *vertAttrIndx;
+#define HALE_VERT_ATTR_IDX_NUM 5
 
 enum {
   finishingStatusUnknown,   /* 0 */
   finishingStatusNot,       /* 1: we're still running */
   finishingStatusOkay,      /* 2: we're quitting gracefully */
-  finishingStatusError      /* 3: we're exiting with error */
+  finishingStatusError,     /* 3: we're exiting with error */
+  finishingStatusLast
 };
 extern airEnum *finishingStatus;
-
 
 /* utils.cpp */
 extern bool finishing;
@@ -144,15 +154,14 @@ extern std::map<GLenum,glEnumItem> glEnumDesc;
    image-plane distance (because the range along U and V is wholly determined
    by fov and aspect), there is no control of right-vs-left handed
    coordinates (it is always right-handed: U increases to the right, V
-   increases downward HEY HEY is that actually true, with use of
-   glm::view()?), and clipNear and clipFar are always relative to look-at
-   point. */
+   increases upward, and N points towards camera clipNear and clipFar
+   are always relative to look-at point. */
 class Camera {
  public:
   explicit Camera(glm::vec3 from = glm::vec3(3.0f,4.0f,5.0f),
                   glm::vec3 at = glm::vec3(0.0f,0.0f,0.0f),
                   glm::vec3 up = glm::vec3(0.0f,0.0f,1.0f),
-                  double fov = 0.8,
+                  double fov = 15,
                   double aspect = 1.3333333,
                   double clipNear = -2,
                   double clipFar = 2,
@@ -195,7 +204,7 @@ class Camera {
   glm::vec3 V();
   glm::vec3 N();
 
- private:
+ protected:
   int _verbose;
 
   /* essential camera parameters */
@@ -256,7 +265,7 @@ class Viewer {
   /* save current view to image */
   // int bufferSave(Nrrd *nrgba, Nrrd *ndepth);
 
- private:
+ protected:
   bool _button[2];     // true iff button (left:0, right:1) is down
   std::string _label;
   int _verbose;
@@ -300,9 +309,36 @@ class Program {
   // perhaps be private, but this way they're accessible to experts
   std::map<std::string,GLint> uniformLocation;
   std::map<std::string,glEnumItem> uniformType;
- private:
+ protected:
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
+};
+
+class Polydata {
+ public:
+  explicit Polydata(const limnPolyData *poly);     // don't own
+  explicit Polydata(limnPolyData *poly, bool own);
+  ~Polydata();
+  void boundsGet(glm::vec3 &min, glm::vec3 &max) const;
+  /* if you want to get the underlying limn representation */
+  const limnPolyData *lpld() const { return _lpld ? _lpld : _lpldOwn; }
+  void draw();
+
+ protected:
+  GLuint _vao;                // GL vertex array object
+  void _init();               // main constructor body
+  void _buffer(bool newaddr); // glBuffer(Sub)Data calls
+
+  const limnPolyData *_lpld;  // cannot limnPolyDataNix()
+  limnPolyData *_lpldOwn;     //   can  limnPolyDataNix()
+  /* management of GL buffers for the xyzw and the limnPolyDataInfo */
+  unsigned int _buffNum;
+  /* the GL buffers; allocated for buffNum */
+  GLuint *_buff;
+  /* map from Hale::vertAttrIdx into _buff; allocated for buffNum */
+  int _buffIdx[HALE_VERT_ATTR_IDX_NUM];
+  /* GL element array buffer */
+  GLuint _elms;
 };
 
 } // namespace Hale

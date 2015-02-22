@@ -1,5 +1,7 @@
 
 Polydata object to handle on-GPU buffer management
+ - boundsGet
+ - whole-object color
 
 Specialized window for AntTweakBar parameters
 

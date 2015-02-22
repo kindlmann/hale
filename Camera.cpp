@@ -131,16 +131,33 @@ void Camera::updateView() {
 
   _view = glm::lookAt(_from, _at, _up);
 
-  // not actually needed: _viewInv = glm::inverse(_view);
-
+  /* not actually needed, but these lines may help for disambiguation
+     and documentation; writing out the 16 elements of the value
+     pointer shows that "glm is column major" (by default):
+     vp[ 0]  vp[ 4]  vp[ 8]  vp[12]
+     vp[ 1]  vp[ 5]  vp[ 9]  vp[13]
+     vp[ 2]  vp[ 6]  vp[10]  vp[14]
+     vp[ 3]  vp[ 7]  vp[11]  vp[15]
+  const float *vp = glm::value_ptr(_view);
+  glm::mat4 _viewInv = glm::inverse(_view); */
+  /*
+  printf("!%s: M_view = \n", me);
+  ell_4m_print_f(stdout, glm::value_ptr(glm::transpose(_view)));
+  */
   /* N points *towards* eye, from look-at; same as if by
-     _nn = glm::vec3(_viewInv * glm::vec4(0, 0, 1, 0)) */
+     _nn = glm::vec3(_viewInv * glm::vec4(0, 0, 1, 0)); (3rd column) or
+     _nn = glm::vec3(glm::vec4(0, 0, 1, 0) * _view); (3rd row of _view) or
+     _nn = glm::vec3(vp[2], vp[6], vp[10]); (3rd row) */
   _nn = glm::normalize(_from - _at);
   /* U points towards right; same as if by
-     _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); */
+     _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); (1st column) or
+     _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); (1st row of _view) or
+     _uu = glm::vec3(vp[0], vp[4], vp[8]); (1st row of _view) */
   _uu = glm::normalize(glm::cross(_up, _nn));
   /* V is screen-space up; same as if by
-     _vv = glm::vec3(_viewInv * glm::vec4(0, 1, 0, 0));
+     _vv = glm::vec3(_viewInv * glm::vec4(0, 1, 0, 0)); (2nd column) or
+     _vv = glm::vec3(glm::vec4(0, 1, 0, 0) * _view); (2nd row or _view) or
+     _vv = glm::vec3(vp[1], vp[5], vp[9]); (2nd row of _view)
   */
   _vv = glm::cross(_nn, _uu);
 
@@ -148,7 +165,7 @@ void Camera::updateView() {
 }
 
 void Camera::updateProject() {
-  //static const char me[]="Camera::updateProject";
+  // static const char me[]="Camera::updateProject";
 
   glm::vec3 diff = _at - _from;
   double dist = glm::length(diff);
@@ -156,13 +173,24 @@ void Camera::updateProject() {
   double vspFar = dist + _clipFar;
   double fangle = _fov*AIR_PI/360;
   if (_orthographic) {
-    double vMax = dist*sin(fangle);
+    double vMax = dist*tan(fangle);
     double uMax = _aspect*vMax;
     _project = glm::ortho(-uMax, uMax, -vMax, vMax, vspNear, vspFar);
   } else {
     _project = glm::perspective(2*fangle, _aspect, vspNear, vspFar);
+    /*
+    double hght = 2*vspNear * tan(fangle);
+    double wdth = _aspect*hght;
+    printf("!%s: 2n/w = %g,  2n/h = %g\n", me,
+           2*vspNear/wdth, 2*vspNear/hght);
+    printf("!%s: (f+n)/(f-n) = %g\n", me,
+           (vspFar+vspNear)/(vspFar-vspNear));
+    printf("!%s: -2fn/(f-n) = %g\n", me,
+           -2*vspFar*vspNear/(vspFar-vspNear));
+    */
   }
-  //fprintf(stderr, "!%s: &_project = %p\n", me, glm::value_ptr(_project));
+  // printf("!%s: %s projection = \n", me, _orthographic ? "ortho" : "persp");
+  // ell_4m_print_f(stdout, glm::value_ptr(glm::transpose(_project)));
 
   return;
 }

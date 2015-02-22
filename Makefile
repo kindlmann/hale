@@ -33,7 +33,7 @@ CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h
-SRCS = enums.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp
+SRCS = enums.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp Polydata.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 DEST = $(HOME)/hale-install

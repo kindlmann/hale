@@ -89,11 +89,11 @@ finishingStatus = &_finishingStatus;
 const char *
 _vertAttrIndxStr[VERT_ATTR_INDX_NUM+1] = {
   "unknown vert attr index", /* (-1) */
-  "xyz",                     /*  0 */
-  "xyzw",                    /*  1 */
+  "xyzw",                    /*  0 */
+  "rgba"                     /*  1 */
   "norm",                    /*  2 */
-  "rgb"                      /*  3 */
-  "rgba"                     /*  4 */
+  "tex2",                    /*  3 */
+  "tang"                     /*  4 */
 };
 
 airEnum
