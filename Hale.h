@@ -1,6 +1,6 @@
 /*
   hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -26,6 +26,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <map>
+#include <list>
 
 /* This will include all the Teem headers at once */
 #include <teem/meet.h>
@@ -133,8 +134,21 @@ enum {
 };
 extern airEnum *finishingStatus;
 
-/* utils.cpp */
+/*
+** GLSL programs that are "pre-programmed"; the source for them is internal
+** to Hale
+*/
+typedef enum {
+  preprogramUnknown,
+  preprogramAmbDiff,
+  preprogramAmbDiffSolid,
+  preprogramLast
+} preprogram;
+
+/* globals.cpp */
 extern bool finishing;
+
+/* utils.cpp */
 extern void init();
 extern void done();
 extern GLuint limnToGLPrim(int type);
@@ -195,6 +209,7 @@ class Camera {
   /* the (world-to-)view and projection transforms
      determined by the above parameters */
   glm::mat4 view();
+  glm::mat4 viewInv();
   glm::mat4 project();
   const float *viewPtr();
   const float *projectPtr();
@@ -203,6 +218,9 @@ class Camera {
   glm::vec3 U();
   glm::vec3 V();
   glm::vec3 N();
+
+  /* generate string for command-line options */
+  std::string hest();
 
  protected:
   int _verbose;
@@ -214,18 +232,20 @@ class Camera {
 
   /* derived parameters */
   glm::vec3 _uu, _vv, _nn; // view-space basis
-  glm::mat4 _view, _project;
+  glm::mat4 _view, _viewInv, _project;
 
   void updateView();
   void updateProject();
 };
+
+class Scene;  // (forward declaration)
 
 /* Viewer.cpp: Viewer contains and manages a GLFW window, including the
    camera that defines the view within the viewer.  We intercept all
    the events in order to handle how the camera is updated */
 class Viewer {
  public:
-  explicit Viewer(int width,  int height, const char *label);
+  explicit Viewer(int width,  int height, const char *label, Scene *scene);
   ~Viewer();
 
   /* the camera we update with user interactions */
@@ -262,12 +282,26 @@ class Viewer {
   /* makes context of this GLFW window current */
   void current();
 
+  /* set/get scene */
+  const Scene *scene();
+  void scene(Scene *scn);
+
+  /* set/get view-space light position */
+  void lightDir(glm::vec3 dir);
+  glm::vec3 lightDir(void) const;
+
+ /* we can return a const Scene* via scene(), but then the caller can't
+    draw() it; this draw() just calls the scene's draw() */
+  void draw(void);
+
   /* save current view to image */
   // int bufferSave(Nrrd *nrgba, Nrrd *ndepth);
 
  protected:
+  glm::vec3 _lightDir;
   bool _button[2];     // true iff button (left:0, right:1) is down
   std::string _label;
+  Scene *_scene;
   int _verbose;
   bool _upFix;
   int _mode;           // from Hale::viewerMode* enum
@@ -296,6 +330,7 @@ class Viewer {
 */
 class Program {
  public:
+  explicit Program(preprogram prog);
   explicit Program(const char *vertFname, const char *fragFname);
   ~Program();
   void compile();
@@ -303,7 +338,9 @@ class Program {
   void link();
   void use();
   // will add more of these as needed
+  void uniform(std::string, float);
   void uniform(std::string, glm::vec3);
+  void uniform(std::string, glm::vec4);
   void uniform(std::string, glm::mat4);
   // these are the basis of uniform()'s implementation, and they should
   // perhaps be private, but this way they're accessible to experts
@@ -313,19 +350,38 @@ class Program {
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
 };
+/* Extra functions not in Program: ways to communicate uniforms to what is
+   current program */
+extern void uniform(std::string, float);
+extern void uniform(std::string, glm::vec3);
+extern void uniform(std::string, glm::vec4);
+extern void uniform(std::string, glm::mat4);
 
 class Polydata {
  public:
   explicit Polydata(const limnPolyData *poly);     // don't own
   explicit Polydata(limnPolyData *poly, bool own);
   ~Polydata();
-  void boundsGet(glm::vec3 &min, glm::vec3 &max) const;
   /* if you want to get the underlying limn representation */
   const limnPolyData *lpld() const { return _lpld ? _lpld : _lpldOwn; }
-  void draw();
+
+  /* set/get constant color, *if* there is no per-vertex color */
+  void colorSolid(float rr, float gg, float bb);
+  void colorSolid(glm::vec3 rgb);
+  void colorSolid(glm::vec4 rgba);
+  glm::vec4 colorSolid() const;
+
+  /* set/get model transformation */
+  void model(glm::mat4 mat);
+  glm::mat4 model() const;
+
+  void bounds(glm::vec3 &min, glm::vec3 &max) const;
+  void draw() const;
 
  protected:
   GLuint _vao;                // GL vertex array object
+  glm::vec4 _colorSolid;      // constant color
+  glm::mat4 _model;           // object to world transform
   void _init();               // main constructor body
   void _buffer(bool newaddr); // glBuffer(Sub)Data calls
 
@@ -335,10 +391,44 @@ class Polydata {
   unsigned int _buffNum;
   /* the GL buffers; allocated for buffNum */
   GLuint *_buff;
-  /* map from Hale::vertAttrIdx into _buff; allocated for buffNum */
+  /* map from Hale::vertAttrIdx into _buff */
   int _buffIdx[HALE_VERT_ATTR_IDX_NUM];
   /* GL element array buffer */
   GLuint _elms;
+};
+
+/*
+** Right now this is just sort of a disorganized bag of state, off of which
+** we can hang things that would otherwise be per-(C)program globals, and
+** just to collect stuff that is in the process of being figured out (so it
+** is sort of like a HaleContext; For now, the Scene owns nothing dynamically allocated.
+**
+** One principle is that the Scene is oblivious to the Viewer: so the light
+** direction here is in world-space, not view-space
+*/
+class Scene {
+ public:
+  explicit Scene();
+  ~Scene();
+
+  void add(const Polydata *pd);
+
+  /* set/get background color */
+  void bgColor(float rr, float gg, float bb);
+  glm::vec3 bgColor(void) const;
+
+  /* set/get world-space light direction */
+  void lightDir(glm::vec3 dir);
+  glm::vec3 lightDir(void) const;
+
+  void bounds(glm::vec3 &min, glm::vec3 &max) const;
+
+  void drawInit(void);
+  void draw(void);
+ protected:
+  float _bgColor[3];
+  glm::vec3 _lightDir;
+  std::list<const Polydata *> _polydata;
 };
 
 } // namespace Hale

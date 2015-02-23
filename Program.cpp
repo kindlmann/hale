@@ -1,6 +1,6 @@
 /*
   Hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -24,6 +24,64 @@
 #include "privateHale.h"
 
 namespace Hale {
+
+#define VERSION "#version 150 core\n "
+static const char *AmbDiff_vert =
+  (VERSION
+   "uniform mat4 proj;\n "
+   "uniform mat4 view;\n "
+   "uniform mat4 model;\n "
+   "in vec4 position;\n "
+   "in vec3 norm;\n "
+   "in vec4 color;\n "
+   "out vec3 norm_frag;\n "
+   "out vec4 color_frag;\n "
+   "mat4 modIT = transpose(inverse(model));\n "
+   "void main(void) {\n "
+   "  gl_Position = proj * view * model * position;\n "
+   "  norm_frag = mat3(modIT) * norm;\n "
+   "  color_frag = color;\n "
+   "}\n ");
+
+static const char *AmbDiffSolid_vert =
+  (VERSION
+   "uniform mat4 proj;\n "
+   "uniform mat4 view;\n "
+   "uniform mat4 model;\n "
+   "uniform vec4 colorSolid;\n "
+   "in vec4 position;\n "
+   "in vec3 norm;\n "
+   "out vec3 norm_frag;\n "
+   "out vec4 color_frag;\n "
+   "mat4 modIT = transpose(inverse(model));\n "
+   "void main(void) {\n "
+   "  gl_Position = proj * view * model * position;\n "
+   "  norm_frag = mat3(modIT) * norm;\n "
+   "  color_frag = colorSolid;\n "
+   "}\n ");
+
+static const char *AmbDiff_frag =
+  (VERSION
+   "uniform vec3 lightDir;\n "
+   "uniform mat4 view;\n "
+   "uniform float phongKa;\n "
+   "uniform float phongKd;\n "
+   "in vec4 color_frag;\n "
+   "in vec3 norm_frag;\n "
+   "out vec4 fcol;\n "
+   "void main(void) {\n "
+   "  float ldot = max(0, dot(lightDir, normalize(norm_frag)));\n "
+   "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
+   "  fcol.a = color_frag.a;\n "
+   "}\n");
+
+static GLchar * // HEY what's the right way to do this
+strdupe(const char *str) {
+  GLchar *ret;
+  ret = new GLchar[strlen(str)+1];
+  strcpy(ret, str);
+  return ret;
+}
 
 static GLchar *
 fileContents(const char *fname) {
@@ -74,6 +132,19 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
     return 0;
   }
   return shaderId;
+}
+
+Program::Program(preprogram prog) {
+
+  if (preprogramAmbDiff == prog) {
+    _vertCode = strdupe(AmbDiff_vert);
+  } else if (preprogramAmbDiffSolid) {
+    _vertCode = strdupe(AmbDiffSolid_vert);
+  }
+  _fragCode = strdupe(AmbDiff_frag);
+  _vertId = 0;
+  _fragId = 0;
+  _progId = 0;
 }
 
 Program::Program(const char *vertFname, const char *fragFname) {
@@ -182,9 +253,39 @@ Program::use() {
             _uniMap[uniName]);
     */
   }
+
+  /* set global Program pointer to us */
+  Hale::_program = this;
   return;
 }
 
+// HEY: what's right way to avoid copy+paste?
+void uniform(std::string name, float vv) {
+  if (_program) {
+    _program->uniform(name, vv);
+  }
+}
+void
+Program::uniform(std::string name, float vv) {
+  static const std::string me="Program::uniform";
+  auto iter = uniformType.find(name);
+  if (uniformType.end() == iter) {
+    throw std::runtime_error(me + ": " + name + " is not an active uniform");
+  }
+  glEnumItem ii = iter->second;
+  if (GL_FLOAT != ii.enumVal) {
+    throw std::runtime_error(me + ": " + name + " is a " + ii.glslStr + " but got a float");
+  }
+  glUniform1f(uniformLocation[name], vv);
+  glErrorCheck(me, std::string("glUniform1f(") + name + ")");
+}
+
+// HEY: what's right way to avoid copy+paste?
+void uniform(std::string name, glm::vec3 vv) {
+  if (_program) {
+    _program->uniform(name, vv);
+  }
+}
 void
 Program::uniform(std::string name, glm::vec3 vv) {
   static const std::string me="Program::uniform";
@@ -201,6 +302,32 @@ Program::uniform(std::string name, glm::vec3 vv) {
 }
 
 // HEY: what's right way to avoid copy+paste?
+void uniform(std::string name, glm::vec4 vv) {
+  if (_program) {
+    _program->uniform(name, vv);
+  }
+}
+void
+Program::uniform(std::string name, glm::vec4 vv) {
+  static const std::string me="Program::uniform";
+  auto iter = uniformType.find(name);
+  if (uniformType.end() == iter) {
+    throw std::runtime_error(me + ": " + name + " is not an active uniform");
+  }
+  glEnumItem ii = iter->second;
+  if (GL_FLOAT_VEC4 != ii.enumVal) {
+    throw std::runtime_error(me + ": " + name + " is a " + ii.glslStr + " but got a vec4");
+  }
+  glUniform4fv(uniformLocation[name], 1, glm::value_ptr(vv));
+  glErrorCheck(me, std::string("glUniform4fv(") + name + ")");
+}
+
+// HEY: what's right way to avoid copy+paste?
+void uniform(std::string name, glm::mat4 vv) {
+  if (_program) {
+    _program->uniform(name, vv);
+  }
+}
 void
 Program::uniform(std::string name, glm::mat4 vv) {
   static const std::string me="Program::uniform";

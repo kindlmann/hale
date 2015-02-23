@@ -1,6 +1,6 @@
 #
 # Hale: support for minimalist scientific visualization
-# Copyright (C) 2014  University of Chicago
+# Copyright (C) 2014, 2015  University of Chicago
 #
 # This software is provided 'as-is', without any express or implied
 # warranty. In no event will the authors be held liable for any damages
@@ -33,7 +33,8 @@ CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h
-SRCS = enums.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp Polydata.cpp
+SRCS = enums.cpp globals.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp \
+	Polydata.cpp Scene.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 DEST = $(HOME)/hale-install

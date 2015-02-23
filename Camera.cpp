@@ -1,6 +1,6 @@
 /*
   hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -118,6 +118,7 @@ void Camera::orthographic(bool ortho) {
 }
 
 glm::mat4 Camera::view() { return _view; }
+glm::mat4 Camera::viewInv() { return _viewInv; }
 glm::mat4 Camera::project() { return _project; }
 const float *Camera::viewPtr() { return glm::value_ptr(_view); }
 const float *Camera::projectPtr() { return glm::value_ptr(_project); }
@@ -130,6 +131,7 @@ void Camera::updateView() {
   // static const char me[]="Camera::updateView";
 
   _view = glm::lookAt(_from, _at, _up);
+  _viewInv = glm::inverse(_view);
 
   /* not actually needed, but these lines may help for disambiguation
      and documentation; writing out the 16 elements of the value
@@ -138,8 +140,7 @@ void Camera::updateView() {
      vp[ 1]  vp[ 5]  vp[ 9]  vp[13]
      vp[ 2]  vp[ 6]  vp[10]  vp[14]
      vp[ 3]  vp[ 7]  vp[11]  vp[15]
-  const float *vp = glm::value_ptr(_view);
-  glm::mat4 _viewInv = glm::inverse(_view); */
+  const float *vp = glm::value_ptr(_view); */
   /*
   printf("!%s: M_view = \n", me);
   ell_4m_print_f(stdout, glm::value_ptr(glm::transpose(_view)));
@@ -193,6 +194,31 @@ void Camera::updateProject() {
   // ell_4m_print_f(stdout, glm::value_ptr(glm::transpose(_project)));
 
   return;
+}
+
+#define V2S(vv)                                 \
+  (sprintf(buff[0], "%g", vv[0]),               \
+   sprintf(buff[1], "%g", vv[1]),               \
+   sprintf(buff[2], "%g", vv[2]),                                       \
+   std::string(buff[0]) + " " + std::string(buff[1]) + " " + std::string(buff[2]))
+
+#define F2S(vv)                                 \
+  (sprintf(buff[0], "%g", vv),                  \
+   std::string(buff[0]))
+
+std::string Camera::hest(void) {
+  char buff[3][32];
+  std::string ret;
+  ret = ("-fr " + V2S(_from)
+         + " -at " + V2S(_at)
+         + " -up " + V2S(_up)
+         + " -nc " + F2S(_clipNear)
+         + " -fc " + F2S(_clipFar)
+         + " -fov " + F2S(_fov));
+  if (_orthographic) {
+    ret += " -ortho";
+  }
+  return ret;
 }
 
 } // namespace Hale

@@ -1,6 +1,6 @@
 /*
   hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -88,14 +88,22 @@ Polydata::_buffer(bool newaddr) {
   return;
 }
 
+void Polydata::model(glm::mat4 mat) { _model = mat; }
+glm::mat4 Polydata::model() const { return _model; }
+
 void
 Polydata::_init() {
   // static const char me[]="Hale::Polydata::_init";
+
+  _colorSolid = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+  _model = glm::mat4(1.0f);
+
   const limnPolyData *lpld = this->lpld();
   unsigned int aa, ibits = limnPolyDataInfoBitFlag(lpld);
   _buffNum = 1 + airBitsSet(ibits);   /* lpld->xyzw is always set */
   // printf("%s: %p|%p %u buffers to set\n", me, _lpld, _lpldOwn, _buffNum);
   _buff = AIR_CALLOC(_buffNum, GLuint);
+  // printf("%s: _buff = %p\n", me, _buff);
   glGenBuffers(_buffNum, _buff);
   // printf("#""glGenBuffers(%u, &); -> %u %u %u\n", _buffNum, _buff[0], _buff[1], _buff[2]);
   glGenVertexArrays(1, &_vao);
@@ -154,9 +162,43 @@ Polydata::~Polydata() {
   free(_buff);
 }
 
+void Polydata::colorSolid(float rr, float gg, float bb) {
+  _colorSolid = glm::vec4(rr, gg, bb, 1.0f);
+}
+void Polydata::colorSolid(glm::vec3 rgb) {
+  _colorSolid = glm::vec4(rgb, 1.0f);
+}
+void Polydata::colorSolid(glm::vec4 rgba) {
+  _colorSolid = rgba;
+}
+glm::vec4 Polydata::colorSolid() const {
+  return _colorSolid;
+}
+
+void Polydata::bounds(glm::vec3& finalmin, glm::vec3& finalmax) const {
+  const limnPolyData *lpd = lpld();
+  glm::vec4 wmin, wmax, wpos;
+  const float *_wpos = lpd->xyzw;
+  wmin = wmax = glm::vec4(_wpos[0], _wpos[1], _wpos[2], _wpos[3]);
+  for (unsigned int ii=1; ii<lpd->xyzwNum; ii++) {
+    _wpos += 4;
+    wpos = _model*glm::vec4(_wpos[0], _wpos[1], _wpos[2], _wpos[3]);
+    wpos /= wpos[3];
+    wmin = glm::min(wmin, wpos);
+    wmax = glm::max(wmax, wpos);
+  }
+  finalmin = glm::vec3(wmin);
+  finalmax = glm::vec3(wmax);
+}
+
 void
-Polydata::draw() {
+Polydata::draw() const {
   static const char me[]="Hale::Polydata::draw";
+
+  if (!(limnPolyDataInfoBitFlag(this->lpld()) & (1 << limnPolyDataInfoRGBA))) {
+    Hale::uniform("colorSolid", _colorSolid);
+  }
+  Hale::uniform("model", _model);
 
   glBindVertexArray(_vao);
   // printf("#""glBindVertexArray(%u);\n", _vao);
@@ -176,5 +218,6 @@ Polydata::draw() {
   }
   return;
 }
+
 
 } // namespace Hale

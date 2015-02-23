@@ -1,6 +1,6 @@
 /*
   hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -144,6 +144,23 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
       printf("%s: projection is %s\n", me,
              vwr->camera.orthographic() ? "orthographic" : "perspective");
     }
+  } else if (GLFW_KEY_H == key && GLFW_PRESS == action) {
+    std::string chest = vwr->camera.hest();
+    chest += (" -sz " + std::to_string(vwr->width())
+              + " " + std::to_string(vwr->height()));
+    printf("\n%s\n", chest.c_str());
+  } else if (GLFW_KEY_R == key && GLFW_PRESS == action) {
+    glm::vec3 wmin, wmax, wmed;
+    vwr->_scene->bounds(wmin, wmax);
+    wmed = (wmin + wmax)/2.0f;
+    vwr->camera.at(wmed);
+    vwr->camera.up(glm::vec3(0.0f,0.0f,1.0f));
+    float diff = glm::length(wmax - wmin);
+    float dist = (diff/2)/tanf((fovBest/2)*M_PI/180);
+    vwr->camera.from(vwr->camera.at() - glm::vec3(dist, 0.0f, 0.0f));
+    vwr->camera.clipNear(-diff/2);
+    vwr->camera.clipFar(diff/2);
+    // leave aspect and orthographic as is
   } else if (GLFW_KEY_V == key && GLFW_PRESS == action) {
     int vv = vwr->verbose();
     vv += mods ? -1 : 1;
@@ -434,9 +451,11 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
 }
 
 /* constructor */
-Viewer::Viewer(int width, int height, const char *label) {
+Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   static const char me[]="Hale::Viewer::Viewer";
 
+  _lightDir = glm::normalize(glm::vec3(-1.0f, 1.0f, 3.0f));
+  _scene = scene;
   _button[0] = _button[1] = false;
   _verbose = 0;
   _upFix = false;
@@ -502,6 +521,9 @@ void Viewer::upFix(bool upf) {
   camera.reup();
 }
 
+void Viewer::lightDir(glm::vec3 dir) { _lightDir = glm::normalize(dir); }
+glm::vec3 Viewer::lightDir() const { return _lightDir; }
+
 void Viewer::refreshCB(ViewerRefresher cb) { _refreshCB = cb; }
 ViewerRefresher Viewer::refreshCB() { return _refreshCB; }
 void Viewer::refreshData(void *data) { _refreshData = data; }
@@ -510,6 +532,18 @@ void *Viewer::refreshData() { return _refreshData; }
 void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
 
 void Viewer::current() { glfwMakeContextCurrent(_window); }
+
+const Scene *Viewer::scene() { return _scene; }
+void Viewer::scene(Scene *scn) { _scene = scn; }
+
+void Viewer::draw(void) {
+
+  /* Here is where we convert our view-space light direction into
+     world-space */
+  glm::vec3 ldir = glm::vec3(camera.viewInv()*glm::vec4(_lightDir,0.0f));
+  Hale::uniform("lightDir", ldir);
+  _scene->draw();
+}
 
 /*
 int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {

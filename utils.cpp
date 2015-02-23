@@ -1,6 +1,6 @@
 /*
   Hale: support for minimalist scientific visualization
-  Copyright (C) 2014  University of Chicago
+  Copyright (C) 2014, 2015  University of Chicago
 
   This software is provided 'as-is', without any express or implied
   warranty. In no event will the authors be held liable for any damages
@@ -21,11 +21,9 @@
 */
 
 #include "Hale.h"
+#include "privateHale.h"
 
 namespace Hale {
-
-bool
-finishing = false;
 
 static void
 errorGLFW(int errnum, const char *errstr) {
@@ -206,7 +204,10 @@ init() {
   /* sanity check for Teem */
   nrrdSanityOrDie(me.c_str());
 
-  /* need any sanity checks of our own? */
+  /* HEY: should make sure that Hale:vertAttrIdx really mirrors
+     limnPolyDataInfo */
+
+  /* need any other sanity checks of our own? */
 
   /* populate glEnumDesc (HEY figure out compile-time initialization) */
   glEnumDescInit();

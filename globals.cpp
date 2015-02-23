@@ -20,24 +20,14 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
-#define GLM_FORCE_RADIANS
-#include <glm/gtc/matrix_transform.hpp> // for glm::lookAt(), glm::perspective()
-#include <glm/gtx/string_cast.hpp> // for glm::to_string()
-#include <glm/gtc/type_ptr.hpp> // for glm::value_ptr()
+#include "Hale.h"
+#include "privateHale.h"
 
 namespace Hale {
 
-/* a field-of-view of 180 is useless and weird, so we want to make
-   sure we don't get any where near that. Likewise prevent fov from
-   getting uselessly small, so we start by clamping fov to range
-   [fovMin/fovPerc, fovMax*fovPerc] */
-const double fovMax = 125;
-const double fovMin = 0.05;
-const double fovPerc = 0.99;
-/* when resetting view to contain scene, what FOV to use */
-const double fovBest = 20;
+bool
+finishing = false;
 
-/* globals.cpp */
-extern Program *_program;
+Program *_program = NULL;
 
-}
+} // namespace Hale
