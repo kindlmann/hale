@@ -532,7 +532,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
 
   shapeUpdate();
   title();
-  printf("\nType 'h' for help using keyboard and Viewer window\n");
+  printf("\nType 'r' to reset view, 'h' for help using keyboard and viewer\n");
 }
 
 Viewer::~Viewer() {
