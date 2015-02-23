@@ -33,7 +33,7 @@ _viewerModeStr[VIEWER_MODE_NUM+1] = {
   "none",            /*  1 */
   "fov",             /*  2 */
   "depth-scale",     /*  3 */
-  "depth-translate", /*  4 */
+  "translate-N",     /*  4 */
   "rotate-UV",       /*  5 */
   "rotate-U",        /*  6 */
   "rotate-V",        /*  7 */

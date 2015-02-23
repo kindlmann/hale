@@ -144,11 +144,13 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
       printf("%s: projection is %s\n", me,
              vwr->camera.orthographic() ? "orthographic" : "perspective");
     }
-  } else if (GLFW_KEY_H == key && GLFW_PRESS == action) {
+  } else if (GLFW_KEY_C == key && GLFW_PRESS == action) {
     std::string chest = vwr->camera.hest();
     chest += (" -sz " + std::to_string(vwr->width())
               + " " + std::to_string(vwr->height()));
     printf("\n%s\n", chest.c_str());
+  } else if (GLFW_KEY_H == key && GLFW_PRESS == action) {
+    vwr->helpPrint(stdout);
   } else if (GLFW_KEY_R == key && GLFW_PRESS == action) {
     glm::vec3 wmin, wmax, wmed;
     vwr->_scene->bounds(wmin, wmax);
@@ -169,6 +171,45 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   }
 
   return;
+}
+
+void Viewer::helpPrint(FILE *file) const {
+  fprintf(file, "\n");
+  fprintf(file, "Clicking and dragging in different parts of the window does different\n");
+  fprintf(file, "things with the camera. In diagram below, \"foo/bar\" means\n");
+  fprintf(file, "foo happens with (left)-click, and bar happens with \"right click\"\n");
+  fprintf(file, "where \"right-click\" is with any modifier (Shift,Command,Cntl,Opt)\n");
+  fprintf(file, "  +---------------------------------------+\n");
+  fprintf(file, "  | \\          O--RotateV/TranslateV    / |\n");
+  fprintf(file, "  |   \\  . . . . . . . . . . . . . .  /   |\n");
+  fprintf(file, "  |     :                           :     |\n");
+  fprintf(file, "  |  O--Zoom/DepthScale             :     |\n");
+  fprintf(file, "  |     :                           :     |\n");
+  fprintf(file, "  |     :   V                       :  O--RotateU/\n");
+  fprintf(file, "  |     :   ^      O--RotateUV/     :     TranslateU\n");
+  fprintf(file, "  |     :   |         TranslateUV   :     |\n");
+  fprintf(file, "  |     :   |                       :     |\n");
+  fprintf(file, "  |     :   |                       :     |\n");
+  fprintf(file, "  |     :   |                       :     |\n");
+  fprintf(file, "  |     :  (N)------> U             :     |\n");
+  fprintf(file, "  |. . . . . . . . . . . . . . . . . \\    |\n");
+  fprintf(file, "  |  O  :  O--RotateN/TranslateN       \\  |\n");
+  fprintf(file, "  +--|------------------------------------+\n");
+  fprintf(file, "      \\__ Vertigo/FOV\n");
+  fprintf(file, "\n");
+  fprintf(file, " - Zoom from look-from and rescales clip distances\n");
+  fprintf(file, " - DepthScale scales clip distances to,away from zero\n");
+  fprintf(file, " - Vertigo changes amount of perspective distortion\n");
+  fprintf(file, " - FOV just changes field-of-view\n");
+  fprintf(file, "\n");
+  fprintf(file, "What different keys do:\n");
+  fprintf(file, "c: print command-line camera specification\n");
+  fprintf(file, "h: print this usage info\n");
+  fprintf(file, "o: toggle between orthographic, perspective\n");
+  fprintf(file, "Q or shift-q or command-q or cntl-q: quit\n");
+  fprintf(file, "r: reset camera to make everything visible\n");
+  fprintf(file, "u: fix up vector\n");
+  fprintf(file, "v,V: for debugging: increase,decrease verbosity\n");
 }
 
 void
@@ -255,7 +296,7 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
     **      |     :   |                       :     |
     **      |     :   o-------> U             :     |
     **      |. . . . . . . . . . . . . . . . . \    |
-    **      |  X  :  X  RotateN/DepthTranslate   \  |
+    **      |  X  :  X  RotateN/TranslateN       \  |
     ** y=1  +--|------------------------------------+
     **         \__ Vertigo/Fov
     */
@@ -268,7 +309,7 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
     } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
     } else if (yf > 1-MARG && 1-xf >= 1-yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeDepthTranslate);
+      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeTranslateN);
     } else {
       vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
     }
@@ -387,6 +428,10 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
       vwr->camera.up(glm::normalize(vwr->camera.up() - dangle*uu));
     }
     break;
+  case viewerModeTranslateN:
+    vwr->camera.at(vwr->camera.at() + 0.25f*dangle*vsize*toeye);
+    vwr->camera.from(vwr->camera.from() + 0.25f*dangle*vsize*toeye);
+    break;
   case viewerModeZoom:
     {
       float rescale = exp(-0.3*dangle);
@@ -401,18 +446,12 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     vwr->camera.fov(fovWarp(fff - 0.9*dangle));
     break;
   case viewerModeDepthScale:
-  case viewerModeDepthTranslate:
     {
       double lognear = log((elen + vwr->camera.clipNear())/elen);
       double logfar = log((elen + vwr->camera.clipFar())/elen);
-      if (viewerModeDepthScale == vwr->_mode) {
-        double logscl = pow(2, dangle);
-        lognear *= logscl;
-        logfar *= logscl;
-      } else {
-        lognear += 0.09*dangle;
-        logfar += 0.09*dangle;
-      }
+      double logscl = pow(2, dangle);
+      lognear *= logscl;
+      logfar *= logscl;
       vwr->camera.clipNear(exp(lognear)*elen - elen);
       vwr->camera.clipFar(exp(logfar)*elen - elen);
     }
@@ -493,6 +532,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
 
   shapeUpdate();
   title();
+  printf("\nType 'h' for help using keyboard and Viewer window\n");
 }
 
 Viewer::~Viewer() {

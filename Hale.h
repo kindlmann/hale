@@ -86,8 +86,7 @@ enum {
   viewerModeFov,            /*  2: standard "zoom" */
   viewerModeDepthScale,     /*  3: scale distance between near and far
                                 clipping planes */
-  viewerModeDepthTranslate, /*  4: shift near and far planes (together)
-                                towards or away from eye point */
+  viewerModeTranslateN,     /*  4: translate along view direction */
   viewerModeRotateUV,       /*  5: usual rotate (around look-at point) */
   viewerModeRotateU,        /*  6: rotate around horizontal axis */
   viewerModeRotateV,        /*  7: rotate around vertical axis */
@@ -289,6 +288,9 @@ class Viewer {
   /* set/get view-space light position */
   void lightDir(glm::vec3 dir);
   glm::vec3 lightDir(void) const;
+
+  /* print usage info */
+  void helpPrint(FILE *) const;
 
  /* we can return a const Scene* via scene(), but then the caller can't
     draw() it; this draw() just calls the scene's draw() */
