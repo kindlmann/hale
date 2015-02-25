@@ -101,6 +101,9 @@ enum {
                                (while fixing at), and also scale the clipping
                                plane distances.  The effect is that the world
                                is being scaled relative to camera */
+  viewerModeSlider,         /* 14: not really a viewer mode at all, but using
+                               interactions to control a "slider" on bottom
+                               edge of window */
   viewerModeLast
 };
 extern airEnum *viewerMode;
@@ -292,6 +295,11 @@ class Viewer {
   /* print usage info */
   void helpPrint(FILE *) const;
 
+  /* relating to using bottom edge as slider */
+  void slider(double *slvalue, double min, double max);
+  bool slidable() const;
+  bool sliding() const;
+
  /* we can return a const Scene* via scene(), but then the caller can't
     draw() it; this draw() just calls the scene's draw() */
   void draw(void);
@@ -314,6 +322,11 @@ class Viewer {
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;
   double _lastX, _lastY; // last clicked position, in screen space
+  bool _slidable, // can toggle to using right-click on bottom edge as slider
+    _sliding;     // is now being used as slider
+  void _slrevalue(const char *me, double xx);
+  double *_slvalue, // value to modify via slider
+    _slmin, _slmax;  // range of possible slider values
 
   GLFWwindow *_window; // the window we manage
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
@@ -366,6 +379,7 @@ class Polydata {
   ~Polydata();
   /* if you want to get the underlying limn representation */
   const limnPolyData *lpld() const { return _lpld ? _lpld : _lpldOwn; }
+  void rebuffer();            // glBuffer(Sub)Data calls
 
   /* set/get constant color, *if* there is no per-vertex color */
   void colorSolid(float rr, float gg, float bb);
@@ -389,6 +403,10 @@ class Polydata {
 
   const limnPolyData *_lpld;  // cannot limnPolyDataNix()
   limnPolyData *_lpldOwn;     //   can  limnPolyDataNix()
+  /* stores a shallow copy of lpld, so that rebuffer can tell value of
+     "newaddr" for _buffer() */
+  limnPolyData _lpldCopy;
+
   /* management of GL buffers for the xyzw and the limnPolyDataInfo */
   unsigned int _buffNum;
   /* the GL buffers; allocated for buffNum */

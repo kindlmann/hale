@@ -26,7 +26,7 @@ namespace Hale {
 
 /* ------------------------------------------------------------- */
 
-#define VIEWER_MODE_NUM 13
+#define VIEWER_MODE_NUM 14
 const char *
 _viewerModeStr[VIEWER_MODE_NUM+1] = {
   "unknown mode",    /* (0) */
@@ -42,7 +42,8 @@ _viewerModeStr[VIEWER_MODE_NUM+1] = {
   "translate-UV",    /* 10 */
   "translate-U",     /* 11 */
   "translate-V",     /* 12 */
-  "zoom"             /* 13 */
+  "zoom",            /* 13 */
+  "slider"           /* 14 */
 };
 
 airEnum

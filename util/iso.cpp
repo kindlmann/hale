@@ -20,9 +20,10 @@ main(int argc, const char **argv) {
 
   /* variables learned via hest */
   Nrrd *nin;
-  float isovalue, camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
+  float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
   int camortho;
   unsigned int camsize[2];
+  double isovalue, sliso, isomin, isomax;
 
   /* boilerplate hest code */
   me = argv[0];
@@ -33,7 +34,7 @@ main(int argc, const char **argv) {
   hparm->respFileEnable = AIR_TRUE;
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
-  hestOptAdd(&hopt, "v", "isovalue", airTypeFloat, 1, 1, &isovalue, NULL,
+  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, NULL,
              "isovalue at which to run Marching Cubes");
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "3 4 5",
              "look-from point");
@@ -62,6 +63,7 @@ main(int argc, const char **argv) {
   /* first, make sure we can isosurface ok */
   limnPolyData *lpld = limnPolyDataNew();
   seekContext *sctx = seekContextNew();
+  airMopAdd(mop, sctx, (airMopper)seekContextNix, airMopAlways);
   seekVerboseSet(sctx, 0);
   seekNormalsFindSet(sctx, AIR_TRUE);
   if (seekDataSet(sctx, nin, NULL, 0)
@@ -83,6 +85,14 @@ main(int argc, const char **argv) {
   Hale::init();
   Hale::Scene scene;
 
+  {
+    NrrdRange *range;
+    range = nrrdRangeNewSet(nin, AIR_FALSE);
+    airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
+    isomin = range->min;
+    isomax = range->max;
+  }
+
   /* then create viewer (in order to create the OpenGL context) */
   Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
@@ -93,6 +103,8 @@ main(int argc, const char **argv) {
                      camnc, camfc, camortho);
   viewer.refreshCB((Hale::ViewerRefresher)render);
   viewer.refreshData(&viewer);
+  sliso = isovalue;
+  viewer.slider(&sliso, isomin, isomax);
   viewer.current();
 
   /* then create geometry, and add it to scene */
@@ -103,17 +115,25 @@ main(int argc, const char **argv) {
   program.compile();
   program.bindAttribute(Hale::vertAttrIdxXYZW, "position");
   program.bindAttribute(Hale::vertAttrIdxNorm, "norm");
-  program.bindAttribute(Hale::vertAttrIdxRGBA, "color");
   program.link();
   program.use();
 
   scene.drawInit();
   while(!Hale::finishing){
     glfwWaitEvents();
+    if (viewer.sliding() && sliso != isovalue) {
+      isovalue = sliso;
+      printf("%s: isosurfacing at %g\n", me, isovalue);
+      seekIsovalueSet(sctx, isovalue);
+      seekUpdate(sctx);
+      seekExtract(sctx, lpld);
+      hply.rebuffer();
+    }
     render(&viewer);
   }
 
   /* clean exit; all okay */
+  Hale::done();
   airMopOkay(mop);
   return 0;
 }

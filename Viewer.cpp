@@ -168,6 +168,12 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
     vv += mods ? -1 : 1;
     vv = vv < 0 ? 0 : vv;
     vwr->verbose(vv);
+  } else if (GLFW_KEY_T == key && GLFW_PRESS == action) {
+    if (vwr->_slidable) {
+      vwr->_sliding = !(vwr->_sliding);
+      printf("%s: bottom-edge slider is now %s\n", me,
+             vwr->_sliding ? "on" : "off");
+    }
   }
 
   return;
@@ -212,6 +218,27 @@ void Viewer::helpPrint(FILE *file) const {
   fprintf(file, "v,V: for debugging: increase,decrease verbosity\n");
 }
 
+void Viewer::slider(double *slvalue, double min, double max) {
+  if (slvalue) {
+    _slvalue = slvalue;
+    _slmin = min;
+    _slmax = max;
+    _slidable = true;
+  } else {
+    _slvalue = NULL;
+    _slidable = false;
+  }
+  return;
+}
+
+bool Viewer::slidable() const {
+  return _slidable;
+}
+
+bool Viewer::sliding() const {
+  return _sliding;
+}
+
 void
 Viewer::windowCloseCB(GLFWwindow *gwin) {
   static const char me[]="windowCloseCB";
@@ -238,6 +265,33 @@ Viewer::windowRefreshCB(GLFWwindow *gwin) {
   }
 
   return;
+}
+
+static int
+modemap(bool butt0, double xf, double yf) {
+  int ret;
+  if (xf <= MARG && yf > 1-MARG) {
+    ret = (butt0 ? viewerModeVertigo : viewerModeFov);
+  } else if (xf <= MARG && xf <= yf) {
+    ret = (butt0 ? viewerModeZoom : viewerModeDepthScale);
+  } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
+    ret = (butt0 ? viewerModeRotateV : viewerModeTranslateV);
+  } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
+    ret = (butt0 ? viewerModeRotateU : viewerModeTranslateU);
+  } else if (yf > 1-MARG && 1-xf >= 1-yf) {
+    ret = (butt0 ? viewerModeRotateN : viewerModeTranslateN);
+  } else {
+    ret = (butt0 ? viewerModeRotateUV : viewerModeTranslateUV);
+  }
+  return ret;
+}
+
+void
+Viewer::_slrevalue(const char *me, double xx) {
+  *(_slvalue) = AIR_AFFINE(0, xx, width(), _slmin, _slmax);
+  if (_verbose > 1) {
+    printf("%s(%g): slvalue = %g\n", me, xx, *(_slvalue));
+  }
 }
 
 void
@@ -300,18 +354,16 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
     ** y=1  +--|------------------------------------+
     **         \__ Vertigo/Fov
     */
-    if (xf <= MARG && yf > 1-MARG) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeVertigo : viewerModeFov);
-    } else if (xf <= MARG && xf <= yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeZoom : viewerModeDepthScale);
-    } else if (yf <= MARG && xf > yf && 1-xf >= yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateV : viewerModeTranslateV);
-    } else if (xf > 1-MARG && 1-xf < yf && 1-xf < 1-yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateU : viewerModeTranslateU);
-    } else if (yf > 1-MARG && 1-xf >= 1-yf) {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateN : viewerModeTranslateN);
+    if (vwr->_slidable && vwr->_sliding) {
+      if (yf > 1-MARG/2) {
+        vwr->_mode = viewerModeSlider;
+        vwr->_slrevalue(me, xpos);
+      } else {
+        /* yf <= 1-Marg */
+        vwr->_mode = modemap(vwr->_button[0], xf, yf/(1-MARG/2));
+      }
     } else {
-      vwr->_mode = (vwr->_button[0] ? viewerModeRotateUV : viewerModeTranslateUV);
+      vwr->_mode = modemap(vwr->_button[0], xf, yf);
     }
   }
   if (viewerModeNone != vwr->_mode) {
@@ -482,6 +534,9 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     vwr->camera.from(vwr->camera.from() + trnX*uu);
     vwr->camera.at(vwr->camera.at() + trnX*uu);
     break;
+  case viewerModeSlider:
+    vwr->_slrevalue(me, xx);
+    break;
   }
 
   vwr->_lastX = xx;
@@ -504,6 +559,10 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   _widthScreen = width;
   _heightScreen = height;
   _lastX = _lastY = AIR_NAN;
+  _slvalue = NULL;
+  _slmin = _slmax = AIR_NAN;
+  _slidable = false;
+  _sliding = false;
 
   // http://www.glfw.org/docs/latest/window.html
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Use OpenGL Core v3.2

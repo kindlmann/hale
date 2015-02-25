@@ -127,6 +127,7 @@ Polydata::_init() {
     }
   }
   _elms = 0;
+  memcpy(&_lpldCopy, lpld, sizeof(limnPolyData));
   _buffer(true);
   return;
 }
@@ -148,6 +149,32 @@ Polydata::Polydata(limnPolyData *poly, bool own) {
     _lpldOwn = NULL;
   }
   _init();
+}
+
+void Polydata::rebuffer() {
+  const limnPolyData *lpld = this->lpld();
+  unsigned int cbits = limnPolyDataInfoBitFlag(&_lpldCopy),
+    ibits = limnPolyDataInfoBitFlag(lpld);
+  bool newaddr;
+
+  if (cbits != ibits) {
+    newaddr = true;
+  } else {
+    newaddr = (_lpldCopy.xyzw != lpld->xyzw
+               || _lpldCopy.xyzwNum != lpld->xyzwNum
+               || _lpldCopy.rgba != lpld->rgba
+               || _lpldCopy.rgbaNum != lpld->rgbaNum
+               || _lpldCopy.norm != lpld->norm
+               || _lpldCopy.normNum != lpld->normNum
+               || _lpldCopy.tex2 != lpld->tex2
+               || _lpldCopy.tex2Num != lpld->tex2Num
+               || _lpldCopy.tang != lpld->tang
+               || _lpldCopy.tangNum != lpld->tangNum);
+    fprintf(stderr, "!%s: newaddr = %s\n", "rebuffer", newaddr ? "true" : "false");
+  }
+  _buffer(newaddr);
+  memcpy(&_lpldCopy, lpld, sizeof(limnPolyData));
+  return;
 }
 
 Polydata::~Polydata() {
