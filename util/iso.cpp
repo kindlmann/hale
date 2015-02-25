@@ -64,6 +64,7 @@ main(int argc, const char **argv) {
   limnPolyData *lpld = limnPolyDataNew();
   seekContext *sctx = seekContextNew();
   airMopAdd(mop, sctx, (airMopper)seekContextNix, airMopAlways);
+  sctx->pldArrIncr = nrrdElementNumber(nin);
   seekVerboseSet(sctx, 0);
   seekNormalsFindSet(sctx, AIR_TRUE);
   if (seekDataSet(sctx, nin, NULL, 0)
