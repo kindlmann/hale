@@ -75,6 +75,22 @@ static const char *AmbDiff_frag =
    "  fcol.a = color_frag.a;\n "
    "}\n");
 
+static const char *AmbDiff2Side_frag =
+  (VERSION
+   "uniform vec3 lightDir;\n "
+   "uniform mat4 view;\n "
+   "uniform float phongKa;\n "
+   "uniform float phongKd;\n "
+   "in vec4 color_frag;\n "
+   "in vec3 norm_frag;\n "
+   "out vec4 fcol;\n "
+   "void main(void) {\n "
+   // here's the two-sided lighting
+   "  float ldot = max(dot(lightDir, -normalize(norm_frag)), dot(lightDir, normalize(norm_frag)));\n "
+   "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
+   "  fcol.a = color_frag.a;\n "
+   "}\n");
+
 static GLchar * // HEY what's the right way to do this
 strdupe(const char *str) {
   GLchar *ret;
@@ -136,12 +152,19 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
 
 Program::Program(preprogram prog) {
 
-  if (preprogramAmbDiff == prog) {
+  if (preprogramAmbDiff == prog
+      || preprogramAmbDiff2Side == prog) {
     _vertCode = strdupe(AmbDiff_vert);
-  } else if (preprogramAmbDiffSolid) {
+  } else if (preprogramAmbDiffSolid == prog
+             || preprogramAmbDiff2SideSolid == prog) {
     _vertCode = strdupe(AmbDiffSolid_vert);
   }
-  _fragCode = strdupe(AmbDiff_frag);
+  if (preprogramAmbDiff2Side == prog
+      || preprogramAmbDiff2SideSolid == prog) {
+    _fragCode = strdupe(AmbDiff2Side_frag);
+  } else {
+    _fragCode = strdupe(AmbDiff_frag);
+  }
   _vertId = 0;
   _fragId = 0;
   _progId = 0;

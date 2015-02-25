@@ -112,7 +112,7 @@ main(int argc, const char **argv) {
   Hale::Polydata hply(lpld, true); // hply now owns lpld
   scene.add(&hply);
 
-  Hale::Program program(Hale::preprogramAmbDiffSolid);
+  Hale::Program program(Hale::preprogramAmbDiff2SideSolid);
   program.compile();
   program.bindAttribute(Hale::vertAttrIdxXYZW, "position");
   program.bindAttribute(Hale::vertAttrIdxNorm, "norm");

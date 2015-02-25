@@ -141,9 +141,11 @@ extern airEnum *finishingStatus;
 ** to Hale
 */
 typedef enum {
-  preprogramUnknown,
-  preprogramAmbDiff,
-  preprogramAmbDiffSolid,
+  preprogramUnknown,            /* 0 */
+  preprogramAmbDiff,            /* 1 */
+  preprogramAmbDiffSolid,       /* 2 */
+  preprogramAmbDiff2Side,       /* 3 */
+  preprogramAmbDiff2SideSolid,  /* 4 */
   preprogramLast
 } preprogram;
 
