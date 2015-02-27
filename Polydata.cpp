@@ -170,7 +170,6 @@ void Polydata::rebuffer() {
                || _lpldCopy.tex2Num != lpld->tex2Num
                || _lpldCopy.tang != lpld->tang
                || _lpldCopy.tangNum != lpld->tangNum);
-    fprintf(stderr, "!%s: newaddr = %s\n", "rebuffer", newaddr ? "true" : "false");
   }
   _buffer(newaddr);
   memcpy(&_lpldCopy, lpld, sizeof(limnPolyData));
