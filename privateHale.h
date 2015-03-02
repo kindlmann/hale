@@ -38,6 +38,9 @@ const double fovPerc = 0.99;
 const double fovBest = 20;
 
 /* globals.cpp */
-extern Program *_program;
+extern const Program *_programCurrent;
+
+/* compiled as needed */
+extern const Program *_program[preprogramLast];
 
 }

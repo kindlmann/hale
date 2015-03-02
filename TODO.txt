@@ -1,3 +1,14 @@
+
+uniform renaming:
+proj  -> projectMat
+view -> viewMat
+model -> modelMat
+
+vert attr renaming:
+position -> positionVA
+norm -> normalVA
+color -> colorVA
+
 Specialized window for AntTweakBar parameters
 
 Specialized window just for displaying a 2D RGB image
@@ -13,7 +24,6 @@ where should information about rendering speed (or framerates) be
 measured and organized?
 
 Things from Deft to recreate (starting with most important)
- - basic isocontouring program (reorganize Roman's code for this)
  - Volume, as container for a gageContext
  - Colormapping
  - Triplane
@@ -32,3 +42,12 @@ https://www.opengl.org/wiki/Framebuffer_Object
 
 how can use "glfwWindowHint(GLFW_SAMPLES, N);"?  Note that it has to be set at
 window-creation time, not adjusted after the fact ...
+
+--------------------
+
+learned: got weird shader compiler errors when trying to
+pre-compile a library of programs:
+  glCompileShader(shaderId);
+  glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
+would not set status, but nor did glGetError() return an error,
+so what was going on?  Hence moved to compile-as-needed

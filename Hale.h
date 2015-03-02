@@ -168,12 +168,12 @@ typedef struct {
 /* gadget to map GLenum values to something readable */
 extern std::map<GLenum,glEnumItem> glEnumDesc;
 
-/* Camera.cpp: like Teem's limnCamera but simpler: there is no notion of
-   image-plane distance (because the range along U and V is wholly determined
-   by fov and aspect), there is no control of right-vs-left handed
-   coordinates (it is always right-handed: U increases to the right, V
-   increases upward, and N points towards camera clipNear and clipFar
-   are always relative to look-at point. */
+/* Camera.cpp: like Teem's limnCamera but simpler: the image plane is
+   always considered to be containing look-at point, there is no
+   control of right-vs-left handed coordinates (it is always
+   right-handed: U increases to the right, V increases upward, and N
+   points towards camera), and clipNear and clipFar are always
+   relative to look-at point. */
 class Camera {
  public:
   explicit Camera(glm::vec3 from = glm::vec3(3.0f,4.0f,5.0f),
@@ -261,6 +261,9 @@ class Viewer {
 
   /* set window title */
   void title();
+
+  /* get current interaction mode */
+  int mode() const;
 
   /* get width and height of window in screen-space, which is not always
      the same as dimensions of frame buffer (on high-DPI displays, the
@@ -353,12 +356,12 @@ class Program {
   void compile();
   void bindAttribute(GLuint idx, const GLchar *name);
   void link();
-  void use();
+  void use() const;
   // will add more of these as needed
-  void uniform(std::string, float);
-  void uniform(std::string, glm::vec3);
-  void uniform(std::string, glm::vec4);
-  void uniform(std::string, glm::mat4);
+  void uniform(std::string, float) const;
+  void uniform(std::string, glm::vec3) const;
+  void uniform(std::string, glm::vec4) const;
+  void uniform(std::string, glm::mat4) const;
   // these are the basis of uniform()'s implementation, and they should
   // perhaps be private, but this way they're accessible to experts
   std::map<std::string,GLint> uniformLocation;
@@ -367,17 +370,19 @@ class Program {
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
 };
-/* Extra functions not in Program: ways to communicate uniforms to what is
-   current program */
+/* Extra functions not in Program: ways to communicate uniforms to
+   whatever is current program */
 extern void uniform(std::string, float);
 extern void uniform(std::string, glm::vec3);
 extern void uniform(std::string, glm::vec4);
 extern void uniform(std::string, glm::mat4);
+/* way to access one of the "pre-programs"; will compile as needed */
+extern const Program *ProgramLib(preprogram pp);
 
 class Polydata {
  public:
-  explicit Polydata(const limnPolyData *poly);     // don't own
-  explicit Polydata(limnPolyData *poly, bool own);
+  explicit Polydata(const limnPolyData *poly, const Program *prog);     // don't own
+  explicit Polydata(limnPolyData *poly, bool own, const Program *prog);
   ~Polydata();
   /* if you want to get the underlying limn representation */
   const limnPolyData *lpld() const { return _lpld ? _lpld : _lpldOwn; }
@@ -392,6 +397,10 @@ class Polydata {
   /* set/get model transformation */
   void model(glm::mat4 mat);
   glm::mat4 model() const;
+
+  /* set/get program to use when drawing */
+  void program(const Program *);
+  const Program *program() const;
 
   void bounds(glm::vec3 &min, glm::vec3 &max) const;
   void draw() const;
@@ -417,6 +426,8 @@ class Polydata {
   int _buffIdx[HALE_VERT_ATTR_IDX_NUM];
   /* GL element array buffer */
   GLuint _elms;
+  /* the program used for rendering */
+  const Program *_program;
 };
 
 /*

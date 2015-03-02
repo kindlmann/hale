@@ -93,7 +93,7 @@ glm::mat4 Polydata::model() const { return _model; }
 
 void
 Polydata::_init() {
-  // static const char me[]="Hale::Polydata::_init";
+  //static const char me[]="Hale::Polydata::_init";
 
   _colorSolid = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
   _model = glm::mat4(1.0f);
@@ -101,26 +101,32 @@ Polydata::_init() {
   const limnPolyData *lpld = this->lpld();
   unsigned int aa, ibits = limnPolyDataInfoBitFlag(lpld);
   _buffNum = 1 + airBitsSet(ibits);   /* lpld->xyzw is always set */
-  // printf("%s: %p|%p %u buffers to set\n", me, _lpld, _lpldOwn, _buffNum);
+  //printf("!%s: %p|%p %u buffers to set\n", me, _lpld, _lpldOwn, _buffNum);
   _buff = AIR_CALLOC(_buffNum, GLuint);
-  // printf("%s: _buff = %p\n", me, _buff);
+  //printf("!%s: _buff = %p\n", me, _buff);
   glGenBuffers(_buffNum, _buff);
-  // printf("#""glGenBuffers(%u, &); -> %u %u %u\n", _buffNum, _buff[0], _buff[1], _buff[2]);
+  /*
+  printf("#""glGenBuffers(%u, &); -> %u", _buffNum, _buff[0]);
+  for (int bi=1; bi<_buffNum; bi++) {
+    printf(" %u", _buff[bi]);
+  }
+  printf("\n");
+  */
   glGenVertexArrays(1, &_vao);
-  // printf("#""glGenVertexArrays(1, &); -> %u\n", _vao);
+  //printf("#""glGenVertexArrays(1, &); -> %u\n", _vao);
   glBindVertexArray(_vao);
-  // printf("#""glBindVertexArray(%u);\n", _vao);
+  //printf("#""glBindVertexArray(%u);\n", _vao);
 
   aa = 0;
   glEnableVertexAttribArray(Hale::vertAttrIdxXYZW);
-  // printf("#""glEnableVertexAttribArray(%u);\n", Hale::vertAttrIdxXYZW);
+  //printf("#""glEnableVertexAttribArray(%u);\n", Hale::vertAttrIdxXYZW);
   _buffIdx[Hale::vertAttrIdxXYZW] = aa++;
   for (int ii=limnPolyDataInfoUnknown+1; ii<limnPolyDataInfoLast; ii++) {
     /* HEY assumption of limnPolyDataInfo, Hale::vertAttrIdx mirroring */
     int hva = ii - limnPolyDataInfoRGBA + Hale::vertAttrIdxRGBA;
     if (ibits & (1 << ii)) {
       glEnableVertexAttribArray(hva);
-      // printf("#""glEnableVertexAttribArray(%u);\n", hva);
+      //printf("#""glEnableVertexAttribArray(%u);\n", hva);
       _buffIdx[hva] = aa++;
     } else {
       _buffIdx[hva] = -1;
@@ -132,14 +138,15 @@ Polydata::_init() {
   return;
 }
 
-Polydata::Polydata(const limnPolyData *poly) {
+Polydata::Polydata(const limnPolyData *poly, const Program *prog) {
 
   _lpld = poly;
   _lpldOwn = NULL;
+  _program = prog;
   _init();
 }
 
-Polydata::Polydata(limnPolyData *poly, bool own) {
+Polydata::Polydata(limnPolyData *poly, bool own, const Program *prog) {
 
   if (own) {
     _lpld = NULL;
@@ -148,10 +155,12 @@ Polydata::Polydata(limnPolyData *poly, bool own) {
     _lpld = poly;
     _lpldOwn = NULL;
   }
+  _program = prog;
   _init();
 }
 
 void Polydata::rebuffer() {
+  //static const char me[]="Polydata::rebuffer";
   const limnPolyData *lpld = this->lpld();
   unsigned int cbits = limnPolyDataInfoBitFlag(&_lpldCopy),
     ibits = limnPolyDataInfoBitFlag(lpld);
@@ -171,6 +180,7 @@ void Polydata::rebuffer() {
                || _lpldCopy.tang != lpld->tang
                || _lpldCopy.tangNum != lpld->tangNum);
   }
+  //printf("!%s: calling _buffer(%s)\n", me, newaddr ? "true" : "false");
   _buffer(newaddr);
   memcpy(&_lpldCopy, lpld, sizeof(limnPolyData));
   return;
@@ -201,6 +211,17 @@ glm::vec4 Polydata::colorSolid() const {
   return _colorSolid;
 }
 
+void Polydata::program(const Program *prog) {
+  static const std::string me="Hale::Polydata::program";
+  if (!prog) {
+    throw std::runtime_error(me + ": got NULL program");
+  }
+  _program = prog;
+}
+const Program *Polydata::program() const {
+  return _program;
+}
+
 void Polydata::bounds(glm::vec3& finalmin, glm::vec3& finalmax) const {
   const limnPolyData *lpd = lpld();
   glm::vec4 wmin, wmax, wpos;
@@ -221,16 +242,23 @@ void
 Polydata::draw() const {
   static const char me[]="Hale::Polydata::draw";
 
+  _program->use();
+
   if (!(limnPolyDataInfoBitFlag(this->lpld()) & (1 << limnPolyDataInfoRGBA))) {
-    Hale::uniform("colorSolid", _colorSolid);
+    _program->uniform("colorSolid", _colorSolid);
   }
-  Hale::uniform("model", _model);
+  _program->uniform("modelMat", _model);
+  /* would be nice to call this only if the values have changed;
+     but the Program pointer is to a const Program, so we can't easily
+     make this into a stateful/conditional call to uniform() */
+  _program->uniform("phongKa", 0.2);
+  _program->uniform("phongKd", 0.8);
 
   glBindVertexArray(_vao);
-  // printf("#""glBindVertexArray(%u);\n", _vao);
+  //printf("#""glBindVertexArray(%u);\n", _vao);
   /* ? needed with every render call ? */
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
-  // printf("#""glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+  //printf("#""glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
 
   const limnPolyData *lpld = this->lpld();
   int offset = 0;
@@ -238,7 +266,7 @@ Polydata::draw() const {
     glDrawElements(Hale::limnToGLPrim(lpld->type[ii]),
                    lpld->icnt[ii],
                    GL_UNSIGNED_INT, ((void*) 0));
-    // printf("#""glDrawElements(%u, %u, GL_UNSIGNED_INT, 0);\n", Hale::limnToGLPrim(lpld->type[ii]), lpld->icnt[ii]);
+    //printf("#""glDrawElements(%u, %u, GL_UNSIGNED_INT, 0);\n", Hale::limnToGLPrim(lpld->type[ii]), lpld->icnt[ii]);
     Hale::glErrorCheck(me, "glDrawElements(prim " + std::to_string(ii) + ")");
     offset += lpld->icnt[ii];
   }

@@ -25,9 +25,16 @@
 
 namespace Hale {
 
-bool
-finishing = false;
+bool finishing = false;
 
-Program *_program = NULL;
+const Program *_programCurrent = NULL;
+
+const Program *_program[preprogramLast] = {
+  NULL, /* preprogramUnknown,            0 */
+  NULL, /* preprogramAmbDiff,            1 */
+  NULL, /* preprogramAmbDiffSolid,       2 */
+  NULL, /* preprogramAmbDiff2Side,       3 */
+  NULL, /* preprogramAmbDiff2SideSolid,  4 */
+};
 
 } // namespace Hale

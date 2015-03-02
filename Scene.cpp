@@ -51,10 +51,6 @@ void Scene::drawInit() {
   glEnable(GL_DEPTH_TEST);
   //glEnable(GL_BLEND);
   //glBlendFunc(GL_SRC_ALPHA,GL_ONE);
-
-  // HEY this should really be per-object */
-  Hale::uniform("phongKa", 0.2);
-  Hale::uniform("phongKd", 0.8);
 }
 
 void Scene::bounds(glm::vec3& finalmin, glm::vec3& finalmax) const {

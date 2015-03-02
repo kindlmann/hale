@@ -226,14 +226,21 @@ init() {
   if (GL_TRUE != iret) {
     throw std::runtime_error(me + ": glfwInit failed");
   }
-  printf("%s: \"%s\" initialized\n", me.c_str(), glfwGetVersionString());
+  printf("%s: GLFW version \"%s\" initialized\n", me.c_str(), glfwGetVersionString());
+
   return;
 }
 
 void
 done() {
 
-  // HEY should have a way of taking mops to clean up
+  for (int pi=preprogramUnknown+1;
+       pi<preprogramLast;
+       pi++) {
+    if (_program[pi]) {
+      delete _program[pi];
+    }
+  }
 
   /* HEY: without this, the errorGLFW is called at exit with
      GLFW_NOT_INITIALIZED/"The GLFW library is not initialized",

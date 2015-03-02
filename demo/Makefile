@@ -18,10 +18,13 @@ LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM)
 
 CC = g++ -std=c++11
 
-all: iso
+all: iso foo
 
 iso: iso.cpp
 	$(CC) $(IPATH) iso.cpp -o iso $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
 
+foo: foo.cpp
+	$(CC) $(IPATH) foo.cpp -o foo $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
+
 clean:
-	rm -rf iso
+	rm -rf iso foo

@@ -3,8 +3,8 @@
 #include <glm/glm.hpp>
 
 void render(Hale::Viewer *viewer){
-  Hale::uniform("proj", viewer->camera.project());
-  Hale::uniform("view", viewer->camera.view());
+  Hale::uniform("projectMat", viewer->camera.project());
+  Hale::uniform("viewMat", viewer->camera.view());
 
   viewer->draw();
   viewer->bufferSwap();
@@ -34,7 +34,7 @@ main(int argc, const char **argv) {
   hparm->respFileEnable = AIR_TRUE;
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
-  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, NULL,
+  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, "nan",
              "isovalue at which to run Marching Cubes");
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "3 4 5",
              "look-from point");
@@ -59,6 +59,15 @@ main(int argc, const char **argv) {
                  me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
   airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
+
+  /* learn value range, and set initial isovalue if needed */
+  NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
+  airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
+  isomin = range->min;
+  isomax = range->max;
+  if (!AIR_EXISTS(isovalue)) {
+    isovalue = (isomin + isomax)/2;
+  }
 
   /* first, make sure we can isosurface ok */
   limnPolyData *lpld = limnPolyDataNew();
@@ -85,15 +94,6 @@ main(int argc, const char **argv) {
   /* then create empty scene */
   Hale::init();
   Hale::Scene scene;
-
-  {
-    NrrdRange *range;
-    range = nrrdRangeNewSet(nin, AIR_FALSE);
-    airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
-    isomin = range->min;
-    isomax = range->max;
-  }
-
   /* then create viewer (in order to create the OpenGL context) */
   Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
@@ -108,16 +108,12 @@ main(int argc, const char **argv) {
   viewer.slider(&sliso, isomin, isomax);
   viewer.current();
 
+
   /* then create geometry, and add it to scene */
-  Hale::Polydata hply(lpld, true); // hply now owns lpld
+  Hale::Polydata hply(lpld, true,  // hply now owns lpld
+                      Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
   scene.add(&hply);
 
-  Hale::Program program(Hale::preprogramAmbDiff2SideSolid);
-  program.compile();
-  program.bindAttribute(Hale::vertAttrIdxXYZW, "position");
-  program.bindAttribute(Hale::vertAttrIdxNorm, "norm");
-  program.link();
-  program.use();
 
   scene.drawInit();
   while(!Hale::finishing){

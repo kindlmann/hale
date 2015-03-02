@@ -105,6 +105,11 @@ Viewer::title() {
   glfwSetWindowTitle(_window, title.c_str());
 }
 
+int
+Viewer::mode() const {
+  return _mode;
+}
+
 void
 Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="framebufferSizeCB";
@@ -515,11 +520,21 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
                 me, airEnumStr(viewerMode, viewerModeVertigo));
       }
     } else {
-      fff = fovUnwarp(vwr->camera.fov());
+      double oldFov = vwr->camera.fov();
+      fff = fovUnwarp(oldFov);
       double newfov = fovWarp(fff + 0.9*dangle);
       vwr->camera.fov(newfov);
       float newelen = vsize/tan(newfov*AIR_PI/360);
-      vwr->camera.from(vwr->camera.at() + newelen*toeye);
+      if (newelen > -vwr->camera.clipNear()) {
+        vwr->camera.from(vwr->camera.at() + newelen*toeye);
+      } else {
+        /* else new from location would be inside near clipping
+           plane, which will confuse projection transform */
+        if (vwr->verbose()) {
+          fprintf(stderr, "%s: (preventing look-from being inside near clip)\n", me);
+        }
+        vwr->camera.fov(oldFov);
+      }
     }
     break;
   case viewerModeTranslateUV:
@@ -578,6 +593,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
             me, width, height);
     finishing = true;
   }
+
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
 
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
