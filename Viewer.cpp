@@ -243,6 +243,9 @@ bool Viewer::slidable() const {
 bool Viewer::sliding() const {
   return _sliding;
 }
+void Viewer::sliding(bool sld) {
+  _sliding = sld;
+}
 
 void
 Viewer::windowCloseCB(GLFWwindow *gwin) {

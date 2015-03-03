@@ -27,45 +27,56 @@ namespace Hale {
 
 void
 Polydata::_buffer(bool newaddr) {
-  // static const char me[]="Hale::Polydata::_buffer";
+  static const char me[]="Hale::Polydata::_buffer";
   const limnPolyData *lpd = this->lpld();
   unsigned int ibits = limnPolyDataInfoBitFlag(lpd);
 
+  if (debugging)
+    printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
   glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxXYZW]]);
-  // printf("#""glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxXYZW]]);
+  if (debugging)
+    printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxXYZW]]);
   if (newaddr) {
     glBufferData(GL_ARRAY_BUFFER, lpd->xyzwNum*sizeof(float)*4, lpd->xyzw, GL_DYNAMIC_DRAW);
-    // printf("#""glBufferData(GL_ARRAY_BUFFER, %u, lpd->xyzw, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->xyzwNum*sizeof(float)*4));
+    if (debugging)
+      printf("# glBufferData(GL_ARRAY_BUFFER, %u, lpd->xyzw, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->xyzwNum*sizeof(float)*4));
   } else {
     glBufferSubData(GL_ARRAY_BUFFER, 0, lpd->xyzwNum*sizeof(float)*4, lpd->xyzw);
   }
   glVertexAttribPointer(Hale::vertAttrIdxXYZW, 4, GL_FLOAT, GL_FALSE, 0, 0);
-  // printf("#""glVertexAttribPointer(%u, 4, GL_FLOAT, GL_FALSE, 0, 0);\n", Hale::vertAttrIdxXYZW);
+  if (debugging)
+    printf("# glVertexAttribPointer(%u, 4, GL_FLOAT, GL_FALSE, 0, 0);\n", Hale::vertAttrIdxXYZW);
 
   if (ibits & (1 << limnPolyDataInfoNorm)) {
     glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxNorm]]);
-    // printf("#""glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxNorm]]);
+    if (debugging)
+      printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxNorm]]);
     if (newaddr) {
       glBufferData(GL_ARRAY_BUFFER, lpd->normNum*sizeof(float)*3, lpd->norm, GL_DYNAMIC_DRAW);
-      // printf("#""glBufferData(GL_ARRAY_BUFFER, %u, lpd->norm, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->normNum*sizeof(float)*3));
+      if (debugging)
+        printf("# glBufferData(GL_ARRAY_BUFFER, %u, lpd->norm, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->normNum*sizeof(float)*3));
     } else {
       glBufferSubData(GL_ARRAY_BUFFER, 0, lpd->normNum*sizeof(float)*3,lpd->norm);
     }
     glVertexAttribPointer(Hale::vertAttrIdxNorm, 3, GL_FLOAT,GL_FALSE, 0, 0);
-    // printf("#""glVertexAttribPointer(%u, 3, GL_FLOAT, GL_FALSE, 0, 0);\n", Hale::vertAttrIdxNorm);
+    if (debugging)
+      printf("# glVertexAttribPointer(%u, 3, GL_FLOAT, GL_FALSE, 0, 0);\n", Hale::vertAttrIdxNorm);
   }
 
   if (ibits & (1 << limnPolyDataInfoRGBA)) {
     glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxRGBA]]);
-    // printf("#""glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxRGBA]]);
+    if (debugging)
+      printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxRGBA]]);
     if (newaddr) {
       glBufferData(GL_ARRAY_BUFFER, lpd->rgbaNum*sizeof(char)*4, lpd->rgba, GL_DYNAMIC_DRAW);
-      // printf("#""glBufferData(GL_ARRAY_BUFFER, %u, lpd->rgba, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->rgbaNum*sizeof(char)*4));
+      if (debugging)
+        printf("# glBufferData(GL_ARRAY_BUFFER, %u, lpd->rgba, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->rgbaNum*sizeof(char)*4));
     } else {
       glBufferSubData(GL_ARRAY_BUFFER, 0, lpd->rgbaNum*sizeof(char)*4,lpd->rgba);
     }
     glVertexAttribPointer(Hale::vertAttrIdxRGBA, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);
-    // printf("#""glVertexAttribPointer(%u, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);\n", Hale::vertAttrIdxRGBA);
+    if (debugging)
+      printf("# glVertexAttribPointer(%u, 4, GL_UNSIGNED_BYTE, GL_TRUE, 0, 0);\n", Hale::vertAttrIdxRGBA);
   }
 
   /* HEY: tang and tex2 */
@@ -74,16 +85,20 @@ Polydata::_buffer(bool newaddr) {
   if (!_elms || newaddr) {
     if (_elms) {
       glDeleteBuffers(1, &_elms);
-      // printf("#""glDeleteBuffers(1, %u);\n", _elms);
+      if (debugging)
+        printf("# glDeleteBuffers(1, %u);\n", _elms);
     }
     glGenBuffers(1, &_elms);
-    // printf("#""glGenBuffers(1, &); -> %u\n", _elms);
+    if (debugging)
+      printf("# glGenBuffers(1, &); -> %u\n", _elms);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
-    // printf("#""glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+    if (debugging)
+      printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER,
                  lpd->indxNum * sizeof(unsigned int),
                  lpd->indx, GL_DYNAMIC_DRAW);
-    // printf("#""glBufferData(GL_ELEMENT_ARRAY_BUFFER, %u, lpd->indx, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->indxNum * sizeof(unsigned int)));
+    if (debugging)
+      printf("# glBufferData(GL_ELEMENT_ARRAY_BUFFER, %u, lpd->indx, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->indxNum * sizeof(unsigned int)));
   }
   return;
 }
@@ -92,41 +107,56 @@ void Polydata::model(glm::mat4 mat) { _model = mat; }
 glm::mat4 Polydata::model() const { return _model; }
 
 void
-Polydata::_init() {
-  //static const char me[]="Hale::Polydata::_init";
+Polydata::_init(std::string name) {
+  static const char me[]="Hale::Polydata::_init";
 
+  if (name.empty()) {
+    std::ostringstream address;
+    address << (void const *)this;
+    _name = address.str();
+  } else {
+    _name = name;
+  }
+  if (debugging)
+    printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
   _colorSolid = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
   _model = glm::mat4(1.0f);
 
   const limnPolyData *lpld = this->lpld();
   unsigned int aa, ibits = limnPolyDataInfoBitFlag(lpld);
   _buffNum = 1 + airBitsSet(ibits);   /* lpld->xyzw is always set */
-  //printf("!%s: %p|%p %u buffers to set\n", me, _lpld, _lpldOwn, _buffNum);
+  if (debugging)
+    printf("!%s: %p|%p %u buffers to set\n", me, _lpld, _lpldOwn, _buffNum);
   _buff = AIR_CALLOC(_buffNum, GLuint);
-  //printf("!%s: _buff = %p\n", me, _buff);
+  if (debugging)
+    printf("!%s: _buff = %p\n", me, _buff);
   glGenBuffers(_buffNum, _buff);
-  /*
-  printf("#""glGenBuffers(%u, &); -> %u", _buffNum, _buff[0]);
-  for (int bi=1; bi<_buffNum; bi++) {
-    printf(" %u", _buff[bi]);
+  if (debugging) {
+    printf("# glGenBuffers(%u, &); -> %u", _buffNum, _buff[0]);
+    for (int bi=1; bi<_buffNum; bi++) {
+      printf(" %u", _buff[bi]);
+    }
+    printf("\n");
   }
-  printf("\n");
-  */
   glGenVertexArrays(1, &_vao);
-  //printf("#""glGenVertexArrays(1, &); -> %u\n", _vao);
+  if (debugging)
+    printf("# glGenVertexArrays(1, &); -> %u\n", _vao);
   glBindVertexArray(_vao);
-  //printf("#""glBindVertexArray(%u);\n", _vao);
+  if (debugging)
+    printf("# glBindVertexArray(%u);\n", _vao);
 
   aa = 0;
   glEnableVertexAttribArray(Hale::vertAttrIdxXYZW);
-  //printf("#""glEnableVertexAttribArray(%u);\n", Hale::vertAttrIdxXYZW);
+  if (debugging)
+    printf("# glEnableVertexAttribArray(%u);\n", Hale::vertAttrIdxXYZW);
   _buffIdx[Hale::vertAttrIdxXYZW] = aa++;
   for (int ii=limnPolyDataInfoUnknown+1; ii<limnPolyDataInfoLast; ii++) {
     /* HEY assumption of limnPolyDataInfo, Hale::vertAttrIdx mirroring */
     int hva = ii - limnPolyDataInfoRGBA + Hale::vertAttrIdxRGBA;
     if (ibits & (1 << ii)) {
       glEnableVertexAttribArray(hva);
-      //printf("#""glEnableVertexAttribArray(%u);\n", hva);
+      if (debugging)
+        printf("# glEnableVertexAttribArray(%u);\n", hva);
       _buffIdx[hva] = aa++;
     } else {
       _buffIdx[hva] = -1;
@@ -138,15 +168,17 @@ Polydata::_init() {
   return;
 }
 
-Polydata::Polydata(const limnPolyData *poly, const Program *prog) {
+Polydata::Polydata(const limnPolyData *poly, const Program *prog,
+                   std::string name) {
 
   _lpld = poly;
   _lpldOwn = NULL;
   _program = prog;
-  _init();
+  _init(name);
 }
 
-Polydata::Polydata(limnPolyData *poly, bool own, const Program *prog) {
+Polydata::Polydata(limnPolyData *poly, bool own, const Program *prog,
+                   std::string name) {
 
   if (own) {
     _lpld = NULL;
@@ -156,11 +188,11 @@ Polydata::Polydata(limnPolyData *poly, bool own, const Program *prog) {
     _lpldOwn = NULL;
   }
   _program = prog;
-  _init();
+  _init(name);
 }
 
 void Polydata::rebuffer() {
-  //static const char me[]="Polydata::rebuffer";
+  static const char me[]="Polydata::rebuffer";
   const limnPolyData *lpld = this->lpld();
   unsigned int cbits = limnPolyDataInfoBitFlag(&_lpldCopy),
     ibits = limnPolyDataInfoBitFlag(lpld);
@@ -180,7 +212,8 @@ void Polydata::rebuffer() {
                || _lpldCopy.tang != lpld->tang
                || _lpldCopy.tangNum != lpld->tangNum);
   }
-  //printf("!%s: calling _buffer(%s)\n", me, newaddr ? "true" : "false");
+  if (debugging)
+    printf("!%s: calling _buffer(newaddr=%s)\n", me, newaddr ? "true" : "false");
   _buffer(newaddr);
   memcpy(&_lpldCopy, lpld, sizeof(limnPolyData));
   return;
@@ -238,10 +271,19 @@ void Polydata::bounds(glm::vec3& finalmin, glm::vec3& finalmax) const {
   finalmax = glm::vec3(wmax);
 }
 
+void Polydata::name(std::string nm) {
+  _name = nm;
+}
+std::string Polydata::name() const {
+  return _name;
+}
+
 void
 Polydata::draw() const {
   static const char me[]="Hale::Polydata::draw";
 
+  if (debugging)
+    printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
   _program->use();
 
   if (!(limnPolyDataInfoBitFlag(this->lpld()) & (1 << limnPolyDataInfoRGBA))) {
@@ -253,12 +295,16 @@ Polydata::draw() const {
      make this into a stateful/conditional call to uniform() */
   _program->uniform("phongKa", 0.2);
   _program->uniform("phongKd", 0.8);
+  if (debugging)
+    printf("!%s: (done setting uniforms)\n", me);
 
   glBindVertexArray(_vao);
-  //printf("#""glBindVertexArray(%u);\n", _vao);
+  if (debugging)
+    printf("# glBindVertexArray(%u);\n", _vao);
   /* ? needed with every render call ? */
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
-  //printf("#""glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+  if (debugging)
+    printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
 
   const limnPolyData *lpld = this->lpld();
   int offset = 0;
@@ -266,7 +312,8 @@ Polydata::draw() const {
     glDrawElements(Hale::limnToGLPrim(lpld->type[ii]),
                    lpld->icnt[ii],
                    GL_UNSIGNED_INT, ((void*) 0));
-    //printf("#""glDrawElements(%u, %u, GL_UNSIGNED_INT, 0);\n", Hale::limnToGLPrim(lpld->type[ii]), lpld->icnt[ii]);
+    if (debugging)
+      printf("# glDrawElements(%u, %u, GL_UNSIGNED_INT, 0);\n", Hale::limnToGLPrim(lpld->type[ii]), lpld->icnt[ii]);
     Hale::glErrorCheck(me, "glDrawElements(prim " + std::to_string(ii) + ")");
     offset += lpld->icnt[ii];
   }

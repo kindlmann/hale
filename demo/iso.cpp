@@ -116,6 +116,7 @@ main(int argc, const char **argv) {
 
 
   scene.drawInit();
+  render(&viewer);
   while(!Hale::finishing){
     glfwWaitEvents();
     if (viewer.sliding() && sliso != isovalue) {

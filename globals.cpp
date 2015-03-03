@@ -26,6 +26,7 @@
 namespace Hale {
 
 bool finishing = false;
+int debugging = 0;
 
 const Program *_programCurrent = NULL;
 

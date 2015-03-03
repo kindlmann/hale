@@ -2,6 +2,8 @@
 #include <Hale.h>
 #include <glm/glm.hpp>
 
+#include "unistd.h" // for sleep()
+
 void render(Hale::Viewer *viewer){
   Hale::uniform("projectMat", viewer->camera.project());
   Hale::uniform("viewMat", viewer->camera.view());
@@ -23,7 +25,9 @@ main(int argc, const char **argv) {
   float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
   int camortho;
   unsigned int camsize[2];
-  double isovalue, sliso, isomin, isomax;
+  double isovalue=0.1, sliso;
+
+  Hale::debugging = 1;
 
   /* boilerplate hest code */
   me = argv[0];
@@ -32,42 +36,32 @@ main(int argc, const char **argv) {
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
+  int showbug;
+  hestOptAdd(&hopt, "bug", "bool", airTypeBool, 1, 1, &showbug, "true",
+             "arrange things so that bug is evident");
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
-  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, "nan",
-             "isovalue at which to run Marching Cubes");
-  hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "3 4 5",
+  hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "-673.394 42.9228 42.9228",
              "look-from point");
-  hestOptAdd(&hopt, "at", "x y z", airTypeFloat, 3, 3, camat, "0 0 0",
+  hestOptAdd(&hopt, "at", "x y z", airTypeFloat, 3, 3, camat, "42.9228 42.9228 42.9228",
              "look-at point");
   hestOptAdd(&hopt, "up", "x y z", airTypeFloat, 3, 3, camup, "0 0 1",
              "up direction");
-  hestOptAdd(&hopt, "nc", "dist", airTypeFloat, 1, 1, &(camnc), "-2",
+  hestOptAdd(&hopt, "nc", "dist", airTypeFloat, 1, 1, &(camnc), "-126.306",
              "at-relative near clipping distance");
-  hestOptAdd(&hopt, "fc", "dist", airTypeFloat, 1, 1, &(camfc), "2",
+  hestOptAdd(&hopt, "fc", "dist", airTypeFloat, 1, 1, &(camfc), "126.306",
              "at-relative far clipping distance");
   hestOptAdd(&hopt, "fov", "angle", airTypeFloat, 1, 1, &(camFOV), "20",
              "vertical field-of-view, in degrees. Full vertical "
              "extent of image plane subtends this angle.");
   hestOptAdd(&hopt, "sz", "s0 s1", airTypeUInt, 2, 2, &(camsize), "640 480",
              "# samples (horz vert) of image plane. ");
-  hestOptAdd(&hopt, "ortho", NULL, airTypeInt, 0, 0, &(camortho), NULL,
-             "use orthographic instead of (the default) "
-             "perspective projection ");
+  camortho = 0;
 
   hestParseOrDie(hopt, argc-1, argv+1, hparm,
                  me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
   airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
-
-  /* learn value range, and set initial isovalue if needed */
-  NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
-  airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
-  isomin = range->min;
-  isomax = range->max;
-  if (!AIR_EXISTS(isovalue)) {
-    isovalue = (isomin + isomax)/2;
-  }
 
   /* first, make sure we can isosurface ok */
   limnPolyData *lpld = limnPolyDataNew();
@@ -105,27 +99,33 @@ main(int argc, const char **argv) {
   viewer.refreshCB((Hale::ViewerRefresher)render);
   viewer.refreshData(&viewer);
   sliso = isovalue;
-  viewer.slider(&sliso, isomin, isomax);
+  NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
+  airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
+  viewer.slider(&sliso, range->min, range->max);
+  viewer.sliding(true);
   viewer.current();
 
   /* then add it to scene */
-  /* HOTE: Hale bug prevents a different preprogram from being used; seems
-     that all objects have to use same program */
   limnPolyData *lcube = limnPolyDataNew();
   limnPolyDataCubeTriangles(lcube, 1 << limnPolyDataInfoNorm, AIR_TRUE);
   Hale::Polydata hcube(lcube, true,
-                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
+                       /* BUG: should be able to use Hale::preprogramAmbDiffSolid */
+                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                       "cube");
   hcube.colorSolid(1,0.5,0.5);
   hcube.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
                                        0.0f, 30.0f, 0.0f, 0.0f,
                                        0.0f, 0.0f, 0.5f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
-  scene.add(&hcube);
+  if (!showbug) {
+    scene.add(&hcube);
+  }
 
   limnPolyData *lball = limnPolyDataNew();
-  limnPolyDataSpiralSphere(lball, 1 << limnPolyDataInfoNorm, 20, 20);
+  limnPolyDataSpiralSphere(lball, 1 << limnPolyDataInfoNorm, 10, 10);
   Hale::Polydata hball(lball, true,
-                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
+                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                       "ball");
   hball.colorSolid(0.5,1.0,0.5);
   hball.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
                                        0.0f, 30.0f, 0.0f, 60.0f,
@@ -133,25 +133,48 @@ main(int argc, const char **argv) {
                                        0.0f, 0.0f, 0.0f, 1.0f)));
   scene.add(&hball);
 
-  /* NOTE: Hale has some bug that prevents the "scene.add(&hcube);"
-     from being after the "scene.add(&hply);" below */
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
-                      Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
+                      Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                      "isosurface");
   scene.add(&hply);
-
+  if (showbug) {
+    scene.add(&hcube);
+  }
 
   scene.drawInit();
+  printf("!%s: ------------ initial render\n", me);
+  render(&viewer);
+  printf("!%s: ------------ initial glfwWaitEvents\n", me);
+  glfwWaitEvents();
+  printf("!%s: ------------ second render\n", me);
+  render(&viewer);
+  printf("!%s: ------------ entering render loop\n", me);
+  unsigned int count = 0;
   while(!Hale::finishing){
     glfwWaitEvents();
+    if (Hale::viewerModeNone == viewer.mode()) {
+      continue;
+    }
+    printf("!%s: . . . . . . testing isovalue;\n", me);
     if (viewer.sliding() && sliso != isovalue) {
-      isovalue = sliso;
-      printf("%s: isosurfacing at %g\n", me, isovalue);
+      // over-riding manually set isovalue for consistency of testing
+      isovalue = -0.01;
+      printf("!%s: isosurfacing at %g\n", me, isovalue);
       seekIsovalueSet(sctx, isovalue);
       seekUpdate(sctx);
       seekExtract(sctx, lpld);
       hply.rebuffer();
     }
+    printf("!%s: . . . . . . rendering;\n", me);
     render(&viewer);
+    printf("!%s: . . . . . . done rendering;\n", me);
+    count++;
+    if (count == 1) {
+      /* after this many iterations the rendering bug has happened */
+      printf("!%s: . . . . . . bug finished; quitting;\n", me);
+      sleep(1);
+      break;
+    }
   }
 
   /* clean exit; all okay */

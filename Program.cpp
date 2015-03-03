@@ -212,6 +212,8 @@ Program::compile() {
   _vertId = shaderNew(GL_VERTEX_SHADER, _vertCode);
   _fragId = shaderNew(GL_FRAGMENT_SHADER, _fragCode);
   _progId = glCreateProgram();
+  if (debugging)
+    printf("# glCreateProgram() -> %d\n", _progId);
   glErrorCheck(me, "glCreateProgram");
   glAttachShader(_progId, _vertId);
   glErrorCheck(me, "glAttachShader(vertId " + std::to_string(_vertId) + ")");
@@ -225,6 +227,8 @@ void
 Program::bindAttribute(GLuint idx, const GLchar *name) {
   static const std::string me="Hale::Program::bindAttribute";
   glBindAttribLocation(_progId, idx, name);
+  if (debugging)
+    printf("# glBindAttribLocation(%u, %u, %s)\n", _progId, idx, name);
   /* had hoped to use something like glGetVertexAttribiv to learn
      about the type of variable "name" (to enable the kind of type
      checking we support for uniforms), but those functions don't even
@@ -288,8 +292,9 @@ Program::use() const {
     /* we're already using this program; nothing to do here */
     return;
   }
-  //printf("!%s: glUseProgram(%d)\n", me.c_str(), _progId);
   glUseProgram(_progId);
+  if (debugging)
+    printf("# glUseProgram(%u)\n", _progId);
   glErrorCheck(me, "glUseProgram(" + std::to_string(_progId) + ")");
   /* set global Program pointer to us */
   Hale::_programCurrent = this;
@@ -394,7 +399,8 @@ ProgramLib(preprogram pp) {
   }
   if (_program[pp]) {
     /* this preprogram has already been compiled; re-use */
-    printf("!%s: re-using pre-compiled %d\n", me.c_str(), pp);
+    if (debugging)
+      printf("!%s: re-using pre-compiled %d\n", me.c_str(), pp);
     return _program[pp];
   }
   Program *prog = new Program(pp);

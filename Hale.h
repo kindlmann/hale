@@ -24,6 +24,7 @@
 #define HALE_INCLUDED
 
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <map>
 #include <list>
@@ -151,6 +152,7 @@ typedef enum {
 
 /* globals.cpp */
 extern bool finishing;
+extern int debugging;
 
 /* utils.cpp */
 extern void init();
@@ -304,6 +306,7 @@ class Viewer {
   void slider(double *slvalue, double min, double max);
   bool slidable() const;
   bool sliding() const;
+  void sliding(bool);
 
  /* we can return a const Scene* via scene(), but then the caller can't
     draw() it; this draw() just calls the scene's draw() */
@@ -381,8 +384,10 @@ extern const Program *ProgramLib(preprogram pp);
 
 class Polydata {
  public:
-  explicit Polydata(const limnPolyData *poly, const Program *prog);     // don't own
-  explicit Polydata(limnPolyData *poly, bool own, const Program *prog);
+  explicit Polydata(const limnPolyData *poly,  // don't own
+                    const Program *prog, std::string name="");
+  explicit Polydata(limnPolyData *poly, bool own, // may or may not own
+                    const Program *prog, std::string name="");
   ~Polydata();
   /* if you want to get the underlying limn representation */
   const limnPolyData *lpld() const { return _lpld ? _lpld : _lpldOwn; }
@@ -405,11 +410,16 @@ class Polydata {
   void bounds(glm::vec3 &min, glm::vec3 &max) const;
   void draw() const;
 
+  /* set/get object "name" */
+  void name(std::string nm);
+  std::string name() const;
+
  protected:
+  std::string _name;
   GLuint _vao;                // GL vertex array object
   glm::vec4 _colorSolid;      // constant color
   glm::mat4 _model;           // object to world transform
-  void _init();               // main constructor body
+  void _init(std::string);   // main constructor body
   void _buffer(bool newaddr); // glBuffer(Sub)Data calls
 
   const limnPolyData *_lpld;  // cannot limnPolyDataNix()
