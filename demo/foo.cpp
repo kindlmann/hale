@@ -37,8 +37,11 @@ main(int argc, const char **argv) {
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
   int showbug;
+  int quit;
   hestOptAdd(&hopt, "bug", "bool", airTypeBool, 1, 1, &showbug, "true",
              "arrange things so that bug is evident");
+  hestOptAdd(&hopt, "quit", "bool", airTypeBool, 1, 1, &quit, "true",
+             "quit as soon as one while loop iteration is done");
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "-673.394 42.9228 42.9228",
@@ -115,23 +118,11 @@ main(int argc, const char **argv) {
   hcube.colorSolid(1,0.5,0.5);
   hcube.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
                                        0.0f, 30.0f, 0.0f, 0.0f,
-                                       0.0f, 0.0f, 0.5f, 0.0f,
+                                       0.0f, 0.0f, 30.0f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
   if (!showbug) {
     scene.add(&hcube);
   }
-
-  limnPolyData *lball = limnPolyDataNew();
-  limnPolyDataSpiralSphere(lball, 1 << limnPolyDataInfoNorm, 10, 10);
-  Hale::Polydata hball(lball, true,
-                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
-                       "ball");
-  hball.colorSolid(0.5,1.0,0.5);
-  hball.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
-                                       0.0f, 30.0f, 0.0f, 60.0f,
-                                       0.0f, 0.0f, 30.0f, 0.0f,
-                                       0.0f, 0.0f, 0.0f, 1.0f)));
-  scene.add(&hball);
 
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
@@ -144,12 +135,11 @@ main(int argc, const char **argv) {
   scene.drawInit();
   printf("!%s: ------------ initial render\n", me);
   render(&viewer);
-  printf("!%s: ------------ initial glfwWaitEvents\n", me);
-  glfwWaitEvents();
+  /* GLK not sure why, but without second render() here,
+     things don't show up on screen except after more GUI events */
   printf("!%s: ------------ second render\n", me);
   render(&viewer);
   printf("!%s: ------------ entering render loop\n", me);
-  unsigned int count = 0;
   while(!Hale::finishing){
     glfwWaitEvents();
     if (Hale::viewerModeNone == viewer.mode()) {
@@ -168,9 +158,7 @@ main(int argc, const char **argv) {
     printf("!%s: . . . . . . rendering;\n", me);
     render(&viewer);
     printf("!%s: . . . . . . done rendering;\n", me);
-    count++;
-    if (count == 1) {
-      /* after this many iterations the rendering bug has happened */
+    if (quit) {
       printf("!%s: . . . . . . quitting;\n", me);
       sleep(1);
       break;

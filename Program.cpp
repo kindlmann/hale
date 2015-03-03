@@ -301,6 +301,11 @@ Program::use() const {
   return;
 }
 
+GLuint
+Program::progId() const {
+  return _progId;
+}
+
 /* ------------------------------------------------------------ */
 
 // HEY: what's right way to avoid copy+paste?
@@ -400,7 +405,8 @@ ProgramLib(preprogram pp) {
   if (_program[pp]) {
     /* this preprogram has already been compiled; re-use */
     if (debugging)
-      printf("!%s: re-using pre-compiled %d\n", me.c_str(), pp);
+      printf("!%s: re-using pre-compiled %d (GL %u)\n",
+             me.c_str(), pp, _program[pp]->progId());
     return _program[pp];
   }
   Program *prog = new Program(pp);

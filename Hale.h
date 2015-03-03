@@ -359,6 +359,7 @@ class Program {
   void compile();
   void bindAttribute(GLuint idx, const GLchar *name);
   void link();
+  GLuint progId() const;
   void use() const;
   // will add more of these as needed
   void uniform(std::string, float) const;
