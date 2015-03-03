@@ -171,7 +171,7 @@ main(int argc, const char **argv) {
     count++;
     if (count == 1) {
       /* after this many iterations the rendering bug has happened */
-      printf("!%s: . . . . . . bug finished; quitting;\n", me);
+      printf("!%s: . . . . . . quitting;\n", me);
       sleep(1);
       break;
     }
