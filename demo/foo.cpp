@@ -36,13 +36,14 @@ main(int argc, const char **argv) {
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
+  hparm->noArgsIsNoProblem = AIR_TRUE;
   int showbug;
   int quit;
   hestOptAdd(&hopt, "bug", "bool", airTypeBool, 1, 1, &showbug, "true",
              "arrange things so that bug is evident");
   hestOptAdd(&hopt, "quit", "bool", airTypeBool, 1, 1, &quit, "true",
              "quit as soon as one while loop iteration is done");
-  hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
+  hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, "foo.nrrd",
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "-673.394 42.9228 42.9228",
              "look-from point");
