@@ -24,7 +24,6 @@ So to build Hale you'll need to first install:
 2. GLFW3: http://www.glfw.org
 3. GLM: http://glm.g-truc.net
 
-Hale will gradually subsume code from GLK's "Deft" project (which is
-dead because FLTK2 is dead).
 
 Hale has been written by [Gordon Kindlmann](http://people.cs.uchicago.edu/~glk/) based on code examples written by [Roman Amici](https://github.com/roman-amici)
+Hale will gradually subsume code from Gordon's "Deft" project (which is dead because FLTK2 is dead).
