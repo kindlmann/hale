@@ -18,9 +18,12 @@ AntTweakBar.
 So to build Hale you'll need to first install:
 
 1. Teem (checkout from source):
+
    svn co https://svn.code.sf.net/p/teem/code/teem/trunk teem
    and follow info at http://teem.sourceforge.net/build.html
+
 2. GLFW3: http://www.glfw.org
+
 3. GLM: http://glm.g-truc.net
 
 Hale will gradually subsume code from GLK's "Deft" project (which is
