@@ -129,14 +129,21 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
   GLint status;
 
   shaderId = glCreateShader(shtype);
+  if (debugging)
+    printf("# glCreateShader(%u) -> %u\n", shtype, shaderId);
   glErrorCheck(me, "glCreateShader");
   glShaderSource(shaderId, 1, &shaderSrc, NULL);
+  if (debugging)
+    printf("# glShaderSource(%u, 1):\n%s\n", shaderId, shaderSrc);
   glErrorCheck(me, "glShaderSource");
   glCompileShader(shaderId);
+  if (debugging)
+    printf("# glCompileShader(%u)\n", shaderId);
   glErrorCheck(me, "glCompileShader");
   glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
+  if (debugging)
+    printf("# glGetShaderiv(%u, GL_COMPILE_STATUS, &) -> %d (%s)\n", shaderId, status, GLBOOLSTR(status));
   glErrorCheck(me, "glGetShaderiv");
-  //printf("!%s: GL_COMPILE_STATUS(%d) = %d (%d,%d)\n", me.c_str(), shaderId, status, GL_FALSE, GL_TRUE);
   /* HEY why does this sometimes set status to 32767 (not 0 or 1)? */
 
   if (GL_FALSE == status) {
@@ -242,7 +249,11 @@ Program::link() {
   GLint status;
 
   glLinkProgram(_progId);
+  if (debugging)
+    printf("# glLinkProgram(%u);\n", _progId);
   glGetProgramiv(_progId, GL_LINK_STATUS, &status);
+  if (debugging)
+    printf("# glGetProgramiv(%u, GL_LINK_STATUS, &) -> %d (%s);\n", _progId, status, GLBOOLSTR(status));
   if (GL_FALSE == status) {
     GLint logSize;
     glGetProgramiv(_progId, GL_INFO_LOG_LENGTH, &logSize);
@@ -263,6 +274,8 @@ Program::link() {
   uniformType.clear();
   uniformLocation.clear();
   glGetProgramiv(_progId, GL_ACTIVE_UNIFORMS, &uniN);
+  if (debugging)
+    printf("# glGetProgramiv(%d, GL_ACTIVE_UNIFORMS, &); -> %d; ... instrospection to get uniform types ...\n", _progId, uniN);
   glErrorCheck(me, "glGetProgramiv(GL_ACTIVE_UNIFORMS)");
   for (uniI=0; uniI<uniN; uniI++) {
     glGetActiveUniform(_progId, uniI, sizeof(uniName), NULL, &uniSize, &uniType, uniName);

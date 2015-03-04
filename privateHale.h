@@ -27,6 +27,8 @@
 
 namespace Hale {
 
+#define GLBOOLSTR(status) (GL_FALSE == (status) ? "GL_FALSE" : (GL_TRUE == (status) ? "GL_TRUE" : "GL_?!?!?"))
+
 /* a field-of-view of 180 is useless and weird, so we want to make
    sure we don't get any where near that. Likewise prevent fov from
    getting uselessly small, so we start by clamping fov to range

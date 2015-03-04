@@ -33,6 +33,9 @@ Polydata::_buffer(bool newaddr) {
 
   if (debugging)
     printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
+  glBindVertexArray(_vao);
+  if (debugging)
+    printf("# glBindVertexArray(%u);\n", _vao);
   glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxXYZW]]);
   if (debugging)
     printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxXYZW]]);

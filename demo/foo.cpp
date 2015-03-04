@@ -114,7 +114,8 @@ main(int argc, const char **argv) {
   limnPolyDataCubeTriangles(lcube, 1 << limnPolyDataInfoNorm, AIR_TRUE);
   Hale::Polydata hcube(lcube, true,
                        /* BUG: should be able to use Hale::preprogramAmbDiffSolid */
-                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                       //Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                       Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                        "cube");
   hcube.colorSolid(1,0.5,0.5);
   hcube.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
@@ -127,6 +128,7 @@ main(int argc, const char **argv) {
 
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                      //Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                       "isosurface");
   scene.add(&hply);
   if (showbug) {
@@ -149,7 +151,8 @@ main(int argc, const char **argv) {
     printf("!%s: . . . . . . testing isovalue;\n", me);
     if (viewer.sliding() && sliso != isovalue) {
       // over-riding manually set isovalue for consistency of testing
-      isovalue = -0.01;
+      //isovalue = -0.01;
+      isovalue = sliso;
       printf("!%s: isosurfacing at %g\n", me, isovalue);
       seekIsovalueSet(sctx, isovalue);
       seekUpdate(sctx);
