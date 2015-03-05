@@ -48,6 +48,8 @@ glm::vec3 Scene::lightDir() const { return _lightDir; }
 
 void Scene::drawInit() {
   glClearColor(_bgColor[0], _bgColor[1], _bgColor[2], 1.0f);
+  if (debugging)
+    printf("# glClearColor(%g, %g, %g, 1.0f);\n", _bgColor[0], _bgColor[1], _bgColor[2]);
   glEnable(GL_DEPTH_TEST);
   //glEnable(GL_BLEND);
   //glBlendFunc(GL_SRC_ALPHA,GL_ONE);
@@ -75,7 +77,11 @@ void Scene::bounds(glm::vec3& finalmin, glm::vec3& finalmax) const {
 void Scene::draw() {
 
   glClear(GL_DEPTH_BUFFER_BIT);
+  if (debugging)
+    printf("# glClear(GL_DEPTH_BUFFER_BIT);\n");
   glClear(GL_COLOR_BUFFER_BIT);
+  if (debugging)
+    printf("# glClear(GL_COLOR_BUFFER_BIT);\n");
 
   for (auto pi = _polydata.begin(); pi != _polydata.end(); pi++) {
     (*pi)->draw();

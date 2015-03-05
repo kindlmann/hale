@@ -647,7 +647,11 @@ ViewerRefresher Viewer::refreshCB() { return _refreshCB; }
 void Viewer::refreshData(void *data) { _refreshData = data; }
 void *Viewer::refreshData() { return _refreshData; }
 
-void Viewer::bufferSwap() { glfwSwapBuffers(_window); }
+void Viewer::bufferSwap() {
+  glfwSwapBuffers(_window);
+  if (debugging)
+    printf("## glfwSwapBuffers();\n");
+}
 
 void Viewer::current() { glfwMakeContextCurrent(_window); }
 
