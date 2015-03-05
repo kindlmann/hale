@@ -10,12 +10,13 @@ We also want to make it easy to create a window that views a 3D scene,
 so we rely on GLFW3 for window creation and event handling.
 
 Describing where things are in 3D is facilitated by a vector math
-library, so we go with GLM as a path of least resistance, even though
-the templates-gone-wild nature of GLM may cause this to be rethought.
-With time and experience we may also include dependencies on
-AntTweakBar.
+library, so we go with GLM as a path of least resistance.  With time
+and experience we may also include dependencies on AntTweakBar, or
+some other GL-based widget toolkit. The hope is that Hale will
+gradually subsume code from Gordon's "Deft" project (which is dead
+because [FLTK2 is dead](http://www.fltk.org/articles.php?L825)).
 
-So to build Hale you'll need to first install:
+To build Hale you'll need to first install:
 
 1. Teem (checkout from source):
 
@@ -25,5 +26,6 @@ So to build Hale you'll need to first install:
 3. GLM: http://glm.g-truc.net
 
 
-Hale has been written by [Gordon Kindlmann](http://people.cs.uchicago.edu/~glk/) based on code examples written by [Roman Amici](https://github.com/roman-amici)
-Hale will gradually subsume code from Gordon's "Deft" project (which is dead because FLTK2 is dead).
+Hale has been written by [Gordon
+Kindlmann](http://people.cs.uchicago.edu/~glk/) based in part on code
+examples written by [Roman Amici](https://github.com/roman-amici).
