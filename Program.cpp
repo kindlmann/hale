@@ -265,6 +265,16 @@ Program::link() {
     throw std::runtime_error("compilation failed");
   }
 
+  if (debugging) {
+    GLint idx;
+#define GETALOC(str)                                                      \
+    idx = glGetAttribLocation(_progId, str);                            \
+    printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
+    GETALOC("positionVA");
+    GETALOC("normalVA");
+#undef GETALOC
+  }
+
   /* learn uniform types (uniformType) and locations (uniformLocation) once,
      so that we can re-use them during use. Based on
      https://www.opengl.org/wiki/Program_Introspection */
@@ -287,11 +297,10 @@ Program::link() {
       throw std::runtime_error(me + ": \"" + uniName + "\" is not a known uniform name");
     }
     uniformLocation[uniName] = uniLoc;
-    /*
-    fprintf(stderr, "%s: uni[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
-            uniI, uniName, glEnumDesc[uniType].enumStr.c_str(), uniSize,
-            _uniMap[uniName]);
-    */
+    if (debugging)
+      printf("!%s: uni[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
+             uniI, uniName, uniformType[uniName].enumStr.c_str(), uniSize,
+             uniformLocation[uniName]);
   }
 
   return;
