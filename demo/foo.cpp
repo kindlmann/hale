@@ -110,8 +110,8 @@ main(int argc, const char **argv) {
   Hale::Polydata hiso(liso, true,  // hiso now owns liso
                       /* BUG: using different programs here and for hcube
                          below will both from being visible */
-                      //Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
-                      Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
+                      Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                      //Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                       "isosurface");
   scene.add(&hiso);
 
