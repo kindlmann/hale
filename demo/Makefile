@@ -20,11 +20,11 @@ CC = g++ -std=c++11
 
 all: iso foo
 
-iso: iso.cpp
-	$(CC) $(IPATH) iso.cpp -o iso $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
-
-foo: foo.cpp
-	$(CC) $(IPATH) foo.cpp -o foo $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
+# We depend on the installed hale library because in practice that's
+# often what has actually changed when the demo programs need to be rebuilt.
+# Happily the library doesn't get included in the $< automatic variable.
+%: %.cpp $(HALE)/lib/libhale.*
+	$(CC) $(IPATH) $< -o $@ $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
 
 clean:
 	rm -rf iso foo
