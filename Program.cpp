@@ -267,9 +267,11 @@ Program::link() {
 
   if (debugging) {
     GLint idx;
-#define GETALOC(str)                                                      \
+#define GETALOC(str)                                                    \
     idx = glGetAttribLocation(_progId, str);                            \
     printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
+    /* these two were added for initial debugging; ideally which ones
+       are queried should depend on which attributes are used */
     GETALOC("positionVA");
     GETALOC("normalVA");
 #undef GETALOC

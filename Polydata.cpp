@@ -289,7 +289,9 @@ Polydata::draw() const {
     printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
   _program->use();
 
-  if (!(limnPolyDataInfoBitFlag(this->lpld()) & (1 << limnPolyDataInfoRGBA))) {
+  const limnPolyData *lpld = this->lpld();
+  int ibits = limnPolyDataInfoBitFlag(lpld);
+  if (!(ibits & (1 << limnPolyDataInfoRGBA))) {
     _program->uniform("colorSolid", _colorSolid);
   }
   _program->uniform("modelMat", _model);
@@ -304,12 +306,23 @@ Polydata::draw() const {
   glBindVertexArray(_vao);
   if (debugging)
     printf("# glBindVertexArray(%u);\n", _vao);
-  /* ? needed with every render call ? */
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
-  if (debugging)
-    printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+  if (0) {
+    /* GLK honestly doesn't know if these calls are needed; demo/foo
+       can render two different objects (though only with a single
+       program) without any of these. Ketan help :) */
+    glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxXYZW]]);
+    if (debugging)
+      printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxXYZW]]);
+    if (ibits & (1 << limnPolyDataInfoNorm)) {
+      glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxNorm]]);
+      if (debugging)
+        printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxNorm]]);
+    }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
+    if (debugging)
+      printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+  }
 
-  const limnPolyData *lpld = this->lpld();
   int offset = 0;
   for (unsigned int ii=0; ii<lpld->primNum; ii++) {
     glDrawElements(Hale::limnToGLPrim(lpld->type[ii]),
