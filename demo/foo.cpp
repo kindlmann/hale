@@ -37,12 +37,9 @@ main(int argc, const char **argv) {
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
   hparm->noArgsIsNoProblem = AIR_TRUE;
-  int showbug;
   int quit;
-  hestOptAdd(&hopt, "bug", "bool", airTypeBool, 1, 1, &showbug, "true",
-             "arrange things so that bug is evident");
-  hestOptAdd(&hopt, "quit", "bool", airTypeBool, 1, 1, &quit, "true",
-             "quit as soon as one while loop iteration is done");
+  hestOptAdd(&hopt, "quit", "bool", airTypeBool, 1, 1, &quit, "false",
+             "quit as soon as one while-loop iteration is done");
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, "foo.nrrd",
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "-673.394 42.9228 42.9228",
@@ -68,7 +65,7 @@ main(int argc, const char **argv) {
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
 
   /* first, make sure we can isosurface ok */
-  limnPolyData *lpld = limnPolyDataNew();
+  limnPolyData *liso = limnPolyDataNew();
   seekContext *sctx = seekContextNew();
   airMopAdd(mop, sctx, (airMopper)seekContextNix, airMopAlways);
   sctx->pldArrIncr = nrrdElementNumber(nin);
@@ -78,13 +75,13 @@ main(int argc, const char **argv) {
       || seekTypeSet(sctx, seekTypeIsocontour)
       || seekIsovalueSet(sctx, isovalue)
       || seekUpdate(sctx)
-      || seekExtract(sctx, lpld)) {
+      || seekExtract(sctx, liso)) {
     airMopAdd(mop, err=biffGetDone(SEEK), airFree, airMopAlways);
     fprintf(stderr, "trouble with isosurfacing:\n%s", err);
     airMopError(mop);
     return 1;
   }
-  if (!lpld->xyzwNum) {
+  if (!liso->xyzwNum) {
     fprintf(stderr, "%s: warning: No isocontour generated at isovalue %g\n",
             me, isovalue);
   }
@@ -109,11 +106,19 @@ main(int argc, const char **argv) {
   viewer.sliding(true);
   viewer.current();
 
-  /* then add it to scene */
+  /* then add to scene */
+  Hale::Polydata hiso(liso, true,  // hiso now owns liso
+                      /* BUG: using different programs here and for hcube
+                         below will both from being visible */
+                      //Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
+                      Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
+                      "isosurface");
+  scene.add(&hiso);
+
+
   limnPolyData *lcube = limnPolyDataNew();
   limnPolyDataCubeTriangles(lcube, 1 << limnPolyDataInfoNorm, AIR_TRUE);
   Hale::Polydata hcube(lcube, true,
-                       /* BUG: should be able to use Hale::preprogramAmbDiffSolid */
                        //Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                        "cube");
@@ -122,18 +127,7 @@ main(int argc, const char **argv) {
                                        0.0f, 30.0f, 0.0f, 0.0f,
                                        0.0f, 0.0f, 30.0f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
-  if (!showbug) {
-    scene.add(&hcube);
-  }
-
-  Hale::Polydata hply(lpld, true,  // hply now owns lpld
-                      Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
-                      //Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
-                      "isosurface");
-  scene.add(&hply);
-  if (showbug) {
-    scene.add(&hcube);
-  }
+  scene.add(&hcube);
 
   scene.drawInit();
   printf("!%s: ------------ initial render\n", me);
@@ -156,8 +150,8 @@ main(int argc, const char **argv) {
       printf("!%s: isosurfacing at %g\n", me, isovalue);
       seekIsovalueSet(sctx, isovalue);
       seekUpdate(sctx);
-      seekExtract(sctx, lpld);
-      hply.rebuffer();
+      seekExtract(sctx, liso);
+      hiso.rebuffer();
     }
     printf("!%s: . . . . . . rendering;\n", me);
     render(&viewer);
