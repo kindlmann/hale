@@ -113,7 +113,6 @@ main(int argc, const char **argv) {
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
                       //Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                       "isosurface");
-  scene.add(&hiso);
 
 
   limnPolyData *lcube = limnPolyDataNew();
@@ -127,6 +126,10 @@ main(int argc, const char **argv) {
                                        0.0f, 30.0f, 0.0f, 0.0f,
                                        0.0f, 0.0f, 30.0f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
+
+  /* whichever one is added second, is the one
+     that will show up in the render */
+  scene.add(&hiso);
   scene.add(&hcube);
 
   scene.drawInit();
