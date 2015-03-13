@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Hale.h>
 #include <glm/glm.hpp>
+#include "FreeImage.h"
 
 void render(Hale::Viewer *viewer){
   Hale::uniform("projectMat", viewer->camera.project());
@@ -21,7 +22,7 @@ main(int argc, const char **argv) {
   /* variables learned via hest */
   Nrrd *nin;
   float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
-  int camortho;
+  int camortho, hitandquit;
   unsigned int camsize[2];
   double isovalue, sliso, isomin, isomax;
 
@@ -54,6 +55,8 @@ main(int argc, const char **argv) {
   hestOptAdd(&hopt, "ortho", NULL, airTypeInt, 0, 0, &(camortho), NULL,
              "use orthographic instead of (the default) "
              "perspective projection ");
+  hestOptAdd(&hopt, "hitandquit", NULL, airTypeBool, 0, 0, &(hitandquit), NULL,
+             "save a screenshot rather than display the viewer");
 
   hestParseOrDie(hopt, argc-1, argv+1, hparm,
                  me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
@@ -117,6 +120,26 @@ main(int argc, const char **argv) {
 
   scene.drawInit();
   render(&viewer);
+  if (hitandquit) {
+      seekIsovalueSet(sctx, isovalue);
+      seekUpdate(sctx);
+      seekExtract(sctx, lpld);
+      hply.rebuffer();
+  render(&viewer);
+ BYTE* pixels = new BYTE[ 3 * camsize[0] * camsize[1]];
+
+glReadPixels(0, 0, camsize[0], camsize[1], GL_RGB, GL_UNSIGNED_BYTE, pixels);
+
+// Convert to FreeImage format & save to file
+FIBITMAP* image = FreeImage_ConvertFromRawBits(pixels, camsize[0], camsize[1], 3 * camsize[0], 24, 0x0000FF, 0xFF0000, 0x00FF00, false);
+FreeImage_Save(FIF_BMP, image, "test.bmp", 0);
+// Free resources
+FreeImage_Unload(image);
+delete [] pixels;
+  Hale::done();
+  airMopOkay(mop);
+  return 0;
+}
   while(!Hale::finishing){
     glfwWaitEvents();
     if (viewer.sliding() && sliso != isovalue) {
