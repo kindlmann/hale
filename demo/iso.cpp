@@ -1,7 +1,6 @@
 #include <iostream>
 #include <Hale.h>
 #include <glm/glm.hpp>
-#include "FreeImage.h"
 
 void render(Hale::Viewer *viewer){
   Hale::uniform("projectMat", viewer->camera.project());
@@ -55,7 +54,7 @@ main(int argc, const char **argv) {
   hestOptAdd(&hopt, "ortho", NULL, airTypeInt, 0, 0, &(camortho), NULL,
              "use orthographic instead of (the default) "
              "perspective projection ");
-  hestOptAdd(&hopt, "hitandquit", NULL, airTypeBool, 0, 0, &(hitandquit), NULL,
+  hestOptAdd(&hopt, "haq", NULL, airTypeBool, 0, 0, &(hitandquit), NULL,
              "save a screenshot rather than display the viewer");
 
   hestParseOrDie(hopt, argc-1, argv+1, hparm,
@@ -121,25 +120,27 @@ main(int argc, const char **argv) {
   scene.drawInit();
   render(&viewer);
   if (hitandquit) {
-      seekIsovalueSet(sctx, isovalue);
-      seekUpdate(sctx);
-      seekExtract(sctx, lpld);
-      hply.rebuffer();
-  render(&viewer);
- BYTE* pixels = new BYTE[ 3 * camsize[0] * camsize[1]];
+    seekIsovalueSet(sctx, isovalue);
+    seekUpdate(sctx);
+    seekExtract(sctx, lpld);
+    hply.rebuffer();
+    render(&viewer);
+    glfwWaitEvents();
+    render(&viewer);
 
-glReadPixels(0, 0, camsize[0], camsize[1], GL_RGB, GL_UNSIGNED_BYTE, pixels);
-
-// Convert to FreeImage format & save to file
-FIBITMAP* image = FreeImage_ConvertFromRawBits(pixels, camsize[0], camsize[1], 3 * camsize[0], 24, 0x0000FF, 0xFF0000, 0x00FF00, false);
-FreeImage_Save(FIF_BMP, image, "test.bmp", 0);
-// Free resources
-FreeImage_Unload(image);
-delete [] pixels;
-  Hale::done();
-  airMopOkay(mop);
-  return 0;
-}
+    unsigned char *rgb = AIR_MALLOC(camsize[0]*camsize[1]*GL_RGB, unsigned char);
+    glReadPixels(0, 0, camsize[0], camsize[1], GL_RGB, GL_UNSIGNED_BYTE, rgb);
+    Nrrd *nimg = nrrdNew(), *nflip = nrrdNew();
+    airMopAdd(mop, nimg, (airMopper)nrrdNuke, airMopAlways);
+    airMopAdd(mop, nflip, (airMopper)nrrdNuke, airMopAlways);
+    nrrdWrap_va(nimg, rgb, nrrdTypeUChar, 3,
+                (size_t)3, (size_t)camsize[0], (size_t)camsize[1]);
+    nrrdFlip(nflip, nimg, 2);
+    nrrdSave("tmp.png", nflip, NULL);
+    Hale::done();
+    airMopOkay(mop);
+    return 0;
+  }
   while(!Hale::finishing){
     glfwWaitEvents();
     if (viewer.sliding() && sliso != isovalue) {
