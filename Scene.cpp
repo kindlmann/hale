@@ -47,7 +47,7 @@ void Scene::lightDir(glm::vec3 dir) { _lightDir = glm::normalize(dir); }
 glm::vec3 Scene::lightDir() const { return _lightDir; }
 
 void Scene::drawInit() {
-  glClearColor(_bgColor[0], _bgColor[1], _bgColor[2], 1.0f);
+  glClearColor(_bgColor[0], _bgColor[1], _bgColor[2], 0.0f);
   if (debugging)
     printf("# glClearColor(%g, %g, %g, 1.0f);\n", _bgColor[0], _bgColor[1], _bgColor[2]);
   glEnable(GL_DEPTH_TEST);

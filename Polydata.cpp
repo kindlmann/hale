@@ -321,6 +321,17 @@ Polydata::draw() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
     if (debugging)
       printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
+    //    if (debugging) {
+    //      GLint idx;
+    //#define GETALOC(str)                                              \
+    //      idx = glGetAttribLocation(_progId, str);                    \
+    //      printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
+    //      /* these two were added for initial debugging; ideally which ones
+    //         are queried should depend on which attributes are used */
+    //      GETALOC("positionVA");
+    //      GETALOC("normalVA");
+    //#undef GETALOC
+    //    }
   }
 
   int offset = 0;

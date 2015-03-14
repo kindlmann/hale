@@ -124,19 +124,11 @@ main(int argc, const char **argv) {
     seekUpdate(sctx);
     seekExtract(sctx, lpld);
     hply.rebuffer();
+
     render(&viewer);
     glfwWaitEvents();
     render(&viewer);
-
-    unsigned char *rgb = AIR_MALLOC(camsize[0]*camsize[1]*GL_RGB, unsigned char);
-    glReadPixels(0, 0, camsize[0], camsize[1], GL_RGB, GL_UNSIGNED_BYTE, rgb);
-    Nrrd *nimg = nrrdNew(), *nflip = nrrdNew();
-    airMopAdd(mop, nimg, (airMopper)nrrdNuke, airMopAlways);
-    airMopAdd(mop, nflip, (airMopper)nrrdNuke, airMopAlways);
-    nrrdWrap_va(nimg, rgb, nrrdTypeUChar, 3,
-                (size_t)3, (size_t)camsize[0], (size_t)camsize[1]);
-    nrrdFlip(nflip, nimg, 2);
-    nrrdSave("tmp.png", nflip, NULL);
+    viewer.snap();
     Hale::done();
     airMopOkay(mop);
     return 0;

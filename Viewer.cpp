@@ -111,6 +111,22 @@ Viewer::mode() const {
 }
 
 void
+Viewer::_buffAlloc(void) {
+  static const char me[]="Hale::Viewer::_buffAlloc";
+  for (unsigned int ii=0; ii<=1; ii++) {
+    if (nrrdMaybeAlloc_va(_nbuffRGBA[ii], nrrdTypeUChar, 3, (size_t)4,
+                          (size_t)_widthBuffer, (size_t)_heightBuffer)) {
+      char *err = biffGetDone(NRRD);
+      fprintf(stderr, "%s: error allocating %u x %u RGBA buffer:\n%s", me,
+              _widthBuffer, _heightBuffer, err);
+      free(err);
+    }
+    _buffRGBA[ii] = (unsigned char *)(_nbuffRGBA[ii]->data);
+  }
+  return;
+}
+
+void
 Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="framebufferSizeCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
@@ -120,6 +136,7 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   }
   vwr->_widthBuffer = newWidth;
   vwr->_heightBuffer = newHeight;
+  vwr->_buffAlloc();
   glfwGetWindowSize(gwin, &(vwr->_widthScreen), &(vwr->_heightScreen));
   vwr->shapeUpdate();
   vwr->title();
@@ -156,6 +173,8 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
     printf("\n%s\n", chest.c_str());
   } else if (GLFW_KEY_H == key && GLFW_PRESS == action) {
     vwr->helpPrint(stdout);
+  } else if (GLFW_KEY_S == key && GLFW_PRESS == action) {
+    vwr->snap();
   } else if (GLFW_KEY_R == key && GLFW_PRESS == action) {
     glm::vec3 wmin, wmax, wmed;
     vwr->_scene->bounds(wmin, wmax);
@@ -214,8 +233,9 @@ void Viewer::helpPrint(FILE *file) const {
   fprintf(file, " - FOV just changes field-of-view\n");
   fprintf(file, "\n");
   fprintf(file, "What different keys do:\n");
-  fprintf(file, "c: print command-line camera specification\n");
   fprintf(file, "h: print this usage info\n");
+  fprintf(file, "c: print command-line camera specification\n");
+  fprintf(file, "s: save viewer image to snap-NNNN.png\n");
   fprintf(file, "o: toggle between orthographic, perspective\n");
   fprintf(file, "Q or shift-q or command-q or cntl-q: quit\n");
   fprintf(file, "r: reset camera to make everything visible\n");
@@ -598,7 +618,9 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   }
 
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
-
+  _nbuffRGBA[0] = nrrdNew();
+  _nbuffRGBA[1] = nrrdNew();
+  _buffAlloc();
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
   glfwSetCursorPosCallback(_window, cursorPosCB);
   glfwSetMouseButtonCallback(_window, mouseButtonCB);
@@ -615,6 +637,8 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
 
 Viewer::~Viewer() {
   //static const char me[]="Viewer::~Viewer";
+  nrrdNuke(_nbuffRGBA[0]);
+  nrrdNuke(_nbuffRGBA[1]);
   glfwDestroyWindow(_window);
 }
 
@@ -654,6 +678,33 @@ void Viewer::bufferSwap() {
 }
 
 void Viewer::current() { glfwMakeContextCurrent(_window); }
+
+void Viewer::snap(const char *fname) {
+  static const char me[]="Hale::Viewer::snap";
+  glReadPixels(0, 0, _widthBuffer, _heightBuffer, GL_RGBA, GL_UNSIGNED_BYTE, _buffRGBA[0]);
+  if (nrrdFlip(_nbuffRGBA[1], _nbuffRGBA[0], 2)
+      || nrrdSave(fname, _nbuffRGBA[1], NULL)) {
+    char *err = biffGetDone(NRRD);
+    fprintf(stderr, "%s: error saving buffer:\n%s", me, err);
+    free(err);
+  }
+  printf("%s: saved to %s\n", me, fname);
+}
+
+void Viewer::snap() {
+  int si=0;
+  char fname[128];
+  FILE *file=NULL;
+  do {
+    sprintf(fname, "snap-%04d.png", si);
+    file = fopen(fname, "r");
+    if (file) {
+      fclose(file);
+      si++;
+    }
+  } while (file);
+  snap(fname);
+}
 
 const Scene *Viewer::scene() { return _scene; }
 void Viewer::scene(Scene *scn) { _scene = scn; }

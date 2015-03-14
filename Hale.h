@@ -291,6 +291,10 @@ class Viewer {
   /* makes context of this GLFW window current */
   void current();
 
+  /* save RGBA of current window to file */
+  void snap(const char *fname); // to this filename
+  void snap();                  // to some new file
+
   /* set/get scene */
   const Scene *scene();
   void scene(Scene *scn);
@@ -312,9 +316,6 @@ class Viewer {
     draw() it; this draw() just calls the scene's draw() */
   void draw(void);
 
-  /* save current view to image */
-  // int bufferSave(Nrrd *nrgba, Nrrd *ndepth);
-
  protected:
   glm::vec3 _lightDir;
   bool _button[2];     // true iff button (left:0, right:1) is down
@@ -329,6 +330,10 @@ class Viewer {
   int _pixDensity,
     _widthScreen, _heightScreen,
     _widthBuffer, _heightBuffer;
+  // space to get current windows pixel values
+  unsigned char *_buffRGBA[2];
+  Nrrd *_nbuffRGBA[2];
+  void _buffAlloc(void); // manages previous _buff* and _nbuff*
   double _lastX, _lastY; // last clicked position, in screen space
   bool _slidable, // can toggle to using right-click on bottom edge as slider
     _sliding;     // is now being used as slider
