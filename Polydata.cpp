@@ -306,33 +306,6 @@ Polydata::draw() const {
   glBindVertexArray(_vao);
   if (debugging)
     printf("# glBindVertexArray(%u);\n", _vao);
-  if (0) {
-    /* GLK honestly doesn't know if these calls are needed; demo/foo
-       can render two different objects (though only with a single
-       program) without any of these. Ketan help :) */
-    glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxXYZW]]);
-    if (debugging)
-      printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxXYZW]]);
-    if (ibits & (1 << limnPolyDataInfoNorm)) {
-      glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxNorm]]);
-      if (debugging)
-        printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxNorm]]);
-    }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _elms);
-    if (debugging)
-      printf("# glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, %u);\n", _elms);
-    //    if (debugging) {
-    //      GLint idx;
-    //#define GETALOC(str)                                              \
-    //      idx = glGetAttribLocation(_progId, str);                    \
-    //      printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
-    //      /* these two were added for initial debugging; ideally which ones
-    //         are queried should depend on which attributes are used */
-    //      GETALOC("positionVA");
-    //      GETALOC("normalVA");
-    //#undef GETALOC
-    //    }
-  }
 
   int offset = 0;
   for (unsigned int ii=0; ii<lpld->primNum; ii++) {
