@@ -3,9 +3,6 @@
 #include <glm/glm.hpp>
 
 void render(Hale::Viewer *viewer){
-  Hale::uniform("projectMat", viewer->camera.project());
-  Hale::uniform("viewMat", viewer->camera.view());
-
   viewer->draw();
   viewer->bufferSwap();
 }

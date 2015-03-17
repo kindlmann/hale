@@ -25,6 +25,12 @@
 
 namespace Hale {
 
+/* gadgets to map uniform names to variables */
+std::map<std::string, float> stickyUniformFloat;
+std::map<std::string, glm::vec3> stickyUniformVec3;
+std::map<std::string, glm::vec4> stickyUniformVec4;
+std::map<std::string, glm::mat4> stickyUniformMat4;
+
 #define VERSION "#version 150 core\n "
 static const char *AmbDiff_vert =
   (VERSION
@@ -300,7 +306,7 @@ Program::link() {
     }
     uniformLocation[uniName] = uniLoc;
     if (debugging)
-      printf("!%s: uni[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
+      printf("!%s: uniform[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
              uniI, uniName, uniformType[uniName].enumStr.c_str(), uniSize,
              uniformLocation[uniName]);
   }
@@ -322,6 +328,8 @@ Program::use() const {
   glErrorCheck(me, "glUseProgram(" + std::to_string(_progId) + ")");
   /* set global Program pointer to us */
   Hale::_programCurrent = this;
+  /* re-set the sticky uniforms */
+  stickyUniform();
   return;
 }
 
@@ -333,13 +341,13 @@ Program::progId() const {
 /* ------------------------------------------------------------ */
 
 // HEY: what's right way to avoid copy+paste?
-void uniform(std::string name, float vv) {
+void uniform(std::string name, float vv, bool sticky) {
   if (_programCurrent) {
-    _programCurrent->uniform(name, vv);
+    _programCurrent->uniform(name, vv, sticky);
   }
 }
 void
-Program::uniform(std::string name, float vv) const {
+Program::uniform(std::string name, float vv, bool sticky) const {
   static const std::string me="Program::uniform";
   auto iter = uniformType.find(name);
   if (uniformType.end() == iter) {
@@ -351,16 +359,22 @@ Program::uniform(std::string name, float vv) const {
   }
   glUniform1f(uniformLocation.at(name), vv);
   glErrorCheck(me, std::string("glUniform1f(") + name + ")");
+  if (debugging) {
+    printf("# glUniform1f(%u, %f);\n", uniformLocation.at(name), vv);
+  }
+  if (sticky) {
+    stickyUniformFloat[name] = vv;
+  }
 }
 
 // HEY: what's right way to avoid copy+paste?
-void uniform(std::string name, glm::vec3 vv) {
+void uniform(std::string name, glm::vec3 vv, bool sticky) {
   if (_programCurrent) {
-    _programCurrent->uniform(name, vv);
+    _programCurrent->uniform(name, vv, sticky);
   }
 }
 void
-Program::uniform(std::string name, glm::vec3 vv) const {
+Program::uniform(std::string name, glm::vec3 vv, bool sticky) const {
   static const std::string me="Program::uniform";
   auto iter = uniformType.find(name);
   if (uniformType.end() == iter) {
@@ -372,16 +386,22 @@ Program::uniform(std::string name, glm::vec3 vv) const {
   }
   glUniform3fv(uniformLocation.at(name), 1, glm::value_ptr(vv));
   glErrorCheck(me, std::string("glUniform3fv(") + name + ")");
+  if (debugging) {
+    printf("# glUniform3fv(%u, 1, %s);\n", uniformLocation.at(name), glm::to_string(vv).c_str());
+  }
+  if (sticky) {
+    stickyUniformVec3[name] = vv;
+  }
 }
 
 // HEY: what's right way to avoid copy+paste?
-void uniform(std::string name, glm::vec4 vv) {
+void uniform(std::string name, glm::vec4 vv, bool sticky) {
   if (_programCurrent) {
-    _programCurrent->uniform(name, vv);
+    _programCurrent->uniform(name, vv, sticky);
   }
 }
 void
-Program::uniform(std::string name, glm::vec4 vv) const {
+Program::uniform(std::string name, glm::vec4 vv, bool sticky) const {
   static const std::string me="Program::uniform";
   auto iter = uniformType.find(name);
   if (uniformType.end() == iter) {
@@ -393,16 +413,22 @@ Program::uniform(std::string name, glm::vec4 vv) const {
   }
   glUniform4fv(uniformLocation.at(name), 1, glm::value_ptr(vv));
   glErrorCheck(me, std::string("glUniform4fv(") + name + ")");
+  if (debugging) {
+    printf("# glUniform4fv(%u, 1, %s);\n", uniformLocation.at(name), glm::to_string(vv).c_str());
+  }
+  if (sticky) {
+    stickyUniformVec4[name] = vv;
+  }
 }
 
 // HEY: what's right way to avoid copy+paste?
-void uniform(std::string name, glm::mat4 vv) {
+void uniform(std::string name, glm::mat4 vv, bool sticky) {
   if (_programCurrent) {
-    _programCurrent->uniform(name, vv);
+    _programCurrent->uniform(name, vv, sticky);
   }
 }
 void
-Program::uniform(std::string name, glm::mat4 vv) const {
+Program::uniform(std::string name, glm::mat4 vv, bool sticky) const {
   static const std::string me="Program::uniform";
   auto iter = uniformType.find(name);
   if (uniformType.end() == iter) {
@@ -414,6 +440,32 @@ Program::uniform(std::string name, glm::mat4 vv) const {
   }
   glUniformMatrix4fv(uniformLocation.at(name), 1, 0, glm::value_ptr(vv));
   glErrorCheck(me, std::string("glUniformMatrix4fv(") + name + ")");
+  if (debugging) {
+    printf("# glUniformMatrix4fv(%u, 1, 0, %s);\n", uniformLocation.at(name), glm::to_string(vv).c_str());
+  }
+  if (sticky) {
+    stickyUniformMat4[name] = vv;
+  }
+}
+
+/* ------------------------------------------------------------ */
+
+/* HEY: there's currently no way to unstick a sticky uniform; perhaps there
+   needs to be a new "unstick" argument to the uniform() calls, or the
+   "sticky" argument can have 1 of 3 values: "true", "false", or "unstick" */
+void stickyUniform(void) {
+  for (auto si = stickyUniformFloat.begin(); si != stickyUniformFloat.end(); si++) {
+    Hale::uniform(si->first, si->second);
+  }
+  for (auto si = stickyUniformVec3.begin(); si != stickyUniformVec3.end(); si++) {
+    Hale::uniform(si->first, si->second);
+  }
+  for (auto si = stickyUniformVec4.begin(); si != stickyUniformVec4.end(); si++) {
+    Hale::uniform(si->first, si->second);
+  }
+  for (auto si = stickyUniformMat4.begin(); si != stickyUniformMat4.end(); si++) {
+    Hale::uniform(si->first, si->second);
+  }
 }
 
 /* ------------------------------------------------------------ */

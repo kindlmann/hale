@@ -711,10 +711,11 @@ void Viewer::scene(Scene *scn) { _scene = scn; }
 
 void Viewer::draw(void) {
 
-  /* Here is where we convert our view-space light direction into
-     world-space */
+  Hale::uniform("projectMat", camera.project(), true);
+  Hale::uniform("viewMat", camera.view(), true);
+  /* Here is where we convert view-space light direction into world-space */
   glm::vec3 ldir = glm::vec3(camera.viewInv()*glm::vec4(_lightDir,0.0f));
-  Hale::uniform("lightDir", ldir);
+  Hale::uniform("lightDir", ldir, true);
   _scene->draw();
 }
 

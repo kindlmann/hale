@@ -367,10 +367,10 @@ class Program {
   GLuint progId() const;
   void use() const;
   // will add more of these as needed
-  void uniform(std::string, float) const;
-  void uniform(std::string, glm::vec3) const;
-  void uniform(std::string, glm::vec4) const;
-  void uniform(std::string, glm::mat4) const;
+  void uniform(std::string, float, bool sticky=false) const;
+  void uniform(std::string, glm::vec3, bool sticky=false) const;
+  void uniform(std::string, glm::vec4, bool sticky=false) const;
+  void uniform(std::string, glm::mat4, bool sticky=false) const;
   // these are the basis of uniform()'s implementation, and they should
   // perhaps be private, but this way they're accessible to experts
   std::map<std::string,GLint> uniformLocation;
@@ -379,12 +379,19 @@ class Program {
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
 };
-/* Extra functions not in Program: ways to communicate uniforms to
-   whatever is current program */
-extern void uniform(std::string, float);
-extern void uniform(std::string, glm::vec3);
-extern void uniform(std::string, glm::vec4);
-extern void uniform(std::string, glm::mat4);
+/* Extra functions not in Program: ways to communicate (really,
+   broadcast, or shout) uniforms to whatever is current program */
+extern void uniform(std::string, float, bool sticky=false);
+extern void uniform(std::string, glm::vec3, bool sticky=false);
+extern void uniform(std::string, glm::vec4, bool sticky=false);
+extern void uniform(std::string, glm::mat4, bool sticky=false);
+/* The "sticky uniforms"; Program->use() calls stickyUniform() to re-set
+   all the uniforms that were intended to be used for all programs */
+extern std::map<std::string, float> stickyUniformFloat;
+extern std::map<std::string, glm::vec3> stickyUniformVec3;
+extern std::map<std::string, glm::vec4> stickyUniformVec4;
+extern std::map<std::string, glm::mat4> stickyUniformMat4;
+extern void stickyUniform(void);
 /* way to access one of the "pre-programs"; will compile as needed */
 extern const Program *ProgramLib(preprogram pp);
 

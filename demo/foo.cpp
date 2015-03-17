@@ -5,9 +5,6 @@
 #include "unistd.h" // for sleep()
 
 void render(Hale::Viewer *viewer){
-  Hale::uniform("projectMat", viewer->camera.project());
-  Hale::uniform("viewMat", viewer->camera.view());
-
   viewer->draw();
   viewer->bufferSwap();
 }
@@ -27,7 +24,7 @@ main(int argc, const char **argv) {
   unsigned int camsize[2];
   double isovalue=0.1, sliso;
 
-  Hale::debugging = 1;
+  Hale::debugging = 0;
 
   /* boilerplate hest code */
   me = argv[0];
@@ -108,17 +105,13 @@ main(int argc, const char **argv) {
 
   /* then add to scene */
   Hale::Polydata hiso(liso, true,  // hiso now owns liso
-                      /* BUG: using different programs here and for hcube
-                         below will both from being visible */
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
-                      //Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                       "isosurface");
 
 
   limnPolyData *lcube = limnPolyDataNew();
   limnPolyDataCubeTriangles(lcube, 1 << limnPolyDataInfoNorm, AIR_TRUE);
   Hale::Polydata hcube(lcube, true,
-                       //Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid),
                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                        "cube");
   hcube.colorSolid(1,0.5,0.5);
@@ -127,25 +120,21 @@ main(int argc, const char **argv) {
                                        0.0f, 0.0f, 30.0f, 0.0f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
 
-  /* whichever one is added second, is the one
-     that will show up in the render */
   scene.add(&hiso);
   scene.add(&hcube);
 
   scene.drawInit();
-  printf("!%s: ------------ initial render\n", me);
   render(&viewer);
   /* GLK not sure why, but without second render() here,
      things don't show up on screen except after more GUI events */
-  printf("!%s: ------------ second render\n", me);
   render(&viewer);
-  printf("!%s: ------------ entering render loop\n", me);
   while(!Hale::finishing){
     glfwWaitEvents();
+    /*
     if (Hale::viewerModeNone == viewer.mode()) {
       continue;
     }
-    printf("!%s: . . . . . . testing isovalue;\n", me);
+    */
     if (viewer.sliding() && sliso != isovalue) {
       // over-riding manually set isovalue for consistency of testing
       //isovalue = -0.01;
@@ -156,9 +145,7 @@ main(int argc, const char **argv) {
       seekExtract(sctx, liso);
       hiso.rebuffer();
     }
-    printf("!%s: . . . . . . rendering;\n", me);
     render(&viewer);
-    printf("!%s: . . . . . . done rendering;\n", me);
     if (quit) {
       printf("!%s: . . . . . . quitting;\n", me);
       sleep(1);
