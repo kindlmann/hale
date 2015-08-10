@@ -10,7 +10,7 @@ This is easier with other additional libraries. GLFW makes it easy to
 create a window with a modern OpenGL context and handle events.
 Describing where things are in 3D is facilitated by a vector math
 library; GLM is a path of least resistance, even with its extensive
-reliance on template.  With time and experience, AntTweakBar or some
+reliance on C++ templates.  With time and experience, AntTweakBar or some
 other GL-based widget toolkit, may be relied upon. The hope is that
 Hale will gradually subsume code from GLK's "Deft" project (which
 is dead because [FLTK2 is
