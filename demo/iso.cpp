@@ -26,6 +26,7 @@ main(int argc, const char **argv) {
   me = argv[0];
   mop = airMopNew();
   hparm = hestParmNew();
+  hparm->respFileEnable = AIR_TRUE;
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
