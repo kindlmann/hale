@@ -152,7 +152,7 @@ void Camera::updateView() {
   _nn = glm::normalize(_from - _at);
   /* U points towards right; same as if by
      _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); (1st column) or
-     _uu = glm::vec3(_viewInv * glm::vec4(1, 0, 0, 0)); (1st row of _view) or
+     _uu = glm::vec3(glm::vec4(1, 0, 0, 0) * _view); (1st row of _view) or
      _uu = glm::vec3(vp[0], vp[4], vp[8]); (1st row of _view) */
   _uu = glm::normalize(glm::cross(_up, _nn));
   /* V is screen-space up; same as if by
