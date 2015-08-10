@@ -312,6 +312,9 @@ class Viewer {
   bool sliding() const;
   void sliding(bool);
 
+  /* extra camera information */
+  std::string origRowCol();
+
  /* we can return a const Scene* via scene(), but then the caller can't
     draw() it; this draw() just calls the scene's draw() */
   void draw(void);

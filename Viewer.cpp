@@ -143,6 +143,34 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   return;
 }
 
+#define V2S(vv)                                 \
+  (sprintf(buff[0], "%g,", vv[0]),               \
+   sprintf(buff[1], "%g,", vv[1]),               \
+   sprintf(buff[2], "%g", vv[2]),                                       \
+   std::string(buff[0]) + " " + std::string(buff[1]) + " " + std::string(buff[2]))
+
+std::string
+Viewer::origRowCol(void) {
+  char buff[3][32];
+  glm::vec3 diff = camera.at() - camera.from();
+  float dist = glm::length(diff);
+  float vspNear = dist + camera.clipNear();
+  glm::vec3 icent = camera.from() + vspNear*normalize(diff);
+  float hght = 2*vspNear * tan(camera.fov()*AIR_PI/360);
+  float wdth = camera.aspect()*hght;
+  float uspc = wdth/(this->width() - 1);
+  float vspc = hght/(this->height() - 1);
+  glm::vec3 rvec = -vspc*camera.V();
+  glm::vec3 cvec = uspc*camera.U();
+  glm::vec3 orig = icent - wdth*camera.U()/2.0f + hght*camera.V()/2.0f;
+  orig += rvec/2.0f + cvec/2.0f;
+  std::string ret = ("vec3 eye = [" + V2S(camera.from()) + "];\n" +
+                     "vec3 orig= [" + V2S(orig) + "];\n" +
+                     "vec3 rVec= [" + V2S(rvec) + "];\n" +
+                     "vec3 cVec= [" + V2S(cvec) + "];\n");
+  return ret;
+}
+
 void
 Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
@@ -170,6 +198,8 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
     std::string chest = vwr->camera.hest();
     chest += (" -sz " + std::to_string(vwr->width())
               + " " + std::to_string(vwr->height()));
+    printf("\n%s\n", chest.c_str());
+    chest = vwr->origRowCol();
     printf("\n%s\n", chest.c_str());
   } else if (GLFW_KEY_H == key && GLFW_PRESS == action) {
     vwr->helpPrint(stdout);
