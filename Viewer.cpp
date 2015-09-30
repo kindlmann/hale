@@ -155,7 +155,7 @@ Viewer::origRowCol(void) {
   glm::vec3 diff = camera.at() - camera.from();
   float dist = glm::length(diff);
   float vspNear = dist + camera.clipNear();
-  glm::vec3 icent = camera.from() + vspNear*normalize(diff);
+  glm::vec3 icent = camera.from() + vspNear*glm::normalize(diff);
   float hght = 2*vspNear * tan(camera.fov()*AIR_PI/360);
   float wdth = camera.aspect()*hght;
   float uspc = wdth/(this->width() - 1);
