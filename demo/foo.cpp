@@ -34,9 +34,6 @@ main(int argc, const char **argv) {
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
   hparm->noArgsIsNoProblem = AIR_TRUE;
-  int quit;
-  hestOptAdd(&hopt, "quit", "bool", airTypeBool, 1, 1, &quit, "false",
-             "quit as soon as one while-loop iteration is done");
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, "foo.nrrd",
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "-673.394 42.9228 42.9228",
@@ -115,9 +112,9 @@ main(int argc, const char **argv) {
                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                        "cube");
   hcube.colorSolid(1,0.5,0.5);
-  hcube.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.0f,
-                                       0.0f, 30.0f, 0.0f, 0.0f,
-                                       0.0f, 0.0f, 30.0f, 0.0f,
+  hcube.model(glm::transpose(glm::mat4(30.0f, 0.0f, 0.0f, 0.59604f,
+                                       0.0f, 3.0f, 0.0f, -177.545f,
+                                       0.0f, 0.0f, 30.0f, -713.934f,
                                        0.0f, 0.0f, 0.0f, 1.0f)));
 
   scene.add(&hiso);
@@ -125,19 +122,9 @@ main(int argc, const char **argv) {
 
   scene.drawInit();
   render(&viewer);
-  /* GLK not sure why, but without second render() here,
-     things don't show up on screen except after more GUI events */
-  render(&viewer);
   while(!Hale::finishing){
     glfwWaitEvents();
-    /*
-    if (Hale::viewerModeNone == viewer.mode()) {
-      continue;
-    }
-    */
-    if (viewer.sliding() && sliso != isovalue) {
-      // over-riding manually set isovalue for consistency of testing
-      //isovalue = -0.01;
+     if (viewer.sliding() && sliso != isovalue) {
       isovalue = sliso;
       printf("!%s: isosurfacing at %g\n", me, isovalue);
       seekIsovalueSet(sctx, isovalue);
@@ -146,11 +133,6 @@ main(int argc, const char **argv) {
       hiso.rebuffer();
     }
     render(&viewer);
-    if (quit) {
-      printf("!%s: . . . . . . quitting;\n", me);
-      sleep(1);
-      break;
-    }
   }
 
   /* clean exit; all okay */
