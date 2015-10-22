@@ -228,6 +228,11 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
       printf("%s: bottom-edge slider is now %s\n", me,
              vwr->_sliding ? "on" : "off");
     }
+  } else if (GLFW_KEY_SPACE  == key && GLFW_PRESS == action) {
+    if (vwr->_tvalue) {
+      *(vwr->_tvalue) = !(*(vwr->_tvalue));
+      printf("%s: toggle is now %d\n", me, *(vwr->_tvalue));
+    }
   }
 
   return;
@@ -295,6 +300,11 @@ bool Viewer::sliding() const {
 }
 void Viewer::sliding(bool sld) {
   _sliding = sld;
+}
+
+void Viewer::toggle(int *tvalue) {
+  _tvalue = tvalue;
+  return;
 }
 
 void
@@ -628,6 +638,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   _heightScreen = height;
   _lastX = _lastY = AIR_NAN;
   _slvalue = NULL;
+  _tvalue = NULL;
   _slmin = _slmax = AIR_NAN;
   _slidable = false;
   _sliding = false;
