@@ -18,7 +18,7 @@ LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM)
 
 CC = g++ -std=c++11
 
-all: iso foo
+all: iso foo atg
 
 # We depend on the installed hale library because in practice that's
 # often what has actually changed when the demo programs need to be rebuilt.
