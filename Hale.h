@@ -312,6 +312,9 @@ class Viewer {
   bool sliding() const;
   void sliding(bool);
 
+  /* toggling an on/off variable via space bar */
+  void toggle(int *tvalue);
+
   /* extra camera information */
   std::string origRowCol();
 
@@ -343,6 +346,7 @@ class Viewer {
   void _slrevalue(const char *me, double xx);
   double *_slvalue, // value to modify via slider
     _slmin, _slmax;  // range of possible slider values
+  int *_tvalue; // value to toggle via space bar
 
   GLFWwindow *_window; // the window we manage
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
