@@ -5,6 +5,7 @@
 #include "unistd.h" // for sleep()
 #include "/Users/meganrenshaw/Desktop/rokima/rkm.h"
 
+#include <fstream>
 
 /*
 ** DOCS: Does error checking on given nin to see if its really a
@@ -44,11 +45,11 @@ rkmVolNew(const Nrrd *nin) {
   /* input volume seems ok */
   vol = AIR_CALLOC(1, rkmVol);
   if (nrrdTypeUShort != nin->type) {
-    /* if (verbose) {
-      fprintf(stderr, "%s: NOTE: converting from %s to %s\n", me,
-              airEnumStr(nrrdType, nin->type),
-              airEnumStr(nrrdType, nrrdTypeUShort));
-              } */
+     // if (verbose) {
+     //  fprintf(stderr, "%s: NOTE: converting from %s to %s\n", me,
+     //          airEnumStr(nrrdType, nin->type),
+     //          airEnumStr(nrrdType, nrrdTypeUShort));
+     //          } 
     ninUS = vol->ninUS = nrrdNew();
     if (nrrdConvert(vol->ninUS, nin, nrrdTypeUShort)) {
       biffMovef(RKM, NRRD, "%s: problem converting input from %s to %s", me,
@@ -131,15 +132,6 @@ findCov(double mean[3], const unsigned short *vv,
 
           if (ii%1000 == 0 ) {
             ell_3m_eigensolve_d(eval, evec, cov, AIR_TRUE);
-            fprintf(stderr, "%f, %f, %f\n", pos[0], pos[1], pos[2]);
-            fprintf(stderr, "%f, %f, %f\n", eval[0], eval[1], eval[2]);
-            if (eval[0] == eval[1] || eval[0] == eval[2] || eval[2] == eval[1]) {
-              printf("cov=%f %f %f %f %f %f\n", cov[0], cov[1], cov[2],
-              cov[4], cov[5], cov[8]);
-              fprintf(stderr, "WARNING FOUND SAME EIGEN VALUE\n");
-            }
-            fprintf(stderr, "-----------------------------------------\n");
-
           }
         }
         ii++;
@@ -183,7 +175,11 @@ findMeanAndCov(const unsigned short *vv, const unsigned short size[3],
   for (iz=0; iz<sz; iz++) {
     for (iy=0; iy<sy; iy++) {
       for (ix=0; ix<sx; ix++) {
-        /* ii = ix + sx*(iy + sy*iz) */
+        if (ii != ix + sx*(iy + sy*iz)) {
+          fprintf(stderr, "%s: indexing assumptions broken %u != (%u,%u,%u)!\n",
+                  me, ii, ix, iy, iz);
+          return 1;
+        }
         if (vv[ii] > thr) {
           above += 1;
           ELL_4V_SET(idx, ix, iy, iz, 1);
@@ -228,6 +224,8 @@ main(int argc, const char **argv) {
   hestParm *hparm;
   airArray *mop;
 
+  char * name;
+
   /* variables learned via hest */
   Nrrd *nin;
   float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
@@ -242,6 +240,7 @@ main(int argc, const char **argv) {
   Nrrd *nout = nrrdNew();
   unsigned int bins = 2000;
   int type;
+  int hitandquit;
 
   Hale::debugging = 0;
 
@@ -270,9 +269,12 @@ main(int argc, const char **argv) {
              "extent of image plane subtends this angle.");
   hestOptAdd(&hopt, "sz", "s0 s1", airTypeUInt, 2, 2, &(camsize), "640 480",
              "# samples (horz vert) of image plane. ");
-   hestOptAdd(&hopt, "t", "thresh", airTypeDouble, 1, 1, &isovalue, "nan",
+  hestOptAdd(&hopt, "t", "thresh", airTypeDouble, 1, 1, &isovalue, "nan",
              "threshold value for voxels to analyze");
+  hestOptAdd(&hopt, "n", "name", airTypeString, 1, 1, &name, "foo", "name of data set");
   camortho = 0;
+  hestOptAdd(&hopt, "haq", NULL, airTypeBool, 0, 0, &(hitandquit), NULL,
+             "save a screenshot rather than display the viewer");
 
   hestParseOrDie(hopt, argc-1, argv+1, hparm,
                  me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
@@ -282,7 +284,7 @@ main(int argc, const char **argv) {
   /* Compute threshold (isovalue) */
 
   if (!AIR_EXISTS(isovalue)) {
-    fprintf(stderr, "%s: finding threshold ... ", me);
+    // fprintf(stderr, "%s: finding threshold ... ", me);
     fflush(stderr);
     nrrdHisto(nout, nin, NULL, NULL, bins, nrrdTypeUInt);
     nrrdHistoThresholdOtsu(&isovalue, nout, 2.0);
@@ -337,7 +339,7 @@ main(int argc, const char **argv) {
 
   if (!(vol = rkmVolNew(nin))) {
     airMopAdd(mop, err=biffGetDone(RKM), airFree, airMopAlways);
-    fprintf(stderr, "%s: problem handling input:\n%s", me, err);
+    // fprintf(stderr, "%s: problem handling input:\n%s", me, err);
     airMopError(mop); return 1;
   }
   airMopAdd(mop, vol, (airMopper)rkmVolNix, airMopAlways);
@@ -345,10 +347,11 @@ main(int argc, const char **argv) {
 
   /* Find mean and cov */
   if (findMeanAndCov(vol->data, vol->size, vol->i2w, isovalue, mean, cov)) {
-    fprintf(stderr, "%s: computation problem\n", me);
+    // fprintf(stderr, "%s: computation problem\n", me);
     airMopError(mop); return 1;
   }
 
+  // printf("%f %f %f %f %f %f\n", cov[0], cov[1], cov[2], cov[3], cov[4], cov[6]);
   /* Calculate the eigen values and eigen vectors */
   ell_3m_eigensolve_d(eval, evec, cov, AIR_TRUE);
   unsigned int ei;
@@ -389,6 +392,20 @@ main(int argc, const char **argv) {
            (evec + 3*ei)[0], (evec + 3*ei)[1], (evec + 3*ei)[2]);
   }
 
+  /* Print results to a file */
+  // fprintf(stdout, "Printing data to file...\n");
+  // std::ofstream outfile;
+  // outfile.open("results.txt", std::ios_base::app);
+
+  // char result [3000];
+
+
+  // sprintf(result, "<tr>\n\t<td>%s</td>\n\t<td>\n\t\t<a href=\"full_img/%s.png\">\n\t\t\t<img src=\"small_img/%s.png\" width=\"100px\"></img>\n\t\t</a>\n\t</td>\n\t<td>%.0f %.0f %.0f<br/>%.0f %.0f %.0f<br/>%.0f %.0f %.0f</td>\n\t<td>%.0f %.0f %.0f</td>\n\t<td>%g</td>\n\t<td>\n\t\t<a href=\"hist/%s.png\">\n\t\t\t<img src=\"hist/%s.png\" width=\"100px\"></img>\n\t\t</a>\n\t</td>\n\t<td>eval[0] = %.0f; evec = %.3f %.3f %.3f<br/>eval[1] = %.0f; evec = %.3f %.3f %.3f<br/>eval[2] = %.0f; evec = %.3f %.3f %.3f</td>\n\t<td>\n\t\t<a href=\"result_img_1/%s.png\">\n\t\t\t<img src=\"result_img_1/%s.png\" width=\"100px\"></img>\n\t\t</a>\n\t\t<a href=\"result_img_2/%s.png\">\n\t\t\t<img src=\"result_img_2/%s.png\" width=\"100px\"></img>\n\t\t</a>\n\t\t<a href=\"result_img_3/%s.png\">\n\t\t\t<img src=\"result_img_3/%s.png\" width=\"100px\"></img>\n\t\t</a>\n\t</td>\n</tr>\n", 
+  //         name, name, name, cov[0], cov[1], cov[2], cov[3], cov[4], cov[5], cov[6], cov[7], cov[8], mean[0], mean[1], mean[2], isovalue, name, name, eval[0], evec[0], evec[1], evec[2], eval[1], evec[3], evec[4], evec[5], eval[2], evec[6], evec[7], evec[8], name, name, name, name, name, name);
+
+
+  // outfile << result; 
+
 
   /* then add to scene */
   Hale::Polydata hiso(liso, true,  // hiso now owns liso
@@ -402,8 +419,8 @@ main(int argc, const char **argv) {
                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
                        "cube");
   hcube.colorSolid(1,0.5,0.5);
-  glm::mat4 scalingMatrix = glm::mat4(100.0f, 0.0f, 0.0f, 0.0f, 
-                                      0.0f, 100.0f, 0.0f, 0.0f, 
+  glm::mat4 scalingMatrix = glm::mat4(1000.0f, 0.0f, 0.0f, 0.0f, 
+                                      0.0f, 1000.0f, 0.0f, 0.0f, 
                                       0.0f, 0.0f, 1.0f, 0.0f,
                                       0.0f, 0.0f, 0.0f, 1.0f);
   glm::mat4 rotationTranslationMatrix = glm::mat4((evec + 3*index[0])[0], (evec + 3*index[1])[0], (evec + 3*index[2])[0], mean[0],
@@ -416,6 +433,20 @@ main(int argc, const char **argv) {
 
   scene.drawInit();
   render(&viewer);
+  if (hitandquit) {
+    seekIsovalueSet(sctx, isovalue);
+    seekUpdate(sctx);
+    seekExtract(sctx, liso);
+    hiso.rebuffer();
+
+    render(&viewer);
+    glfwWaitEvents();
+    render(&viewer);
+    viewer.snap(name);
+    Hale::done();
+    airMopOkay(mop);
+    return 0;
+  }
   while(!Hale::finishing){
     glfwWaitEvents();
      if (viewer.sliding() && sliso != isovalue) {
@@ -432,5 +463,7 @@ main(int argc, const char **argv) {
   /* clean exit; all okay */
   Hale::done();
   airMopOkay(mop);
+
+ 
   return 0;
 }
