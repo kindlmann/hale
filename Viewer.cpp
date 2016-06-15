@@ -832,6 +832,18 @@ void Viewer::scene(Scene *scn) { _scene = scn; }
 void Viewer::draw(void) {
 
 
+  if(HaleGUI::getInstance()->leftPane){
+    HaleGUI::getInstance()->leftPane->setXPosition(CEGUI::UDim(0,0));
+    HaleGUI::getInstance()->leftPane->setYPosition(CEGUI::UDim(0,0));
+    CEGUI::Rect<float> rect = HaleGUI::getInstance()->leftPane->getClipRect();
+    float w = rect.getWidth() / _widthBuffer;  
+    float h = rect.getHeight() / _heightBuffer; 
+    printf("Rect: %.2f,%.2f\n",w,h);  
+    glViewport(rect.getWidth(), 0, _widthBuffer-rect.getWidth(), _heightBuffer);
+  }
+
+  // glViewport(0, 0, _widthBuffer/2, _heightBuffer);
+  // glScissor(0, 0, _widthBuffer/2, _heightBuffer);
   Hale::uniform("projectMat", camera.project(), true);
   Hale::uniform("viewMat", camera.view(), true);
   /* Here is where we convert view-space light direction into world-space */
@@ -839,7 +851,11 @@ void Viewer::draw(void) {
   Hale::uniform("lightDir", ldir, true);
   _scene->draw();
 
-
+  glViewport(0, 0, _widthBuffer, _heightBuffer);
+  // glViewport(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
+  // glClearColor(0,0,0,0);
+  // glScissor(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
+  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   HaleGUI::getInstance()->renderAll();
 }
 

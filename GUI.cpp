@@ -91,6 +91,7 @@ template class VariableBinding<bool>;
 // CEGUI callbacks require a function pointer.
 // this is the singular function which is called
 // by all window events.
+
 bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
     // figure out which window is being pointed to.
     CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
@@ -209,6 +210,7 @@ HaleGUI* HaleGUI::getInstance(){
     return HaleGUI::inst;
 }
 void HaleGUI::addGUIElement(GenericGUIElement* in){
+    in->updateGUIFromBinding();
     guiElements.push_back(in);
 }
 void HaleGUI::renderAll(){
@@ -275,6 +277,32 @@ void HaleGUI::init(){
     CEGUI::Window* root = WindowManager::getSingleton().loadLayoutFromFile("application_templates.layout");
     System::getSingleton().getDefaultGUIContext().setRootWindow(root);
     cegui_renderer = static_cast<CEGUI::OpenGL3Renderer*>(CEGUI::System::getSingleton().getRenderer());
+
+    // Make the DefaultWindow transparent to mouse events.
+    // If this is not done, then all mouse events will be captured by CEGUI.
+    WindowManager::WindowIterator wit(WindowManager::getSingleton().getIterator());
+    while (!wit.isAtEnd()){
+        if( wit.getCurrentValue() ){
+            uint id = wit.getCurrentValue()->getID();
+//          printf("Type: %s: %d\n", wit.getCurrentValue()->getType().c_str(), wit.getCurrentValue()->getID());
+            if(!strcmp("DefaultWindow",wit.getCurrentValue()->getType().c_str())){
+                wit.getCurrentValue()->setMousePassThroughEnabled(true);
+            }
+            if(!strcmp("LeftPane",wit.getCurrentValue()->getName().c_str())){
+                leftPane = wit.getCurrentValue();
+            }
+        }
+        ++wit;
+    }
+}
+CEGUI::Window* HaleGUI::getWithID(int id){
+    CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());
+    while(!wit.isAtEnd()){
+        if(wit.getCurrentValue()->getID() == id)
+            return wit.getCurrentValue();
+        ++wit;
+    }
+    return 0;
 }
 bool HaleGUI::hasChanged(){
     std::vector<GenericGUIElement*>::iterator it;

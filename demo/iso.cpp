@@ -1,27 +1,56 @@
+
+
 #include <iostream>
-#include <Hale.h>
+
+#include <CEGUI/CEGUI.h>
+#include <CEGUI/RendererModules/OpenGL/GL3Renderer.h>
+#include <CEGUI/System.h>
+#include <CEGUI/WindowManager.h>
+
+
+#include "../Hale.h"
+#include "../GUI.h"
 #include <glm/glm.hpp>
 
+
 void render(Hale::Viewer *viewer){
-  viewer->draw();
-  viewer->bufferSwap();
+    using namespace CEGUI;
+    viewer->draw();
+
+    // swap buffers   
+    viewer->bufferSwap();
 }
 
-int
-main(int argc, const char **argv) {
+seekContext *sctx;
+
+void setVerbose(bool vb){
+  seekVerboseSet(sctx,vb?1:0);
+}
+bool getVerbose(){
+  return sctx->verbose==0?false:true;
+}
+void setFindNormals(bool in){
+    seekNormalsFindSet(sctx, in?AIR_TRUE:AIR_FALSE);
+}
+bool getFindNormals(){
+  return sctx->normalsFind==0?false:true;
+}
+
+
+
+int main(int argc, const char **argv) {
   const char *me;
   char *err;
   hestOpt *hopt=NULL;
   hestParm *hparm;
   airArray *mop;
+  /* CEGUI stuff */
 
   /* variables learned via hest */
   Nrrd *nin;
   float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
   int camortho, hitandquit;
   unsigned int camsize[2];
-  double isovalue, sliso, isomin, isomax;
-
   /* boilerplate hest code */
   me = argv[0];
   mop = airMopNew();
@@ -30,9 +59,10 @@ main(int argc, const char **argv) {
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
+  double init_isoval=0;
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
              "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
-  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, "nan",
+  hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &init_isoval, "nan",
              "isovalue at which to run Marching Cubes");
   hestOptAdd(&hopt, "fr", "x y z", airTypeFloat, 3, 3, camfr, "3 4 5",
              "look-from point");
@@ -60,25 +90,24 @@ main(int argc, const char **argv) {
   airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
 
-  /* learn value range, and set initial isovalue if needed */
+
+  /* learn value range, and set initial ProgramState::isovalue if needed */
   NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
   airMopAdd(mop, range, (airMopper)nrrdRangeNix, airMopAlways);
-  isomin = range->min;
-  isomax = range->max;
-  if (!AIR_EXISTS(isovalue)) {
-    isovalue = (isomin + isomax)/2;
-  }
+  double isomin = range->min;
+  double isomax = range->max;
+  init_isoval = (range->max + range->min)/2.0;
 
   /* first, make sure we can isosurface ok */
   limnPolyData *lpld = limnPolyDataNew();
-  seekContext *sctx = seekContextNew();
+  sctx = seekContextNew();
   airMopAdd(mop, sctx, (airMopper)seekContextNix, airMopAlways);
   sctx->pldArrIncr = nrrdElementNumber(nin);
   seekVerboseSet(sctx, 0);
   seekNormalsFindSet(sctx, AIR_TRUE);
   if (seekDataSet(sctx, nin, NULL, 0)
       || seekTypeSet(sctx, seekTypeIsocontour)
-      || seekIsovalueSet(sctx, isovalue)
+      || seekIsovalueSet(sctx, init_isoval)
       || seekUpdate(sctx)
       || seekExtract(sctx, lpld)) {
     airMopAdd(mop, err=biffGetDone(SEEK), airFree, airMopAlways);
@@ -88,8 +117,9 @@ main(int argc, const char **argv) {
   }
   if (!lpld->xyzwNum) {
     fprintf(stderr, "%s: warning: No isocontour generated at isovalue %g\n",
-            me, isovalue);
+            me, init_isoval);
   }
+
 
   /* then create empty scene */
   Hale::init();
@@ -104,8 +134,7 @@ main(int argc, const char **argv) {
                      camnc, camfc, camortho);
   viewer.refreshCB((Hale::ViewerRefresher)render);
   viewer.refreshData(&viewer);
-  sliso = isovalue;
-  viewer.slider(&sliso, isomin, isomax);
+
   viewer.current();
 
 
@@ -114,11 +143,43 @@ main(int argc, const char **argv) {
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
   scene.add(&hply);
 
+  using namespace CEGUI;
+
+  HaleGUI* halegui = HaleGUI::getInstance();
+  halegui->init();
+
+  VariableBinding<double> *isoval;
+
+  // iso label.
+  halegui->getWithID(3)->setText("ISO");
+
+  // iso slider.
+  CEGUI::Scrollbar* isoSlider = (CEGUI::Scrollbar*) halegui->getWithID(15);
+  isoval = new VariableBinding<double>("ISO", init_isoval);
+  GUIElement<CEGUI::Scrollbar, double>* isoElm;
+  isoElm = new GUIElement<CEGUI::Scrollbar, double>( isoSlider, isoval, isomax, isomin);
+
+  // toy happiness slider.
+  GUIElement<CEGUI::Scrollbar, double>* happiness;
+  happiness = new GUIElement<CEGUI::Scrollbar, double>((CEGUI::Scrollbar*) halegui->getWithID(19), new VariableBinding<double>("Happy!",15), 100, 0);
+  halegui->addGUIElement(happiness);
+
+  //verbose checkbox
+  CEGUI::ToggleButton* checkBox;
+  checkBox = (CEGUI::ToggleButton*) halegui->getWithID(23);
+  checkBox->setText("Verbose");
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(checkBox, new VariableBinding<bool>("Verbose", getVerbose, setVerbose)));
+
+    //seekNormalsFind checkbox
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>((CEGUI::ToggleButton*) halegui->getWithID(29), new VariableBinding<bool>("Normals", getFindNormals, setFindNormals)));
+
+  halegui->addGUIElement(isoElm);
+  
 
   scene.drawInit();
-  render(&viewer);
+
   if (hitandquit) {
-    seekIsovalueSet(sctx, isovalue);
+    seekIsovalueSet(sctx, isoval->getValue());
     seekUpdate(sctx);
     seekExtract(sctx, lpld);
     hply.rebuffer();
@@ -131,21 +192,34 @@ main(int argc, const char **argv) {
     airMopOkay(mop);
     return 0;
   }
+
+  int loopn = 0;
+
   while(!Hale::finishing){
     glfwWaitEvents();
-    if (viewer.sliding() && sliso != isovalue) {
-      isovalue = sliso;
-      printf("%s: isosurfacing at %g\n", me, isovalue);
-      seekIsovalueSet(sctx, isovalue);
+    bool cg = halegui->hasChanged();
+
+    // fprintf(stderr, "modd: %s\n",cg?"true":"false");
+    if (cg) {
+      printf("%s: isosurfacing at %g\n", me, isoval->getValue());
+      seekIsovalueSet(sctx, isoval->getValue());
       seekUpdate(sctx);
       seekExtract(sctx, lpld);
       hply.rebuffer();
     }
-    render(&viewer);
-  }
 
+    render(&viewer);
+
+
+
+    // printf(" >> loop %d\n", ++loopn);
+    // if(loopn>5)break;   // in effect: the program exits on mouse-over.
+  }
+  printf("\nProgram completed successfully.\n\n");
   /* clean exit; all okay */
   Hale::done();
   airMopOkay(mop);
   return 0;
 }
+
+

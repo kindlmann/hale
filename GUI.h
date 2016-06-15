@@ -24,6 +24,7 @@ class GUIElement;
 class GenericVariableBinding{
 public:
     const char* name;
+    bool changed;
     // double getNumRep();
     // char* getStringRep();
 };
@@ -37,8 +38,8 @@ protected:
   T* value;         // pointer to real value, if a setter/getter are not used.
   t_getter getter;  // the function which gets the value (wherever it may be).
   t_setter setter;  // the function which sets the value.
+  std::list<CEGUI::Window> boundGUIElements;
 public:
-  bool changed;
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter getter, t_setter setter);
   VariableBinding(const char* name, T* t_ptr);
@@ -79,8 +80,7 @@ public:
  * (Ie. CEGUI::Windows). W should be a subclass of CEGUI::Window. T can be anything.
  */
 template<class W, class T>
-class GUIElement : public GenericGUIElement{
-};
+class GUIElement : public GenericGUIElement{  };
 
 
 template<>
@@ -98,6 +98,7 @@ public:
     bool hasChanged();
     bool handleEvent(const CEGUI::EventArgs& e);
 };
+
 
 template<>
 class GUIElement<CEGUI::ToggleButton, bool> : public GenericGUIElement{
@@ -130,6 +131,7 @@ class HaleGUI{
 public:
   static HaleGUI* inst;
   CEGUI::OpenGL3Renderer* cegui_renderer;
+  CEGUI::Window* leftPane;
 protected:
   std::vector<GenericGUIElement*> guiElements;
   HaleGUI();
@@ -157,6 +159,11 @@ public:
   bool hasChanged();
 
   static bool windowEventHandler(const CEGUI::EventArgs& e);
+
+  // functions for setting up/managing window layouts.
+
+  // linear-time lookup of Window given ID.
+  CEGUI::Window* getWithID(int id);
 
 
   // a set of callback handlers which must be used manually by the calling code.
@@ -198,19 +205,22 @@ char* getEnum(){
 }
 
 int main(){
+  // iso slider.
+  CEGUI::Scrollbar* isoSlider = (CEGUI::Scrollbar*) halegui->getWithID(15);
+  isoval = new VariableBinding<double>("ISO", init_isoval);
+  GUIElement<CEGUI::Scrollbar, double>* isoElm;
+  isoElm = new GUIElement<CEGUI::Scrollbar, double>( isoSlider, isoval, isomax, isomin);
 
-    // Iso value:
-    VariableBinding<double> isoval(getIsoVal, setIsoVal);
-    // VariableBinding<double> isoval(&isoval);             // alternatively.
-    CEGUI::Scrollbar isoScrollbar = new CEGUI::Scrollbar(...);
-    GUIElement<CEGUI::Scrollbar, double> isoElm(isoval, isoScrollbar);
-    HaleGUI::getInstance()->addGUIElement(isoElm);
+  // toy happiness slider.
+  GUIElement<CEGUI::Scrollbar, double>* happiness;
+  happiness = new GUIElement<CEGUI::Scrollbar, double>((CEGUI::Scrollbar*) halegui->getWithID(19), new VariableBinding<double>("Happy!",15), 100, 0);
+  halegui->addGUIElement(happiness);
 
-    // Verbose flag:
-    VariableBinding<bool> verboseFlag(getVerbose, setVerbose);
-    CEGUI::Checkbox* verboseBox = new CEGUI::Checkbox( ... );
-    GUIElement<CEGUI::Checkbox, bool> verbElm(verboseFlag, verboseBox);
-    HaleGUI::getInstance()->addGUIElement(verbElm);
+  //verbose checkbox
+  CEGUI::ToggleButton* checkBox;
+  checkBox = (CEGUI::ToggleButton*) halegui->getWithID(23);
+  checkBox->setText("Verbose");
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(checkBox, new VariableBinding<bool>("Verbose", getVerbose, setVerbose)));
 
      .. etc ..
 }
