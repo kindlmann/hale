@@ -20,6 +20,7 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <GL/glew.h>
 #include "Hale.h"
 #include "privateHale.h"
 
@@ -215,6 +216,9 @@ init() {
   /* install GLFW error hander, then try glfwInit */
   glfwSetErrorCallback(errorGLFW);
   iret = glfwInit();
+
+
+
   /*
   fprintf(stderr, "%s: glfwInit returned %d (%s)\n", me.c_str(), iret,
           (GL_TRUE == iret

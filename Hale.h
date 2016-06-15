@@ -23,11 +23,17 @@
 #ifndef HALE_INCLUDED
 #define HALE_INCLUDED
 
+
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <map>
 #include <list>
+
+/* Include relevant CEGUI headers. */
+#include <CEGUI/CEGUI.h>
+#include <CEGUI/RendererModules/OpenGL/GL3Renderer.h>
+#include <CEGUI/System.h>
 
 /* This will include all the Teem headers at once */
 #include <teem/meet.h>
@@ -256,6 +262,8 @@ class Viewer {
 
   /* the camera we update with user interactions */
   Camera camera;
+  
+  CEGUI::OpenGL3Renderer* cegui_renderer;
 
   /* set/get verbosity level */
   void verbose(int);

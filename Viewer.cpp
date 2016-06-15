@@ -12,7 +12,7 @@
   1. The origin of this software must not be misrepresented; you must not
   claim that you wrote the original software. If you use this software in a
   product, an acknowledgment in the product documentation would be
-  appreciated but is not required.
+  appreciated but is not requilsred.
 
   2. Altered source versions must be plainly marked as such, and must not be
   misrepresented as being the original software.
@@ -20,7 +20,9 @@
   3. This notice may not be removed or altered from any source distribution.
 */
 
+#include <GL/glew.h>
 #include "Hale.h"
+#include "GUI.h"
 #include "privateHale.h"
 
 /* the fraction of window width along its border that will be treated
@@ -67,6 +69,10 @@ static int buttonIdx(int button, int mods) {
   }
   return ret;
 }
+
+/* CEGUI functions. todo: make cleaner */
+
+
 
 /*
 ** GLK believes that the window size callback is not actually needed: any
@@ -126,6 +132,36 @@ Viewer::_buffAlloc(void) {
   return;
 }
 
+void cegui_charCallback(GLFWwindow* window, unsigned int char_pressed){
+    HaleGUI::gui_charCallback(window,char_pressed);    
+}
+
+void cegui_cursorPosCallback(GLFWwindow* window, double x, double y){
+    HaleGUI::gui_cursorPosCallback(window,x,y);
+}
+
+void cegui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod){
+    HaleGUI::gui_keyCallback(window,key,scan,action,mod);
+}
+
+void cegui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod){
+    HaleGUI::gui_mouseButtonCallback(window,button,state,mod);
+}
+
+void cegui_mouseWheelCallback(GLFWwindow* window, double x, double y){
+    HaleGUI::gui_mouseWheelCallback(window,x,y);
+}
+
+void cegui_windowResizedCallback(GLFWwindow* window, int width, int height){
+    CEGUI::System::getSingleton().notifyDisplaySizeChanged(
+        CEGUI::Sizef(static_cast<float>(width), static_cast<float>(height)));
+    glViewport(0, 0, width, height);
+}
+
+void cegui_errorCallback(int error, const char* message){
+    CEGUI::Logger::getSingleton().logEvent(message, CEGUI::Errors);
+}
+
 void
 Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="framebufferSizeCB";
@@ -174,6 +210,7 @@ Viewer::origRowCol(void) {
 void
 Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
+  cegui_keyCallback(gwin,key,scancode,action,mods);
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
 
   if (vwr->verbose() > 1) {
@@ -365,6 +402,7 @@ Viewer::_slrevalue(const char *me, double xx) {
 void
 Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   static const char me[]="mouseButtonCB";
+  if(HaleGUI::gui_mouseButtonCallback(gwin,button,action,mods))return;
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   double xpos, ypos, xf, yf;
 
@@ -450,6 +488,9 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
 
 void
 Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
+
+  bool handled = (HaleGUI::gui_cursorPosCallback(gwin, xx, yy));
+  if(handled)return;
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   float vsize, ssize, frcX, frcY, rotX, rotY, trnX, trnY;
@@ -671,8 +712,26 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   glfwSetWindowCloseCallback(_window, windowCloseCB);
   glfwSetWindowRefreshCallback(_window, windowRefreshCB);
 
+
+  /*     CEGUI  input callbacks    */
+
+  glfwSetCharCallback(_window, cegui_charCallback);
+  // glfwSetCursorPosCallback(window, cegui_cursorPosCallback);
+  // glfwSetKeyCallback(window, cegui_keyCallback);
+  // glfwSetMouseButtonCallback(window, cegui_mouseButtonCallback);
+  glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
+
+  // // window callback
+  glfwSetWindowSizeCallback(_window, cegui_windowResizedCallback);
+
+    // // error callback
+  // glfwSetErrorCallback(errorCallback);}
+
   shapeUpdate();
   title();
+
+
+
   printf("\nType 'r' to reset view, 'h' for help using keyboard and viewer\n");
 }
 
@@ -718,7 +777,27 @@ void Viewer::bufferSwap() {
     printf("## glfwSwapBuffers();\n");
 }
 
-void Viewer::current() { glfwMakeContextCurrent(_window); }
+void Viewer::current() {
+  glfwMakeContextCurrent(_window);
+
+  fprintf(stderr, "Initializing glew\n");
+
+  // ignore this error. glewInit throws an error; something to do with core profiles...
+  // todo: add explanation for why this error is ignored.
+
+  glewExperimental = GL_TRUE;
+  GLenum glerr = glewInit();
+  GLenum err = glGetError();    
+  
+  if (glerr != GLEW_OK){
+    fprintf(stderr, "GLEW init failed: %d\n\n", glerr);
+    exit(1); // or handle the error in a nicer way
+  }
+
+  // confirmed: ashwin's machine gets here.
+  fprintf(stderr, "Initialized glew\n");
+
+}
 
 void Viewer::snap(const char *fname) {
   static const char me[]="Hale::Viewer::snap";
@@ -752,12 +831,16 @@ void Viewer::scene(Scene *scn) { _scene = scn; }
 
 void Viewer::draw(void) {
 
+
   Hale::uniform("projectMat", camera.project(), true);
   Hale::uniform("viewMat", camera.view(), true);
   /* Here is where we convert view-space light direction into world-space */
   glm::vec3 ldir = glm::vec3(camera.viewInv()*glm::vec4(_lightDir,0.0f));
   Hale::uniform("lightDir", ldir, true);
   _scene->draw();
+
+
+  HaleGUI::getInstance()->renderAll();
 }
 
 /*

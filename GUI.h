@@ -1,6 +1,7 @@
+#ifndef HALEGUI_INCLUDED
+#define HALEGUI_INCLUDED
 #include <GL/glew.h>
 #include "Hale.h"
-#include "privateHale.h"
 #include <vector>
 #include <CEGUI/CEGUI.h>
 
@@ -19,8 +20,16 @@ class GUIElement;
  * A wrapper over a particular variable. Allows a consistent means
  * of getting/setting data from the GUI and otherwise.
  */
+
+class GenericVariableBinding{
+public:
+    const char* name;
+    // double getNumRep();
+    // char* getStringRep();
+};
+
 template<class T>
-class VariableBinding{
+class VariableBinding : public GenericVariableBinding{
 public:
   typedef T (*t_getter)();
   typedef void (*t_setter)(T);
@@ -28,8 +37,8 @@ protected:
   T* value;         // pointer to real value, if a setter/getter are not used.
   t_getter getter;  // the function which gets the value (wherever it may be).
   t_setter setter;  // the function which sets the value.
-  bool changed;
 public:
+  bool changed;
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter getter, t_setter setter);
   VariableBinding(const char* name, T* t_ptr);
@@ -53,13 +62,16 @@ public:
  * a type for lists.
  */
 class GenericGUIElement {
+public:
   virtual void updateGUIFromBinding() =0;   // these two functions will have to be
-  virtual void updateBindingFromGUI() =0;   // specialized for each supported
                                             // window type. 
   virtual CEGUI::Window* getWindow()  =0;   // Return the window of this class
 
   virtual const char* getWindowType() =0;   // All CEGUI::Windows contain a member
                                             // type string. Just return that.
+  virtual bool hasChanged() = 0;
+  virtual bool handleEvent(const CEGUI::EventArgs& e) =0;
+
 };
 
 /*
@@ -68,29 +80,64 @@ class GenericGUIElement {
  */
 template<class W, class T>
 class GUIElement : public GenericGUIElement{
-protected:
-    VariableBinding<T>* binding;
-    W* window;
-public:
-    GUIElement(W* window, VariableBinding<T>* bind);
 };
 
+
+template<>
+class GUIElement<CEGUI::Scrollbar, double> : public GenericGUIElement{
+protected:
+    VariableBinding<double>* binding;
+    CEGUI::Scrollbar* window;
+    double max,min;
+public:
+    GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min);
+
+    void updateGUIFromBinding();
+    CEGUI::Window* getWindow();
+    const char* getWindowType();
+    bool hasChanged();
+    bool handleEvent(const CEGUI::EventArgs& e);
+};
+
+template<>
+class GUIElement<CEGUI::ToggleButton, bool> : public GenericGUIElement{
+protected:
+    VariableBinding<bool>* binding;
+    CEGUI::ToggleButton* window;
+public:
+    GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind);
+
+    void updateGUIFromBinding();
+    CEGUI::Window* getWindow();
+    const char* getWindowType();
+    bool hasChanged();
+    bool handleEvent(const CEGUI::EventArgs& e);
+};
+
+
+
 /* 
- * Singleton class. Handle GUI stuff. There isn't really a reason why we
- * would need more than one to exist; but this pattern allows us to
- * easily edit the code to create more should the need arise.
+ * Singleton class. Handle GUI stuff. Because of the way CEGUI
+ * handles events, there can only ever be one HaleGUI instance.
+ * The singleton pattern allows for easy inheritance.
+ * Note: event-handling functions must be called from the same
+ * thread.
+ * 
  * 
  */
 
 class HaleGUI{ 
 public:
-    static HaleGUI* inst;
+  static HaleGUI* inst;
+  CEGUI::OpenGL3Renderer* cegui_renderer;
 protected:
-    std::vector<GenericGUIElement> guiElements;
-    HaleGUI();
-    ~HaleGUI();
+  std::vector<GenericGUIElement*> guiElements;
+  HaleGUI();
+  ~HaleGUI();
+private:
+  static int eventHandledCount;
 public:
-  HaleGUI* getInstance();
+  static HaleGUI* getInstance();
   // Set up this Window: register input handlers, etc.
   void addGUIElement(GenericGUIElement* in);
 
@@ -109,16 +156,17 @@ public:
   // returns whether any of the variables have changed, ie. if a redraw is necessary.
   bool hasChanged();
 
+  static bool windowEventHandler(const CEGUI::EventArgs& e);
+
 
   // a set of callback handlers which must be used manually by the calling code.
-  void gui_charCallback(GLFWwindow* window, unsigned int char_pressed);
-  void gui_cursorPosCallback(GLFWwindow* window, double x, double y);
-  void gui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod);
-  void gui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod);
-  void gui_mouseWheelCallback(GLFWwindow* window, double x, double y);
-  void gui_windowResizedCallback(GLFWwindow* window, int width, int height);
-  void gui_errorCallback(int error, const char* message);
-
+  static bool gui_charCallback(GLFWwindow* window, unsigned int char_pressed);
+  static bool gui_cursorPosCallback(GLFWwindow* window, double x, double y);
+  static bool gui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod);
+  static bool gui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod);
+  static bool gui_mouseWheelCallback(GLFWwindow* window, double x, double y);
+  static void gui_windowResizedCallback(GLFWwindow* window, int width, int height);
+  static void gui_errorCallback(int error, const char* message);
 };
 /////////////////////////////////////////////////////////////////
 ////
@@ -140,6 +188,13 @@ void setVerbose(bool in){
 }
 bool getVerbose(){
     return ... ;
+}
+void setEnum(char* in){
+    if(!strcmp(in,enum_strings[0]))enum_val = 1;
+    else if ...
+}
+char* getEnum(){
+    return enum_strings[enum_val];
 }
 
 int main(){
@@ -163,3 +218,5 @@ int main(){
 
 */
 
+
+#endif

@@ -135,8 +135,10 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
   GLint status;
 
   shaderId = glCreateShader(shtype);
-  if (debugging)
-    printf("# glCreateShader(%u) -> %u\n", shtype, shaderId);
+
+  // if (debugging)
+    fprintf(stderr,"# glCreateShader(%u) -> %u\n", shtype, shaderId);
+
   glErrorCheck(me, "glCreateShader");
   glShaderSource(shaderId, 1, &shaderSrc, NULL);
   if (debugging)
@@ -221,6 +223,7 @@ Program::compile() {
   glDeleteShader(_fragId);
   glDeleteProgram(_progId);
   */
+
 
   _vertId = shaderNew(GL_VERTEX_SHADER, _vertCode);
   _fragId = shaderNew(GL_FRAGMENT_SHADER, _fragCode);
