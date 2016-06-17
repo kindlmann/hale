@@ -158,6 +158,14 @@ int main(int argc, const char **argv) {
   isoval = new VariableBinding<double>("ISO", init_isoval);
   GUIElement<CEGUI::Scrollbar, double>* isoElm;
   isoElm = new GUIElement<CEGUI::Scrollbar, double>( isoSlider, isoval, isomax, isomin);
+  halegui->addGUIElement(isoElm);
+
+  // iso textbox.
+  halegui->addGUIElement(
+    new GUIElement<CEGUI::Editbox,double>(
+      (CEGUI::Editbox*)halegui->getWithID(7),
+      isoval));
+
 
   // toy happiness slider.
   GUIElement<CEGUI::Scrollbar, double>* happiness;
@@ -173,8 +181,18 @@ int main(int argc, const char **argv) {
     //seekNormalsFind checkbox
   halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>((CEGUI::ToggleButton*) halegui->getWithID(29), new VariableBinding<bool>("Normals", getFindNormals, setFindNormals)));
 
-  halegui->addGUIElement(isoElm);
-  
+  // shader type combobox. Windows can also be created without
+  // using the xml file.
+
+
+  // for setting an enum
+  using namespace CEGUI;
+
+  const char* fruitEnum[] = {"Apples", "Oranges", "Pears", "Nectarines"};
+  Combobox* cbox = halegui->createComboboxFromEnum(halegui->leftPane, "ShaderType", fruitEnum, 4);
+  cbox->setArea(UDim(0,5),UDim(0.210,0),UDim(1,-10),UDim(0.120,0));
+  halegui->addGUIElement(new GUIElement<CEGUI::Combobox,int>(cbox, new VariableBinding<int>("Enum", 0)));
+
 
   scene.drawInit();
 
