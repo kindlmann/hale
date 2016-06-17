@@ -836,9 +836,8 @@ void Viewer::draw(void) {
     HaleGUI::getInstance()->leftPane->setXPosition(CEGUI::UDim(0,0));
     HaleGUI::getInstance()->leftPane->setYPosition(CEGUI::UDim(0,0));
     CEGUI::Rect<float> rect = HaleGUI::getInstance()->leftPane->getClipRect();
-    float w = rect.getWidth() / _widthBuffer;  
-    float h = rect.getHeight() / _heightBuffer; 
-    printf("Rect: %.2f,%.2f\n",w,h);  
+    // float w = rect.getWidth() / _widthBuffer;  
+    // float h = rect.getHeight() / _heightBuffer; 
     glViewport(rect.getWidth(), 0, _widthBuffer-rect.getWidth(), _heightBuffer);
   }
 
