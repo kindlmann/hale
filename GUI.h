@@ -104,9 +104,9 @@ class GUIElement<CEGUI::Scrollbar, double> : public GenericGUIElement{
 protected:
     VariableBinding<double>* binding;
     CEGUI::Scrollbar* window;
-    double max,min;
+    double max,min,step;
 public:
-    GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min);
+    GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double min, double max, double step);
 
     void updateGUIFromBinding();
     bool handleEvent(const CEGUI::EventArgs& e);
@@ -166,6 +166,7 @@ public:
   static HaleGUI* inst;
   CEGUI::OpenGL3Renderer* cegui_renderer;
   CEGUI::Window* leftPane;
+  CEGUI::VerticalLayoutContainer* leftPaneLayout;
 protected:
   std::vector<GenericGUIElement*> guiElements;
   HaleGUI();
@@ -201,6 +202,8 @@ public:
 
   // helper functions to create and lay out gui elements.
   CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
+  CEGUI::Window* createWindow(const char* type, const char* name);
+  void layout();
 
 
   // a set of callback handlers which must be used manually by the calling code.

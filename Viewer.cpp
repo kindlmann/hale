@@ -152,11 +152,6 @@ void cegui_mouseWheelCallback(GLFWwindow* window, double x, double y){
     HaleGUI::gui_mouseWheelCallback(window,x,y);
 }
 
-void cegui_windowResizedCallback(GLFWwindow* window, int width, int height){
-    CEGUI::System::getSingleton().notifyDisplaySizeChanged(
-        CEGUI::Sizef(static_cast<float>(width), static_cast<float>(height)));
-    glViewport(0, 0, width, height);
-}
 
 void cegui_errorCallback(int error, const char* message){
     CEGUI::Logger::getSingleton().logEvent(message, CEGUI::Errors);
@@ -722,7 +717,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
 
   // // window callback
-  glfwSetWindowSizeCallback(_window, cegui_windowResizedCallback);
+  glfwSetWindowSizeCallback(_window, HaleGUI::gui_windowResizedCallback);
 
     // // error callback
   // glfwSetErrorCallback(errorCallback);}
@@ -793,9 +788,6 @@ void Viewer::current() {
     fprintf(stderr, "GLEW init failed: %d\n\n", glerr);
     exit(1); // or handle the error in a nicer way
   }
-
-  // confirmed: ashwin's machine gets here.
-  fprintf(stderr, "Initialized glew\n");
 
 }
 

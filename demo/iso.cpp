@@ -21,6 +21,7 @@ void render(Hale::Viewer *viewer){
     viewer->bufferSwap();
 }
 
+Hale::Viewer *p_viewer;
 seekContext *sctx;
 
 void setVerbose(bool vb){
@@ -29,11 +30,47 @@ void setVerbose(bool vb){
 bool getVerbose(){
   return sctx->verbose==0?false:true;
 }
+void setOrtho(bool o){
+  p_viewer->camera.orthographic(o);
+}
+bool getOrtho(){
+  return p_viewer->camera.orthographic();
+}
 void setFindNormals(bool in){
     seekNormalsFindSet(sctx, in?AIR_TRUE:AIR_FALSE);
 }
 bool getFindNormals(){
   return sctx->normalsFind==0?false:true;
+}
+void setClearR(double in){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  glClearColor(in,c[1],c[2],c[3]);
+}
+double getClearR(){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  return c[0];
+}
+void setClearG(double in){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  glClearColor(c[0],in,c[2],c[3]);
+}
+double getClearG(){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  return c[1];
+}
+void setClearB(double in){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  glClearColor(c[0],c[1],in,c[3]);
+}
+double getClearB(){
+  GLfloat c[4];
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, c);
+  return c[2];
 }
 
 
@@ -126,6 +163,7 @@ int main(int argc, const char **argv) {
   Hale::Scene scene;
   /* then create viewer (in order to create the OpenGL context) */
   Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
+  ::p_viewer = &viewer;
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
   viewer.camera.init(glm::vec3(camfr[0], camfr[1], camfr[2]),
                      glm::vec3(camat[0], camat[1], camat[2]),
@@ -138,61 +176,99 @@ int main(int argc, const char **argv) {
   viewer.current();
 
 
+
   /* then create geometry, and add it to scene */
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
                       Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
   scene.add(&hply);
 
+
+  
+  
   using namespace CEGUI;
 
   HaleGUI* halegui = HaleGUI::getInstance();
   halegui->init();
 
   VariableBinding<double> *isoval;
+  const char* fruitEnum[] = {"Apples", "Oranges", "Pears", "Nectarines"};
 
-  // iso label.
-  halegui->getWithID(3)->setText("ISO");
+  /* create all the gui windows we need */
 
-  // iso slider.
-  CEGUI::Scrollbar* isoSlider = (CEGUI::Scrollbar*) halegui->getWithID(15);
+  Window*       gui_isolabel    = (Window*) halegui->createWindow("TaharezLook/Label","isoLabel2");
+  Editbox*      gui_isobox      = (Editbox*) halegui->createWindow("TaharezLook/Editbox","ebox2");
+  Scrollbar*    gui_isoslider   = (Scrollbar*) halegui->createWindow("TaharezLook/HorizontalScrollbar","scrbr2");
+  Scrollbar*    gui_happyslider = (Scrollbar*) halegui->createWindow("TaharezLook/HorizontalScrollbar","happy");
+  ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","verbBox");
+  ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","normalsBox");
+  ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","orthoBox");
+
+  Window*       gui_colorlabel    = (Window*) halegui->createWindow("TaharezLook/Label","colorlabel");
+  HorizontalLayoutContainer* gui_colorpane = (HorizontalLayoutContainer*)halegui->createWindow("HorizontalLayoutContainer","colorpane");
+  Scrollbar*    gui_sliderR   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colR");
+  Scrollbar*    gui_sliderG   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colG");
+  Scrollbar*    gui_sliderB   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colB");
+  Window*       gui_enumlabel    = (Window*) halegui->createWindow("TaharezLook/Label","enumlabel");
+  Combobox*     gui_cbox        = halegui->createComboboxFromEnum(halegui->leftPaneLayout, "ShaderType", fruitEnum, 4);
+  
+
+  gui_isolabel->setText("ISO");
+  gui_enumlabel->setText("Enumerated Values");
+  gui_colorlabel->setText("Clear Color (rgb)");
+
+  /* elements may have varying heights */
+  gui_isolabel->setHeight(UDim(0.030,0));
+  gui_colorlabel->setHeight(UDim(0.030,0));
+  gui_enumlabel->setHeight(UDim(0.030,0));
+  gui_isoslider->setHeight(UDim(0.015,0));
+  gui_happyslider->setHeight(UDim(0.015,0));
+  gui_isobox->setHeight(UDim(0.030,0));
+  gui_verboseBox->setHeight(UDim(0.015,0));
+  gui_normalsBox->setHeight(UDim(0.015,0));
+  gui_orthoBox->setHeight(UDim(0.015,0));
+  gui_cbox->setSize(USize(UDim(1,-10),UDim(0.150,0)));
+
+  gui_colorpane->setHeight(UDim(0.165,0));
+  gui_sliderR->setWidth(UDim(0,10));
+  gui_sliderR->setHeight(UDim(0.165,0));
+  gui_sliderG->setWidth(UDim(0,10));
+  gui_sliderG->setHeight(UDim(0.165,0));
+  gui_sliderB->setWidth(UDim(0,10));
+  gui_sliderB->setHeight(UDim(0.165,0));
+
+  /* iso slider. */
   isoval = new VariableBinding<double>("ISO", init_isoval);
-  GUIElement<CEGUI::Scrollbar, double>* isoElm;
-  isoElm = new GUIElement<CEGUI::Scrollbar, double>( isoSlider, isoval, isomax, isomin);
-  halegui->addGUIElement(isoElm);
+  halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar, double>( gui_isoslider, isoval, isomin, isomax, 0));
 
-  // iso textbox.
-  halegui->addGUIElement(
-    new GUIElement<CEGUI::Editbox,double>(
-      (CEGUI::Editbox*)halegui->getWithID(7),
-      isoval));
+  /* iso textbox. */
+  halegui->addGUIElement(new GUIElement<CEGUI::Editbox,double>(gui_isobox,isoval));
 
+  /* clear colors */
+  halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar,double>(gui_sliderR, new VariableBinding<double>("colorR", getClearR, setClearR),0,1,0));
+  halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar,double>(gui_sliderG, new VariableBinding<double>("colorG", getClearG, setClearG),0,1,0));
+  halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar,double>(gui_sliderB, new VariableBinding<double>("colorB", getClearB, setClearB),0,1,0));
 
-  // toy happiness slider.
+  /* toy happiness slider. */
   GUIElement<CEGUI::Scrollbar, double>* happiness;
-  happiness = new GUIElement<CEGUI::Scrollbar, double>((CEGUI::Scrollbar*) halegui->getWithID(19), new VariableBinding<double>("Happy!",15), 100, 0);
+  happiness = new GUIElement<CEGUI::Scrollbar, double>(gui_happyslider, new VariableBinding<double>("Happy!",15), 0, 100,15);
   halegui->addGUIElement(happiness);
 
-  //verbose checkbox
-  CEGUI::ToggleButton* checkBox;
-  checkBox = (CEGUI::ToggleButton*) halegui->getWithID(23);
-  checkBox->setText("Verbose");
-  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(checkBox, new VariableBinding<bool>("Verbose", getVerbose, setVerbose)));
+  /* verbose checkbox */
+  gui_verboseBox->setText("Verbose");
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(gui_verboseBox, new VariableBinding<bool>("Verbose", getVerbose, setVerbose)));
 
-    //seekNormalsFind checkbox
-  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>((CEGUI::ToggleButton*) halegui->getWithID(29), new VariableBinding<bool>("Normals", getFindNormals, setFindNormals)));
+  gui_orthoBox->setText("Orthographic");
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(gui_orthoBox, new VariableBinding<bool>("Ortho", getOrtho, setOrtho)));
 
-  // shader type combobox. Windows can also be created without
-  // using the xml file.
+  /* seekNormalsFind checkbox */
+  gui_normalsBox->setText("Find Normals?");
+  halegui->addGUIElement(new GUIElement<CEGUI::ToggleButton,bool>(gui_normalsBox, new VariableBinding<bool>("Normals", getFindNormals, setFindNormals)));
 
+  /* for setting an enum */
+  halegui->addGUIElement(new GUIElement<CEGUI::Combobox,int>(gui_cbox, new VariableBinding<int>("Enum", 0)));
 
-  // for setting an enum
-  using namespace CEGUI;
-
-  const char* fruitEnum[] = {"Apples", "Oranges", "Pears", "Nectarines"};
-  Combobox* cbox = halegui->createComboboxFromEnum(halegui->leftPane, "ShaderType", fruitEnum, 4);
-  cbox->setArea(UDim(0,5),UDim(0.210,0),UDim(1,-10),UDim(0.120,0));
-  halegui->addGUIElement(new GUIElement<CEGUI::Combobox,int>(cbox, new VariableBinding<int>("Enum", 0)));
-
+  /* organize elements */
+  halegui->layout();
 
   scene.drawInit();
 

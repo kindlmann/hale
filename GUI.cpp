@@ -153,18 +153,25 @@ bool GenericGUIElement::hasChanged(){
 // Double scrollbar
 
 bool GUIElement<CEGUI::Scrollbar, double>::handleEvent(const CEGUI::EventArgs& e){
-  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
   double val = window->getScrollPosition();
-  binding->setValue(min + val*(max-min));
-  printf("%s: %.2f",binding->name,binding->getValue());
+  val = min + val*(max-min);
+
+  // enforce step size
+  if(step!=0){
+    int div = (int)(0.5 + val / step);
+    val = div*step;
+  }
+  binding->setValue(val);
+  fprintf(stderr,"%s: %.2f",binding->name,binding->getValue());
   return true;
 };
 
-GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min) : GenericGUIElement(window, bind){
+GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double min, double max, double step) : GenericGUIElement(window, bind){
     this->window = window;
     this->binding = bind;
     this->max = max;
     this->min = min;
+    this->step =step;
     window->subscribeEvent(CEGUI::Scrollbar::EventScrollPositionChanged, HaleGUI::windowEventHandler);
 }
 void GUIElement<CEGUI::Scrollbar, double>::updateGUIFromBinding(){
@@ -314,6 +321,51 @@ void HaleGUI::renderAll(){
     glEnable(GL_DEPTH_TEST);
   }
 }
+void layoutHoriz(CEGUI::HorizontalLayoutContainer* container);
+void layoutVert(CEGUI::VerticalLayoutContainer* container);
+void layoutHoriz(CEGUI::HorizontalLayoutContainer* container){
+    // preserve height.
+    CEGUI::UDim oldHeight = container->getHeight();
+    size_t index = 0;
+    while (index < container->getChildCount()){
+       CEGUI::Window* child = container->getChildAtIdx(index);
+       // child->setHeight(CEGUI::UDim(0.95,0));
+       child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0)));
+       ++index;
+    }
+    container->layout(); 
+    container->setHeight(oldHeight);
+}
+void layoutVert(CEGUI::VerticalLayoutContainer* container){
+
+    size_t index = 0;
+    while (index < container->getChildCount()){
+        CEGUI::Window* child = container->getChildAtIdx(index);
+        if(!strcmp(child->getType().c_str(),"HorizontalLayoutContainer")){
+            // printf("layout: %s\n",child->getType().c_str());
+            // child->setWidth(CEGUI::UDim(0.95,0));
+            // child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));
+            layoutHoriz((CEGUI::HorizontalLayoutContainer*)child);
+        }
+        ++index;
+    }
+    index = 0;
+    while (index < container->getChildCount()){
+        CEGUI::Window* child = container->getChildAtIdx(index);
+        child->setWidth(CEGUI::UDim(0.95,0));
+        child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));
+        ++index;
+    }
+    container->layout();
+
+   // "HorizontalLayoutContainer"
+}
+void HaleGUI::layout(){
+    layoutVert(leftPaneLayout);
+}
+CEGUI::Window* HaleGUI::createWindow(const char* type, const char* name){
+    return leftPaneLayout->createChild(type,name);
+}
 void HaleGUI::init(){
     using namespace CEGUI;
 
@@ -373,6 +425,7 @@ void HaleGUI::init(){
             }
             if(!strcmp("LeftPane",wit.getCurrentValue()->getName().c_str())){
                 leftPane = wit.getCurrentValue();
+                leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(leftPane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
             }
         }
         ++wit;
@@ -519,6 +572,7 @@ void HaleGUI::gui_windowResizedCallback(GLFWwindow* window, int width, int heigh
     CEGUI::System::getSingleton().notifyDisplaySizeChanged(
         CEGUI::Sizef(static_cast<float>(width), static_cast<float>(height)));
     glViewport(0, 0, width, height);
+    inst->leftPaneLayout->layout();
 }
 void HaleGUI::gui_errorCallback(int error, const char* message){
     CEGUI::Logger::getSingleton().logEvent(message, CEGUI::Errors);
