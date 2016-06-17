@@ -25,6 +25,8 @@ class GenericVariableBinding{
 public:
     const char* name;
     bool changed;
+    virtual void updateBoundGUIElements() =0;
+    virtual void bindGUIElement(GenericGUIElement* e) =0;
     // double getNumRep();
     // char* getStringRep();
 };
@@ -38,11 +40,13 @@ protected:
   T* value;         // pointer to real value, if a setter/getter are not used.
   t_getter getter;  // the function which gets the value (wherever it may be).
   t_setter setter;  // the function which sets the value.
-  std::list<CEGUI::Window> boundGUIElements;
+  std::list<GenericGUIElement*> boundGUIElements;
 public:
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter getter, t_setter setter);
   VariableBinding(const char* name, T* t_ptr);
+  void updateBoundGUIElements();
+  void bindGUIElement(GenericGUIElement* e);
   void setValue(T val);             // set the real value of this variable.
   void setValue(T* val);            // set the real value of this variable.
   T getValue();                     // get the real value of this variable.
@@ -63,17 +67,29 @@ public:
  * a type for lists.
  */
 class GenericGUIElement {
+protected:
+  CEGUI::Window* m_window;
+  GenericVariableBinding* m_varbinding;
+  GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
 public:
   virtual void updateGUIFromBinding() =0;   // these two functions will have to be
                                             // window type. 
-  virtual CEGUI::Window* getWindow()  =0;   // Return the window of this class
+  CEGUI::Window* getWindow();               // Return the window of this class
 
-  virtual const char* getWindowType() =0;   // All CEGUI::Windows contain a member
+  const char* getWindowType();              // All CEGUI::Windows contain a member
                                             // type string. Just return that.
-  virtual bool hasChanged() = 0;
+  virtual bool hasChanged();
   virtual bool handleEvent(const CEGUI::EventArgs& e) =0;
 
 };
+
+/********************************
+ *
+ * Template-Specializing VariableBinding would require a lot
+ * of typing on the programmer's part (one specialization for
+ * each of bool, double, char* and int). 
+ *
+ ********************************/
 
 /*
  * A mapping between Variable Bindings and their corresponding GUI elements
@@ -93,9 +109,6 @@ public:
     GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min);
 
     void updateGUIFromBinding();
-    CEGUI::Window* getWindow();
-    const char* getWindowType();
-    bool hasChanged();
     bool handleEvent(const CEGUI::EventArgs& e);
 };
 
@@ -109,9 +122,30 @@ public:
     GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind);
 
     void updateGUIFromBinding();
-    CEGUI::Window* getWindow();
-    const char* getWindowType();
-    bool hasChanged();
+    bool handleEvent(const CEGUI::EventArgs& e);
+};
+
+template<>
+class GUIElement<CEGUI::Editbox, double> : public GenericGUIElement{
+protected:
+    VariableBinding<double>* binding;
+    CEGUI::Editbox* window;
+public:
+    GUIElement(CEGUI::Editbox* window, VariableBinding<double>* bind);
+
+    void updateGUIFromBinding();
+    bool handleEvent(const CEGUI::EventArgs& e);
+};
+
+template<>
+class GUIElement<CEGUI::Combobox, int> : public GenericGUIElement{
+protected:
+    VariableBinding<int>* binding;
+    CEGUI::Combobox* window;
+public:
+    GUIElement(CEGUI::Combobox* window, VariableBinding<int>* bind);
+
+    void updateGUIFromBinding();
     bool handleEvent(const CEGUI::EventArgs& e);
 };
 
@@ -163,7 +197,10 @@ public:
   // functions for setting up/managing window layouts.
 
   // linear-time lookup of Window given ID.
-  CEGUI::Window* getWithID(int id);
+  CEGUI::Window* getWithID(unsigned int id);
+
+  // helper functions to create and lay out gui elements.
+  CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
 
 
   // a set of callback handlers which must be used manually by the calling code.

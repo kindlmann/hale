@@ -37,6 +37,7 @@ void VariableBinding<T>::setValue(T in) {
     }else{
         *value = in;
     }
+    updateBoundGUIElements();
     this->changed = true;
 }
 
@@ -47,6 +48,7 @@ void VariableBinding<T>::setValue(T* in) {
     }else{
         *value = *in;
     }
+    updateBoundGUIElements();
     this->changed = true;
 }
 template <class T>
@@ -65,6 +67,16 @@ double VariableBinding<T>::getNumRep(){
     else{
         return (double)(*value);
     }
+}
+template <class T>
+void VariableBinding<T>::updateBoundGUIElements(){
+    for (std::list<GenericGUIElement*>::const_iterator itr = boundGUIElements.begin(), end = boundGUIElements.end(); itr != end; ++itr) {
+        (*itr)->updateGUIFromBinding();
+    }
+}
+template <class T>
+void VariableBinding<T>::bindGUIElement(GenericGUIElement* e){
+    boundGUIElements.push_back(e);
 }
 
 template <typename Type>
@@ -86,6 +98,7 @@ template<> const char*   getStringRep<double>(double in) {  return "[todo: strin
 
 // http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
 template class VariableBinding<double>;
+template class VariableBinding<int>;
 template class VariableBinding<bool>;
 
 // CEGUI callbacks require a function pointer.
@@ -116,17 +129,38 @@ bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
     return retval;
 }
 
+GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding){
+    this->m_window = window;
+    this->m_varbinding = binding;
+    binding->bindGUIElement(this);
+}
+CEGUI::Window* GenericGUIElement::getWindow(){
+    return m_window;
+}
+const char* GenericGUIElement::getWindowType(){
+    return m_window->getType().c_str();
+}
+bool GenericGUIElement::hasChanged(){
+    if(m_varbinding->changed){
+        m_varbinding->changed = false;
+        return true;
+    }
+    return m_varbinding->changed;
+}
+
 // code for each type of GUIElement...
 
+// Double scrollbar
+
 bool GUIElement<CEGUI::Scrollbar, double>::handleEvent(const CEGUI::EventArgs& e){
-  CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
   double val = window->getScrollPosition();
   binding->setValue(min + val*(max-min));
   printf("%s: %.2f",binding->name,binding->getValue());
   return true;
 };
 
-GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min){
+GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double max, double min) : GenericGUIElement(window, bind){
     this->window = window;
     this->binding = bind;
     this->max = max;
@@ -138,31 +172,39 @@ void GUIElement<CEGUI::Scrollbar, double>::updateGUIFromBinding(){
     window->setScrollPosition((val-min)/(max-min));
 }
 
-const char* GUIElement<CEGUI::Scrollbar, double>::getWindowType(){
-    return window->getType().c_str();
+// Double editbox
+
+bool GUIElement<CEGUI::Editbox, double>::handleEvent(const CEGUI::EventArgs& e){
+  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+  double val = atof(window->getText().c_str());
+  binding->setValue(val);
+  printf("%s: %.2f",binding->name,binding->getValue());
+  return true;
+};
+
+GUIElement<CEGUI::Editbox, double>::GUIElement(CEGUI::Editbox* window, VariableBinding<double>* bind) : GenericGUIElement(window, bind){
+    this->window = window;
+    this->binding = bind;
+    window->subscribeEvent(CEGUI::Editbox::EventTextAccepted
+, HaleGUI::windowEventHandler);
 }
-CEGUI::Window* GUIElement<CEGUI::Scrollbar, double>::getWindow(){
-    return window;
+void GUIElement<CEGUI::Editbox, double>::updateGUIFromBinding(){
+    double val = binding->getValue();
+    window->setText(std::to_string(val).c_str());
 }
-bool GUIElement<CEGUI::Scrollbar, double>::hasChanged(){
-    if(binding->changed){
-        binding->changed = false;
-        return true;
-    }
-    return binding->changed;
-}
+
 
 // Boolean toggle-button
 
 bool GUIElement<CEGUI::ToggleButton, bool>::handleEvent(const CEGUI::EventArgs& e){
-  CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
   bool val = window->isSelected();
   binding->setValue(val);
   printf("%s: %s\n",binding->name,binding->getValue()?"true":"false");
   return true;
 };
 
-GUIElement<CEGUI::ToggleButton, bool>::GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind){
+GUIElement<CEGUI::ToggleButton, bool>::GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind) : GenericGUIElement(window, bind){
     this->window = window;
     this->binding = bind;
     window->subscribeEvent(CEGUI::ToggleButton::EventSelectStateChanged, HaleGUI::windowEventHandler);
@@ -171,22 +213,63 @@ void GUIElement<CEGUI::ToggleButton, bool>::updateGUIFromBinding(){
     bool val = binding->getValue();
     window->setSelected(val);
 }
-const char* GUIElement<CEGUI::ToggleButton, bool>::getWindowType(){
-    return window->getType().c_str();
+
+// Integer combobox
+
+bool GUIElement<CEGUI::Combobox, int>::handleEvent(const CEGUI::EventArgs& e){
+  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+  int val = window->getItemIndex(window->getSelectedItem());
+  binding->setValue(val);
+  printf("%s: %d\n",binding->name,binding->getValue());
+  return true;
+};
+
+GUIElement<CEGUI::Combobox, int>::GUIElement(CEGUI::Combobox* window, VariableBinding<int>* bind) : GenericGUIElement(window, bind){
+    this->window = window;
+    this->binding = bind;
+    window->subscribeEvent(CEGUI::Combobox::EventListSelectionAccepted
+, HaleGUI::windowEventHandler);
 }
-CEGUI::Window* GUIElement<CEGUI::ToggleButton, bool>::getWindow(){
-    return window;
-}
-bool GUIElement<CEGUI::ToggleButton, bool>::hasChanged(){
-    if(binding->changed){
-        binding->changed = false;
-        return true;
+void GUIElement<CEGUI::Combobox, int>::updateGUIFromBinding(){
+    int val = binding->getValue();
+    if(window->getSelectedItem() != 0){
+        window->setItemSelectState(window->getSelectedItem(),false);
     }
-    return binding->changed;
+    window->setItemSelectState(val,true);
 }
 
+template class GUIElement<CEGUI::Editbox, double>;
 template class GUIElement<CEGUI::Scrollbar, double>;
 template class GUIElement<CEGUI::ToggleButton, bool>;
+template class GUIElement<CEGUI::Combobox, int>;
+
+// Helper function, create a combobox:
+
+CEGUI::Combobox* HaleGUI::createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues){
+    using namespace CEGUI;
+    Combobox* cbox = (Combobox*)parent->createChild( Combobox::WidgetTypeName, name);
+
+    Editbox* edbox = (Editbox*) cbox->createChild("TaharezLook/Editbox", Combobox::EditboxName);
+    ComboDropList* dlist = (ComboDropList*) cbox->createChild("TaharezLook/ComboDropList", Combobox::DropListName);
+    PushButton* button = (PushButton*) cbox->createChild("TaharezLook/Button", Combobox::ButtonName);
+    for(int i=0;i<numValues;++i){
+        cbox->addItem(new ListboxTextItem(values[i],i));
+    }
+
+    edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
+    edbox->setSize(USize(UDim(0.8,0),UDim(0.3,0)));
+    dlist->setPosition(UVector2(UDim(0,0),UDim(0.3f,0)));
+    dlist->setSize(USize(UDim(1.0,0),UDim(0.7,0)));
+    button->setPosition(UVector2(UDim(0.8,0),UDim(0,0)));
+    button->setSize(USize(UDim(0.2f,0),UDim (0.3f,0)));
+
+    cbox->initialiseComponents();
+
+
+    return cbox;
+}
+
+
 
 // HaleGUI....
 
@@ -283,7 +366,7 @@ void HaleGUI::init(){
     WindowManager::WindowIterator wit(WindowManager::getSingleton().getIterator());
     while (!wit.isAtEnd()){
         if( wit.getCurrentValue() ){
-            uint id = wit.getCurrentValue()->getID();
+            // uint id = wit.getCurrentValue()->getID();
 //          printf("Type: %s: %d\n", wit.getCurrentValue()->getType().c_str(), wit.getCurrentValue()->getID());
             if(!strcmp("DefaultWindow",wit.getCurrentValue()->getType().c_str())){
                 wit.getCurrentValue()->setMousePassThroughEnabled(true);
@@ -295,7 +378,7 @@ void HaleGUI::init(){
         ++wit;
     }
 }
-CEGUI::Window* HaleGUI::getWithID(int id){
+CEGUI::Window* HaleGUI::getWithID(unsigned int id){
     CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());
     while(!wit.isAtEnd()){
         if(wit.getCurrentValue()->getID() == id)
@@ -401,7 +484,6 @@ bool HaleGUI::gui_charCallback(GLFWwindow* window, unsigned int char_pressed){
     return CEGUI::System::getSingleton().getDefaultGUIContext().injectChar(char_pressed);
 }
 bool HaleGUI::gui_cursorPosCallback(GLFWwindow* window, double x, double y){
-    int old = eventHandledCount;
     bool r;
     r = CEGUI::System::getSingleton().getDefaultGUIContext().injectMousePosition(x, y);
     return r;
@@ -417,7 +499,6 @@ bool HaleGUI::gui_keyCallback(GLFWwindow* window, int key, int scan, int action,
     }
 }
 bool HaleGUI::gui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod){
-    int old = eventHandledCount;
     bool r;
     if (state == GLFW_PRESS){
         r= CEGUI::System::getSingleton().getDefaultGUIContext().injectMouseButtonDown(cegui_toCEGUIButton(button));
@@ -461,18 +542,7 @@ void HaleGUI::gui_errorCallback(int error, const char* message){
 //                                          // been changed in a manner visible to its
 //                                          // VariableBinding.
 
-//   // returns whether any of the variables have changed, ie. if a redraw is necessary.
-//   bool hasChanged();
 
-
-//   // a set of callback handlers which must be used manually by the calling code.
-//   void gui_charCallback(GLFWwindow* window, unsigned int char_pressed);
-//   void gui_cursorPosCallback(GLFWwindow* window, double x, double y);
-//   void gui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod);
-//   void gui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod);
-//   void gui_mouseWheelCallback(GLFWwindow* window, double x, double y);
-//   void gui_windowResizedCallback(GLFWwindow* window, int width, int height);
-//   void gui_errorCallback(int error, const char* message);
 // };
 
 /*
@@ -496,39 +566,3 @@ public:
 
 
 
-
-// template<double getNumRep(){
-
-// }
-// doublerep<
-
-
-
-// template <class T>
-// void VariableBinding<T>::setValue(T* in) {
-//     if(setter){
-//         setter(*in);
-//     }else{
-//         *value = *in;
-//     }
-//     this->changed = true;
-// }
-// template <class T>
-// void VariableBinding<T>::setValueFromGUI() {
-//     // TODO.
-//     this->changed = true;
-// }
-
-
-// template<class T>
-// void VariableBinding<T>::bindWindow(){
-    
-// }
-// template<class T>
-// bool VariableBinding<T>::valueChanged(){
-//     if(this->changed){
-//         this->changed = false;
-//         return true;
-//     }
-//     return false;
-// }1
