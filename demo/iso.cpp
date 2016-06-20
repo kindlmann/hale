@@ -195,20 +195,20 @@ int main(int argc, const char **argv) {
 
   /* create all the gui windows we need */
 
-  Window*       gui_isolabel    = (Window*) halegui->createWindow("TaharezLook/Label","isoLabel2");
-  Editbox*      gui_isobox      = (Editbox*) halegui->createWindow("TaharezLook/Editbox","ebox2");
-  Scrollbar*    gui_isoslider   = (Scrollbar*) halegui->createWindow("TaharezLook/HorizontalScrollbar","scrbr2");
-  Scrollbar*    gui_happyslider = (Scrollbar*) halegui->createWindow("TaharezLook/HorizontalScrollbar","happy");
-  ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","verbBox");
-  ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","normalsBox");
-  ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createWindow("TaharezLook/Checkbox","orthoBox");
+  Window*       gui_isolabel    = (Window*) halegui->createChild("TaharezLook/Label","isoLabel2");
+  Editbox*      gui_isobox      = (Editbox*) halegui->createChild("TaharezLook/Editbox","ebox2");
+  Scrollbar*    gui_isoslider   = (Scrollbar*) halegui->createChild("TaharezLook/HorizontalScrollbar","scrbr2");
+  Scrollbar*    gui_happyslider = (Scrollbar*) halegui->createChild("TaharezLook/HorizontalScrollbar","happy");
+  ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","verbBox");
+  ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","normalsBox");
+  ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","orthoBox");
 
-  Window*       gui_colorlabel    = (Window*) halegui->createWindow("TaharezLook/Label","colorlabel");
-  HorizontalLayoutContainer* gui_colorpane = (HorizontalLayoutContainer*)halegui->createWindow("HorizontalLayoutContainer","colorpane");
+  Window*       gui_colorlabel    = (Window*) halegui->createChild("TaharezLook/Label","colorlabel");
+  HorizontalLayoutContainer* gui_colorpane = (HorizontalLayoutContainer*)halegui->createChild("HorizontalLayoutContainer","colorpane");
   Scrollbar*    gui_sliderR   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colR");
   Scrollbar*    gui_sliderG   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colG");
   Scrollbar*    gui_sliderB   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colB");
-  Window*       gui_enumlabel    = (Window*) halegui->createWindow("TaharezLook/Label","enumlabel");
+  Window*       gui_enumlabel    = (Window*) halegui->createChild("TaharezLook/Label","enumlabel");
   Combobox*     gui_cbox        = halegui->createComboboxFromEnum(halegui->leftPaneLayout, "ShaderType", fruitEnum, 4);
   
 
@@ -217,6 +217,7 @@ int main(int argc, const char **argv) {
   gui_colorlabel->setText("Clear Color (rgb)");
 
   /* elements may have varying heights */
+
   gui_isolabel->setHeight(UDim(0.030,0));
   gui_colorlabel->setHeight(UDim(0.030,0));
   gui_enumlabel->setHeight(UDim(0.030,0));
@@ -229,16 +230,15 @@ int main(int argc, const char **argv) {
   gui_cbox->setSize(USize(UDim(1,-10),UDim(0.150,0)));
 
   gui_colorpane->setHeight(UDim(0.165,0));
-  gui_sliderR->setWidth(UDim(0,10));
-  gui_sliderR->setHeight(UDim(0.165,0));
-  gui_sliderG->setWidth(UDim(0,10));
-  gui_sliderG->setHeight(UDim(0.165,0));
-  gui_sliderB->setWidth(UDim(0,10));
-  gui_sliderB->setHeight(UDim(0.165,0));
+  gui_sliderR->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
+  gui_sliderG->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
+  gui_sliderB->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
 
   /* iso slider. */
   isoval = new VariableBinding<double>("ISO", init_isoval);
+  fprintf(stderr,"\n\nhi\n");
   halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar, double>( gui_isoslider, isoval, isomin, isomax, 0));
+  fprintf(stderr,"\n\nlove\n");
 
   /* iso textbox. */
   halegui->addGUIElement(new GUIElement<CEGUI::Editbox,double>(gui_isobox,isoval));
@@ -267,9 +267,6 @@ int main(int argc, const char **argv) {
   /* for setting an enum */
   halegui->addGUIElement(new GUIElement<CEGUI::Combobox,int>(gui_cbox, new VariableBinding<int>("Enum", 0)));
 
-  /* organize elements */
-  halegui->layout();
-
   scene.drawInit();
 
   if (hitandquit) {
@@ -288,13 +285,11 @@ int main(int argc, const char **argv) {
   }
 
   int loopn = 0;
-
+  halegui->forceGUIUpdate();
   while(!Hale::finishing){
     glfwWaitEvents();
-    bool cg = halegui->hasChanged();
 
-    // fprintf(stderr, "modd: %s\n",cg?"true":"false");
-    if (cg) {
+    if (halegui->hasChanged("ISO")) {
       printf("%s: isosurfacing at %g\n", me, isoval->getValue());
       seekIsovalueSet(sctx, isoval->getValue());
       seekUpdate(sctx);

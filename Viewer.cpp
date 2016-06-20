@@ -825,12 +825,13 @@ void Viewer::draw(void) {
 
 
   if(HaleGUI::getInstance()->leftPane){
-    HaleGUI::getInstance()->leftPane->setXPosition(CEGUI::UDim(0,0));
-    HaleGUI::getInstance()->leftPane->setYPosition(CEGUI::UDim(0,0));
-    CEGUI::Rect<float> rect = HaleGUI::getInstance()->leftPane->getClipRect();
-    // float w = rect.getWidth() / _widthBuffer;  
-    // float h = rect.getHeight() / _heightBuffer; 
-    glViewport(rect.getWidth(), 0, _widthBuffer-rect.getWidth(), _heightBuffer);
+    HaleGUI::getInstance()->leftPane->setPosition(CEGUI::UVector2(CEGUI::UDim(0,0),CEGUI::UDim(0,0)));
+    float rect_width = HaleGUI::getInstance()->leftPane->getClipRect().getWidth();
+    int newwidth = _widthBuffer-rect_width;
+    if(newwidth < 1){
+      newwidth = 1;
+    }
+    glViewport(rect_width, 0, newwidth, _heightBuffer);
   }
 
   // glViewport(0, 0, _widthBuffer/2, _heightBuffer);

@@ -4,31 +4,25 @@
 
  
  
+GenericVariableBinding::GenericVariableBinding(const char* myname) : name(myname), changed(false){
+
+} 
 
 template <class T>
-VariableBinding<T>::VariableBinding(const char* name, t_getter getter, t_setter setter){
-    this->name = name;
-    this->getter = getter;
-    this->setter = setter;
+VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set){
     this->value  = 0;
-    this->changed = false;
+    this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* name, T val){
-    this->name = name;
-    this->getter = 0;
-    this->setter = 0;
+VariableBinding<T>::VariableBinding(const char* myname, T val) : GenericVariableBinding(myname), getter(0), setter(0){
     this->value  = new T;
     *(this->value) = val;
-    this->changed = false;
+    this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* name, T* val_ptr){
-    this->name = name;
-    this->getter = 0;
-    this->setter = 0;
+VariableBinding<T>::VariableBinding(const char* myname, T* val_ptr) : GenericVariableBinding(myname), getter(0), setter(0){
     this->value  = val_ptr;
-    this->changed = false;
+    this->changed = true;
 }
 template <class T>
 void VariableBinding<T>::setValue(T in) {
@@ -116,8 +110,8 @@ bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
     bool retval = false;
     for(it=inst->guiElements.begin() ; it < inst->guiElements.end(); it++,i++ ) {
         GenericGUIElement* curr = (*it);
-        if(curr->getWindow()->getID() == w->getID()){
-        // if(curr == w){
+        // if(curr->getWindow()->getID() == w->getID()){
+        if(curr->getWindow() == w){
             // these are the same window.
             if(curr->handleEvent(e)){
                 retval = true;
@@ -129,9 +123,7 @@ bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
     return retval;
 }
 
-GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding){
-    this->m_window = window;
-    this->m_varbinding = binding;
+GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding) : m_window(window), m_varbinding(binding){
     binding->bindGUIElement(this);
 }
 CEGUI::Window* GenericGUIElement::getWindow(){
@@ -146,6 +138,9 @@ bool GenericGUIElement::hasChanged(){
         return true;
     }
     return m_varbinding->changed;
+}
+const char* GenericGUIElement::getVarName(){
+    return m_varbinding->name;
 }
 
 // code for each type of GUIElement...
@@ -162,7 +157,7 @@ bool GUIElement<CEGUI::Scrollbar, double>::handleEvent(const CEGUI::EventArgs& e
     val = div*step;
   }
   binding->setValue(val);
-  fprintf(stderr,"%s: %.2f",binding->name,binding->getValue());
+  fprintf(stderr,"%s: %.2f\n",binding->name,binding->getValue());
   return true;
 };
 
@@ -185,7 +180,7 @@ bool GUIElement<CEGUI::Editbox, double>::handleEvent(const CEGUI::EventArgs& e){
   // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
   double val = atof(window->getText().c_str());
   binding->setValue(val);
-  printf("%s: %.2f",binding->name,binding->getValue());
+  printf("%s: %.2f\n",binding->name,binding->getValue());
   return true;
 };
 
@@ -271,6 +266,7 @@ CEGUI::Combobox* HaleGUI::createComboboxFromEnum(CEGUI::Window* parent, const ch
     button->setSize(USize(UDim(0.2f,0),UDim (0.3f,0)));
 
     cbox->initialiseComponents();
+    dlist->getVertScrollbar()->setWidth(UDim(1.0,100));
 
 
     return cbox;
@@ -289,7 +285,7 @@ HaleGUI::HaleGUI(){
     inst = 0;
 }
 HaleGUI::~HaleGUI(){
-
+    delete inst;
 }
 HaleGUI* HaleGUI::getInstance(){
     if(!HaleGUI::inst){
@@ -300,8 +296,9 @@ HaleGUI* HaleGUI::getInstance(){
     return HaleGUI::inst;
 }
 void HaleGUI::addGUIElement(GenericGUIElement* in){
-    in->updateGUIFromBinding();
     guiElements.push_back(in);
+    in->updateGUIFromBinding();
+    layout();
 }
 void HaleGUI::renderAll(){
   using namespace CEGUI;
@@ -362,8 +359,9 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
 }
 void HaleGUI::layout(){
     layoutVert(leftPaneLayout);
+    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
 }
-CEGUI::Window* HaleGUI::createWindow(const char* type, const char* name){
+CEGUI::Window* HaleGUI::createChild(const char* type, const char* name){
     return leftPaneLayout->createChild(type,name);
 }
 void HaleGUI::init(){
@@ -395,10 +393,6 @@ void HaleGUI::init(){
     WindowManager::setDefaultResourceGroup("layouts");
     ScriptModule::setDefaultResourceGroup("lua_scripts");
 
-    XMLParser* parser = System::getSingleton().getXMLParser();
-    if (parser->isPropertyPresent("SchemaDefaultResourceGroup"))
-        parser->setProperty("SchemaDefaultResourceGroup", "schemas");
-
     // load TaharezLook scheme and DejaVuSans-10 font
     SchemeManager::getSingleton().createFromFile("TaharezLook.scheme", "schemes");
     FontManager::getSingleton().createFromFile("DejaVuSans-10.font");
@@ -408,28 +402,27 @@ void HaleGUI::init(){
     // System::getSingleton().getDefaultGUIContext().getMouseCursor().setDefaultImage("TaharezLook/MouseArrow");
     System::getSingleton().getDefaultGUIContext().setDefaultTooltipType("TaharezLook/Tooltip");
 
+    using namespace CEGUI;
 
-    CEGUI::Window* root = WindowManager::getSingleton().loadLayoutFromFile("application_templates.layout");
+    // create root window, the parent for all gui windows.
+    WindowManager& wmgr = WindowManager::getSingleton();
+    Window* root = (Window*) wmgr.createWindow("DefaultWindow", "root");
     System::getSingleton().getDefaultGUIContext().setRootWindow(root);
     cegui_renderer = static_cast<CEGUI::OpenGL3Renderer*>(CEGUI::System::getSingleton().getRenderer());
+    root->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1,0),UDim(1,0)));
+    root->setSize(USize(UDim(1,0),UDim(1,0)));
+    root->setMousePassThroughEnabled(true);     // so that events can also be seen by the underlying application.
 
-    // Make the DefaultWindow transparent to mouse events.
-    // If this is not done, then all mouse events will be captured by CEGUI.
-    WindowManager::WindowIterator wit(WindowManager::getSingleton().getIterator());
-    while (!wit.isAtEnd()){
-        if( wit.getCurrentValue() ){
-            // uint id = wit.getCurrentValue()->getID();
-//          printf("Type: %s: %d\n", wit.getCurrentValue()->getType().c_str(), wit.getCurrentValue()->getID());
-            if(!strcmp("DefaultWindow",wit.getCurrentValue()->getType().c_str())){
-                wit.getCurrentValue()->setMousePassThroughEnabled(true);
-            }
-            if(!strcmp("LeftPane",wit.getCurrentValue()->getName().c_str())){
-                leftPane = wit.getCurrentValue();
-                leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(leftPane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
-            }
-        }
-        ++wit;
-    }
+    // leftPane is the container for the application's tools/options.
+    leftPane = (Window*) root->createChild("TaharezLook/FrameWindow","LeftPane");
+    leftPane->setID(2);
+    leftPane->setText("Options");
+    leftPane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(0.2,0),UDim(1.0,0)));
+    leftPane->setMaxSize(CEGUI::USize(CEGUI::UDim(1.0,-10),CEGUI::UDim(1,0)));
+
+    // set up layout manager.
+    leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(leftPane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
+    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
 }
 CEGUI::Window* HaleGUI::getWithID(unsigned int id){
     CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());
@@ -440,11 +433,35 @@ CEGUI::Window* HaleGUI::getWithID(unsigned int id){
     }
     return 0;
 }
+void HaleGUI::forceGUIUpdate(){
+    std::vector<GenericGUIElement*>::iterator it;
+    for(it=guiElements.begin() ; it < guiElements.end(); it++) {
+
+        (*it)->updateGUIFromBinding();
+    }
+}
+void HaleGUI::forceGUIUpdate(const char* name){
+    std::vector<GenericGUIElement*>::iterator it;
+    for(it=guiElements.begin() ; it < guiElements.end(); it++) {
+        if(!strcmp(name, (*it)->getVarName())){
+            (*it)->updateGUIFromBinding();
+        }
+    }
+}
 bool HaleGUI::hasChanged(){
     std::vector<GenericGUIElement*>::iterator it;
     for(it=guiElements.begin() ; it < guiElements.end(); it++) {
 
         if((*it)->hasChanged())return true;
+    }
+    return false;
+}
+bool HaleGUI::hasChanged(const char* name){
+    std::vector<GenericGUIElement*>::iterator it;
+    for(it=guiElements.begin() ; it < guiElements.end(); it++) {
+        if(!strcmp(name, (*it)->getVarName())){
+            return (*it)->hasChanged();
+        }
     }
     return false;
 }
@@ -572,51 +589,20 @@ void HaleGUI::gui_windowResizedCallback(GLFWwindow* window, int width, int heigh
     CEGUI::System::getSingleton().notifyDisplaySizeChanged(
         CEGUI::Sizef(static_cast<float>(width), static_cast<float>(height)));
     glViewport(0, 0, width, height);
-    inst->leftPaneLayout->layout();
+    inst->layout();
 }
 void HaleGUI::gui_errorCallback(int error, const char* message){
     CEGUI::Logger::getSingleton().logEvent(message, CEGUI::Errors);
 }
 
 
-// public:
-//   HaleGUI* getInstance();
-//   // Set up this Window: register input handlers, etc.
-//   void addGUIElement(GenericGUIElement* in);
+// TODO: implement...
 
+// public:
 //   // Clean up (but do not free memory for) this GUIElement: unregister input handlers, etc.
 //   GenericGUIElement* removeGUIElement(GenericGUIElement* in);
 
 //   // Remove and return a single GUIElement which is bound to the particular variable, or null.
 //   GenericGUIElement* removeGUIElement(char* varname);
-//   void renderAll();                      // Render all CEGUI elements.
-//   void init();                           // Initialize CEGUI.
-
-//   bool hasChanged(const char* name);     // returns whether the specified value has
-//                                          // been changed in a manner visible to its
-//                                          // VariableBinding.
-
 
 // };
-
-/*
-
-template<>
-class GUIElement<CEGUI::Scrollbar, double> : public GenericGUIElement{
-protected:
-    VariableBinding<double>* binding;
-    CEGUI::Scrollbar* window;
-public:
-    GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind);
-
-    void updateGUIFromBinding();
-    void updateBindingFromGUI();
-    CEGUI::Window* getWindow();
-    const char* getWindowType();
-};
-
-
-*/
-
-
-

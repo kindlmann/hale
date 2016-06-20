@@ -16,13 +16,16 @@
             </Window>
         </Window>
 -->
+<!--
 
         <Window type="TaharezLook/FrameWindow" name="LeftPane" >
             <Property name="ID" value = "2" />
             <Property name="Area" value="{{0,0},{0,0},{0.2,0},{1.0,0}}" />
             <Property name="Text" value="Options" />
+-->
+<!--
 
-<!--             <Window type="TaharezLook/Label" name="IsoLabel" >
+             <Window type="TaharezLook/Label" name="IsoLabel" >
                 <Property name="ID" value = "3" />
                 <Property name="Area" value="{{0.1,0},{0.015,0},{0.9,0},{0.03,0}}" />
             </Window>
@@ -69,8 +72,8 @@
                     </Window>
                 </Window>
             </Window>
--->
         </Window>
+-->
 <!--
         <Window type="TaharezLook/FrameWindow" name="RightPane" >
             <Property name="ID" value = "4" />  

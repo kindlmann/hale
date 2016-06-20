@@ -23,7 +23,8 @@ class GUIElement;
 
 class GenericVariableBinding{
 public:
-    const char* name;
+    GenericVariableBinding(const char* name);
+    const char* const name;
     bool changed;
     virtual void updateBoundGUIElements() =0;
     virtual void bindGUIElement(GenericGUIElement* e) =0;
@@ -38,19 +39,20 @@ public:
   typedef void (*t_setter)(T);
 protected:
   T* value;         // pointer to real value, if a setter/getter are not used.
-  t_getter getter;  // the function which gets the value (wherever it may be).
-  t_setter setter;  // the function which sets the value.
+  const t_getter getter;  // the function which gets the value (wherever it may be).
+  const t_setter setter;  // the function which sets the value.
   std::list<GenericGUIElement*> boundGUIElements;
 public:
   VariableBinding(const char* name, T init_value);
-  VariableBinding(const char* name, t_getter getter, t_setter setter);
+  VariableBinding(const char* name, t_getter get, t_setter set);
   VariableBinding(const char* name, T* t_ptr);
   void updateBoundGUIElements();
   void bindGUIElement(GenericGUIElement* e);
   void setValue(T val);             // set the real value of this variable.
-  void setValue(T* val);            // set the real value of this variable.
+  void setValue(T* val);            // set value, pass-by-reference
   T getValue();                     // get the real value of this variable.
 
+  // vv these two functions are not supported.
   double getNumRep();               // get the numerical (double) representation
                                     // of what this variable is bound to. This
                                     // function may very well just be a wrapper
@@ -68,17 +70,18 @@ public:
  */
 class GenericGUIElement {
 protected:
-  CEGUI::Window* m_window;
-  GenericVariableBinding* m_varbinding;
+  CEGUI::Window* const m_window;
+  GenericVariableBinding* const m_varbinding;
   GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
 public:
-  virtual void updateGUIFromBinding() =0;   // these two functions will have to be
-                                            // window type. 
-  CEGUI::Window* getWindow();               // Return the window of this class
+  CEGUI::Window* getWindow();               // Return the window of this element
 
   const char* getWindowType();              // All CEGUI::Windows contain a member
                                             // type string. Just return that.
-  virtual bool hasChanged();
+  bool hasChanged();
+  const char* getVarName();
+
+  virtual void updateGUIFromBinding() =0;
   virtual bool handleEvent(const CEGUI::EventArgs& e) =0;
 
 };
@@ -192,6 +195,8 @@ public:
 
   // returns whether any of the variables have changed, ie. if a redraw is necessary.
   bool hasChanged();
+  void forceGUIUpdate();                 // update state of all gui elements from variable binding.
+  void forceGUIUpdate(const char* name); //   - for a particular variable
 
   static bool windowEventHandler(const CEGUI::EventArgs& e);
 
@@ -202,7 +207,7 @@ public:
 
   // helper functions to create and lay out gui elements.
   CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
-  CEGUI::Window* createWindow(const char* type, const char* name);
+  CEGUI::Window* createChild(const char* type, const char* name);
   void layout();
 
 
