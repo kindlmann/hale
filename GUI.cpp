@@ -2,6 +2,21 @@
 
 
 
+template <typename Type>
+double getDoubleRep(Type in){
+    return (double)in;
+}
+
+
+template<> double    getDoubleRep<double>(double in) { return in;        }
+template<> double    getDoubleRep<int>   (int in)    { return double(in);   }
+template<> double    getDoubleRep<float> (float in)  { return double(in); }
+template<> double    getDoubleRep<short> (short in)  { return double(in); }
+template<> double    getDoubleRep<char>  (char in)   { return double(in);  }
+template<> double    getDoubleRep<long>  (long in)   { return double(in);  }
+template<> double    getDoubleRep<const char*> (const char* in)   { return atof(in);  }
+
+
  
  
 GenericVariableBinding::GenericVariableBinding(const char* myname) : name(myname), changed(false){
@@ -54,12 +69,12 @@ T VariableBinding<T>::getValue(){
     }
 }
 template <class T>
-double VariableBinding<T>::getNumRep(){
+double VariableBinding<T>::toDouble(){
     if(getter){
-        return (double)(getter());
+        return getDoubleRep(getter());
     }
     else{
-        return (double)(*value);
+        return getDoubleRep(*value);
     }
 }
 template <class T>
@@ -73,27 +88,14 @@ void VariableBinding<T>::bindGUIElement(GenericGUIElement* e){
     boundGUIElements.push_back(e);
 }
 
-template <typename Type>
-double getDoubleRep(Type in){
-    return (double)in;
-}
-
-
-template<> double    getDoubleRep<double>(double in) { return in;        }
-template<> double    getDoubleRep<int>   (int in)    { return double(in);   }
-template<> double    getDoubleRep<float> (float in)  { return double(in); }
-template<> double    getDoubleRep<short> (short in)  { return double(in); }
-template<> double    getDoubleRep<char>  (char in)   { return double(in);  }
-template<> double    getDoubleRep<long>  (long in)   { return double(in);  }
-
-
-template <typename Type> const char* getStringRep(Type in){ return "[todo: string rep]";        }
-template<> const char*   getStringRep<double>(double in) {  return "[todo: string rep<double>]";        }
+template <typename Type> const char* toString(Type in){ return "[todo: string rep]";        }
+template<> const char*   toString<double>(double in) {  return "[todo: string rep<double>]";        }
 
 // http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
 template class VariableBinding<double>;
 template class VariableBinding<int>;
 template class VariableBinding<bool>;
+template class VariableBinding<const char*>;
 
 // CEGUI callbacks require a function pointer.
 // this is the singular function which is called
@@ -195,6 +197,27 @@ void GUIElement<CEGUI::Editbox, double>::updateGUIFromBinding(){
     window->setText(std::to_string(val).c_str());
 }
 
+// const char* editbox
+
+bool GUIElement<CEGUI::Editbox, const char*>::handleEvent(const CEGUI::EventArgs& e){
+  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+  const char* val = window->getText().c_str();
+  binding->setValue(val);
+  printf("%s: %s\n",binding->name,binding->getValue());
+  return true;
+};
+
+GUIElement<CEGUI::Editbox, const char*>::GUIElement(CEGUI::Editbox* window, VariableBinding<const char*>* bind) : GenericGUIElement(window, bind){
+    this->window = window;
+    this->binding = bind;
+    window->subscribeEvent(CEGUI::Editbox::EventTextAccepted
+, HaleGUI::windowEventHandler);
+}
+void GUIElement<CEGUI::Editbox, const char*>::updateGUIFromBinding(){
+    const char* val = binding->getValue();
+    window->setText(val);
+}
+
 
 // Boolean toggle-button
 
@@ -241,6 +264,7 @@ void GUIElement<CEGUI::Combobox, int>::updateGUIFromBinding(){
 }
 
 template class GUIElement<CEGUI::Editbox, double>;
+template class GUIElement<CEGUI::Editbox, const char*>;
 template class GUIElement<CEGUI::Scrollbar, double>;
 template class GUIElement<CEGUI::ToggleButton, bool>;
 template class GUIElement<CEGUI::Combobox, int>;
@@ -265,13 +289,39 @@ CEGUI::Combobox* HaleGUI::createComboboxFromEnum(CEGUI::Window* parent, const ch
     button->setPosition(UVector2(UDim(0.8,0),UDim(0,0)));
     button->setSize(USize(UDim(0.2f,0),UDim (0.3f,0)));
 
+    cbox->setWidth(UDim(1,-10));
     cbox->initialiseComponents();
     dlist->getVertScrollbar()->setWidth(UDim(1.0,100));
 
 
     return cbox;
 }
+#ifdef CEGUI_HAS_PCRE_REGEX
+CEGUI::Spinner* HaleGUI::createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step){
+    using namespace CEGUI;
 
+
+    // The default spinner implementation relies on the use of a regex
+    // library (and compilation of CEGUI with the CEGUI_HAS_PCRE_REGEX
+    // CMake flag). Thus, the following code is untested.
+
+    Spinner* spinner = (Spinner*)parent->createChild( Spinner::WidgetTypeName, name);
+
+    Editbox* edbox = (Editbox*) spinner->createChild("TaharezLook/Editbox", Spinner::EditboxName);
+    PushButton* upbtn = (PushButton*) spinner->createChild("TaharezLook/Button", Spinner::IncreaseButtonName);
+    PushButton* dnbtn = (PushButton*) spinner->createChild("TaharezLook/Button", Spinner::DecreaseButtonName);
+
+    edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
+    edbox->setSize(USize(UDim(0.925,0),UDim(1.0,0)));
+    upbtn->setPosition(UVector2(UDim(0,0),UDim(0.925,0)));
+    upbtn->setSize(USize(UDim(0.075,0),UDim(0.5,0)));
+    dnbtn->setPosition(UVector2(UDim(0.5,0),UDim(0.925,0)));
+    dnbtn->setSize(USize(UDim(0.075,0),UDim(0.5,0)));
+    spinner->initialiseComponents();
+
+    return spinner;
+}
+#endif
 
 
 // HaleGUI....
@@ -334,7 +384,6 @@ void layoutHoriz(CEGUI::HorizontalLayoutContainer* container){
     container->setHeight(oldHeight);
 }
 void layoutVert(CEGUI::VerticalLayoutContainer* container){
-
     size_t index = 0;
     while (index < container->getChildCount()){
         CEGUI::Window* child = container->getChildAtIdx(index);
@@ -350,7 +399,14 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
     while (index < container->getChildCount()){
         CEGUI::Window* child = container->getChildAtIdx(index);
         child->setWidth(CEGUI::UDim(0.95,0));
-        child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));
+            printf("in %s\n", child->getType().c_str());
+
+        if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
+            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(-0.1,0),CEGUI::UDim(0.025,0)));   
+        }
+        else{
+            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));   
+        }
         ++index;
     }
     container->layout();
@@ -359,7 +415,7 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
 }
 void HaleGUI::layout(){
     layoutVert(leftPaneLayout);
-    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
+    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),leftPaneLayout->getHeight()));
 }
 CEGUI::Window* HaleGUI::createChild(const char* type, const char* name){
     return leftPaneLayout->createChild(type,name);
@@ -420,9 +476,15 @@ void HaleGUI::init(){
     leftPane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(0.2,0),UDim(1.0,0)));
     leftPane->setMaxSize(CEGUI::USize(CEGUI::UDim(1.0,-10),CEGUI::UDim(1,0)));
 
+    // create scrollable pane.
+    scrollpane = (ScrollablePane*) leftPane->createChild("TaharezLook/ScrollablePane", "scrollpane");
+    scrollpane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1.0,0),UDim(1.0,0)));
+
     // set up layout manager.
-    leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(leftPane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
+    leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(scrollpane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
     leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
+
+    scrollpane->initialiseComponents();
 }
 CEGUI::Window* HaleGUI::getWithID(unsigned int id){
     CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());

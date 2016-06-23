@@ -203,36 +203,54 @@ int main(int argc, const char **argv) {
   ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","normalsBox");
   ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","orthoBox");
 
+  Window*       gui_enumlabel    = (Window*) halegui->createChild("TaharezLook/Label","enumlabel");
+  Combobox*     gui_cbox        = halegui->createComboboxFromEnum(halegui->leftPaneLayout, "ShaderType", fruitEnum, 4);
+
   Window*       gui_colorlabel    = (Window*) halegui->createChild("TaharezLook/Label","colorlabel");
   HorizontalLayoutContainer* gui_colorpane = (HorizontalLayoutContainer*)halegui->createChild("HorizontalLayoutContainer","colorpane");
   Scrollbar*    gui_sliderR   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colR");
   Scrollbar*    gui_sliderG   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colG");
   Scrollbar*    gui_sliderB   = (Scrollbar*) gui_colorpane->createChild("TaharezLook/VerticalScrollbar","colB");
-  Window*       gui_enumlabel    = (Window*) halegui->createChild("TaharezLook/Label","enumlabel");
-  Combobox*     gui_cbox        = halegui->createComboboxFromEnum(halegui->leftPaneLayout, "ShaderType", fruitEnum, 4);
+
+  Window*       gui_modelabel    = (Window*) halegui->createChild("TaharezLook/Label","modelabel");
+  Editbox*      gui_modebox      = (Editbox*) halegui->createChild("TaharezLook/Editbox","modebox");
+  // Spinner*      gui_spinner      = (Spinner*) halegui->createSpinner(halegui->leftPaneLayout, "spinner", -10,10,1);
   
 
   gui_isolabel->setText("ISO");
+  gui_modelabel->setText("String Entry");
   gui_enumlabel->setText("Enumerated Values");
   gui_colorlabel->setText("Clear Color (rgb)");
 
+  /* scrollbar step sizes */
+  gui_isoslider->setStepSize(0.01);
+  gui_sliderR->setStepSize(0.01);
+  gui_sliderG->setStepSize(0.01);
+  gui_sliderB->setStepSize(0.01);
+
   /* elements may have varying heights */
+  UDim unit(0.015,0);
+  gui_isolabel->setHeight(unit*2);
+  gui_modelabel->setHeight(unit*2);
+  gui_colorlabel->setHeight(unit*2);
+  gui_enumlabel->setHeight(unit*2);
+  gui_isoslider->setHeight(unit);
+  gui_happyslider->setHeight(unit);
+  gui_isobox->setHeight(unit*2);
+  gui_verboseBox->setHeight(unit);
+  gui_normalsBox->setHeight(unit);
+  gui_orthoBox->setHeight(unit);
+  gui_cbox->setHeight(unit*10);
+  gui_modebox->setHeight(unit*2);
+  // gui_spinner->setHeight(unit*2);
 
-  gui_isolabel->setHeight(UDim(0.030,0));
-  gui_colorlabel->setHeight(UDim(0.030,0));
-  gui_enumlabel->setHeight(UDim(0.030,0));
-  gui_isoslider->setHeight(UDim(0.015,0));
-  gui_happyslider->setHeight(UDim(0.015,0));
-  gui_isobox->setHeight(UDim(0.030,0));
-  gui_verboseBox->setHeight(UDim(0.015,0));
-  gui_normalsBox->setHeight(UDim(0.015,0));
-  gui_orthoBox->setHeight(UDim(0.015,0));
-  gui_cbox->setSize(USize(UDim(1,-10),UDim(0.150,0)));
+  gui_colorpane->setHeight(unit*11);
+  gui_sliderR->setSize(USize(UDim(0,12.5),unit*11));
+  gui_sliderG->setSize(USize(UDim(0,12.5),unit*11));
+  gui_sliderB->setSize(USize(UDim(0,12.5),unit*11));
 
-  gui_colorpane->setHeight(UDim(0.165,0));
-  gui_sliderR->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
-  gui_sliderG->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
-  gui_sliderB->setSize(USize(UDim(0,12.5),UDim(0.165,0)));
+  /* mode box. */
+  halegui->addGUIElement(new GUIElement<CEGUI::Editbox,const char*>(gui_modebox, new VariableBinding<const char*>("Mode","Default")));
 
   /* iso slider. */
   isoval = new VariableBinding<double>("ISO", init_isoval);

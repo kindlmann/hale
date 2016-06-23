@@ -52,21 +52,22 @@ public:
   void setValue(T* val);            // set value, pass-by-reference
   T getValue();                     // get the real value of this variable.
 
-  // vv these two functions are not supported.
-  double getNumRep();               // get the numerical (double) representation
+  // vv these two functions are only partially implemented,
+  //    and may just be removed.
+  double toDouble();                // get the numerical (double) representation
                                     // of what this variable is bound to. This
                                     // function may very well just be a wrapper
                                     // for (double) casting (which will fail if
                                     // T is of an incorrect type)
-  char* getStringRep();             // get the string representation of what this
+  char* toString();                 // get the string representation of what this
                                     // variable is bound to.
 };
 
 
 /*
  * This class is the supertype of all GUIElements.
- * It is not templated, so that it can be used as
- * a type for lists.
+ * It is not templated, so that it itself be used as
+ * a generic 1template type.
  */
 class GenericGUIElement {
 protected:
@@ -89,8 +90,8 @@ public:
 /********************************
  *
  * Template-Specializing VariableBinding would require a lot
- * of typing on the programmer's part (one specialization for
- * each of bool, double, char* and int). 
+ * of typing on the programmer's part. So we pass the
+ * template-specialization on to the GUIElement class.
  *
  ********************************/
 
@@ -152,6 +153,17 @@ public:
     bool handleEvent(const CEGUI::EventArgs& e);
 };
 
+template<>
+class GUIElement<CEGUI::Editbox, const char*> : public GenericGUIElement{
+protected:
+    VariableBinding<const char*>* binding;
+    CEGUI::Editbox* window;
+public:
+    GUIElement(CEGUI::Editbox* window, VariableBinding<const char*>* bind);
+
+    void updateGUIFromBinding();
+    bool handleEvent(const CEGUI::EventArgs& e);
+};
 
 
 /* 
@@ -170,6 +182,7 @@ public:
   CEGUI::OpenGL3Renderer* cegui_renderer;
   CEGUI::Window* leftPane;
   CEGUI::VerticalLayoutContainer* leftPaneLayout;
+  CEGUI::ScrollablePane* scrollpane;
 protected:
   std::vector<GenericGUIElement*> guiElements;
   HaleGUI();
@@ -207,6 +220,9 @@ public:
 
   // helper functions to create and lay out gui elements.
   CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
+#ifdef CEGUI_HAS_PCRE_REGEX
+  CEGUI::Spinner* createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step);
+#endif
   CEGUI::Window* createChild(const char* type, const char* name);
   void layout();
 

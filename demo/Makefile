@@ -2,10 +2,10 @@
 
 # NOTE: Change these next three lines as needed
 TEEM = ~/dev/teem/teem-install
-HALE = ~/dev/hale
+HALE = ..
 GLM = /usr/include/glm/
-CEGUI = /usr/local/include/
-CEGUILIB = /usr/local/lib/cegui-0.8/
+CEGUI = /usr/local/include/cegui-0/
+CEGUILIB = /usr/local/lib/
 
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
@@ -16,12 +16,12 @@ endif
 
 # TODO: clean this up a little bit with LPATH
 
-LIBS = $(CEGUILIB)libCEGUIFreeImageImageCodec.so -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz $(CEGUILIB)libCEGUIBase-0.so.2 $(CEGUILIB)libCEGUICommonDialogs-0.so.2 $(CEGUILIB)libCEGUICoreWindowRendererSet.so $(CEGUILIB)libCEGUIExpatParser.so  $(CEGUILIB)libCEGUIOpenGLRenderer-0.so.2.4.2
+LIBS = -lCEGUISILLYImageCodec -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz $(CEGUILIB)libCEGUIBase-0.so.2 -lCEGUICommonDialogs-0 -lCEGUICoreWindowRendererSet -lCEGUILibXMLParser  -lCEGUIOpenGLRenderer-0
 
 
-RPATH = -Wl,-rpath,$(TEEM)/lib
+RPATH = -Wl,-rpath,$(TEEM)/lib,-rpath,$(CEGUILIB),-rpath,$(CEGUILIB)cegui-0.8
 IPATH = -I$(HALE) -I$(TEEM)/include -I$(GLM) -I$(CEGUI)
-LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM) -L$(CEGUILIB)
+LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM) -L$(CEGUILIB) -L$(CEGUILIB)cegui-0.8
 
 CC = g++ -g -O0 -std=c++11
 

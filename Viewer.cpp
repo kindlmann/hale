@@ -136,10 +136,6 @@ void cegui_charCallback(GLFWwindow* window, unsigned int char_pressed){
     HaleGUI::gui_charCallback(window,char_pressed);    
 }
 
-void cegui_cursorPosCallback(GLFWwindow* window, double x, double y){
-    HaleGUI::gui_cursorPosCallback(window,x,y);
-}
-
 void cegui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod){
     HaleGUI::gui_keyCallback(window,key,scan,action,mod);
 }
@@ -150,11 +146,6 @@ void cegui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mo
 
 void cegui_mouseWheelCallback(GLFWwindow* window, double x, double y){
     HaleGUI::gui_mouseWheelCallback(window,x,y);
-}
-
-
-void cegui_errorCallback(int error, const char* message){
-    CEGUI::Logger::getSingleton().logEvent(message, CEGUI::Errors);
 }
 
 void
