@@ -15,6 +15,18 @@ class GenericGUIElement;
 template<class W, class T>
 class GUIElement;
 
+/* VariableWrapper provides a more OO method of wrapping
+ * a container around a variable. This method does not
+ * have to do with function pointers, and so is slightly
+ * more versatile.
+ */
+template<class T>
+class VariableWrapper{
+public:
+  VariableWrapper(T v);
+  virtual T get() =0;
+  virtual void set(T) =0;
+};
 
 /*
  * A wrapper over a particular variable. Allows a consistent means
@@ -24,6 +36,7 @@ class GUIElement;
 class GenericVariableBinding{
 public:
     GenericVariableBinding(const char* name);
+    virtual ~GenericVariableBinding() =0;
     const char* const name;
     bool changed;
     virtual void updateBoundGUIElements() =0;
@@ -38,14 +51,19 @@ public:
   typedef T (*t_getter)();
   typedef void (*t_setter)(T);
 protected:
-  T* value;         // pointer to real value, if a setter/getter are not used.
+  T* value;               // pointer to real value, if a setter/getter are not used.
   const t_getter getter;  // the function which gets the value (wherever it may be).
   const t_setter setter;  // the function which sets the value.
+  bool deleteonexit;      // whether we should free (value) on exit.
+//VariableWrapper* varWrapper;  // pointer to variable wrapper if neither value nor
+                                // getter/setter are used.
   std::list<GenericGUIElement*> boundGUIElements;
 public:
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter get, t_setter set);
   VariableBinding(const char* name, T* t_ptr);
+  ~VariableBinding();
+//VariableBinding(const char* name, VariableWrapper<T>* wrapper);
   void updateBoundGUIElements();
   void bindGUIElement(GenericGUIElement* e);
   void setValue(T val);             // set the real value of this variable.
@@ -75,6 +93,7 @@ protected:
   GenericVariableBinding* const m_varbinding;
   GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
 public:
+  ~GenericGUIElement();
   CEGUI::Window* getWindow();               // Return the window of this element
 
   const char* getWindowType();              // All CEGUI::Windows contain a member

@@ -24,20 +24,24 @@ GenericVariableBinding::GenericVariableBinding(const char* myname) : name(myname
 } 
 
 template <class T>
-VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set){
+VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set), deleteonexit(false){
     this->value  = 0;
     this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* myname, T val) : GenericVariableBinding(myname), getter(0), setter(0){
+VariableBinding<T>::VariableBinding(const char* myname, T val) : GenericVariableBinding(myname), getter(0), setter(0), deleteonexit(false){
     this->value  = new T;
     *(this->value) = val;
     this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* myname, T* val_ptr) : GenericVariableBinding(myname), getter(0), setter(0){
+VariableBinding<T>::VariableBinding(const char* myname, T* val_ptr) : GenericVariableBinding(myname), getter(0), setter(0), deleteonexit(true){
     this->value  = val_ptr;
     this->changed = true;
+}
+template <class T>
+VariableBinding<T>::~VariableBinding(){
+    if(value && deleteonexit)delete value;
 }
 template <class T>
 void VariableBinding<T>::setValue(T in) {
@@ -127,6 +131,10 @@ bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
 
 GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding) : m_window(window), m_varbinding(binding){
     binding->bindGUIElement(this);
+}
+GenericGUIElement::~GenericGUIElement(){
+    delete m_window;
+    delete m_varbinding;
 }
 CEGUI::Window* GenericGUIElement::getWindow(){
     return m_window;
@@ -328,6 +336,7 @@ CEGUI::Spinner* HaleGUI::createSpinner(CEGUI::Window* parent, const char* name, 
 
 
 
+
 HaleGUI* HaleGUI::inst = 0;
 int HaleGUI::eventHandledCount = 0;
 // std::vector<GenericGUIElement*> guiElements;
@@ -335,7 +344,15 @@ HaleGUI::HaleGUI(){
     inst = 0;
 }
 HaleGUI::~HaleGUI(){
+    delete leftPaneLayout;
+    delete scrollpane;
+    delete leftPane;
     delete inst;
+    std::vector<GenericGUIElement*>::iterator it;
+    for(it=guiElements.begin() ; it < guiElements.end(); it++) {
+        GenericGUIElement* ptr = (*it);
+        delete ptr;
+    }
 }
 HaleGUI* HaleGUI::getInstance(){
     if(!HaleGUI::inst){
