@@ -22,6 +22,9 @@ template<> double    getDoubleRep<const char*> (const char* in)   { return atof(
 GenericVariableBinding::GenericVariableBinding(const char* myname) : name(myname), changed(false){
 
 } 
+GenericVariableBinding::~GenericVariableBinding(){
+
+} 
 
 template <class T>
 VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set), deleteonexit(false){
@@ -177,6 +180,7 @@ GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, Varia
     this->max = max;
     this->min = min;
     this->step =step;
+    window->setStepSize(step == 0 ? 0.01 : (step/(max-min)));
     window->subscribeEvent(CEGUI::Scrollbar::EventScrollPositionChanged, HaleGUI::windowEventHandler);
 }
 void GUIElement<CEGUI::Scrollbar, double>::updateGUIFromBinding(){
@@ -416,7 +420,8 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
     while (index < container->getChildCount()){
         CEGUI::Window* child = container->getChildAtIdx(index);
         child->setWidth(CEGUI::UDim(0.95,0));
-            printf("in %s\n", child->getType().c_str());
+        // CEGUI::USize maxSize = child->getMaxSize();
+        // child->setMaxSize(CEGUI::USize(maxSize.d_width, CEGUI::UDim(0,40)));
 
         if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
             child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(-0.1,0),CEGUI::UDim(0.025,0)));   
