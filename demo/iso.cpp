@@ -195,16 +195,17 @@ int main(int argc, const char **argv) {
 
   /* create all the gui windows we need */
 
+  Window*       gui_headlabel    = (Window*) halegui->createChild("TaharezLook/Label","headlabel");
+
   Window*       gui_isolabel    = (Window*) halegui->createChild("TaharezLook/Label","isoLabel2");
   Editbox*      gui_isobox      = (Editbox*) halegui->createChild("TaharezLook/Editbox","ebox2");
   Scrollbar*    gui_isoslider   = (Scrollbar*) halegui->createChild("TaharezLook/HorizontalScrollbar","scrbr2");
-  Scrollbar*    gui_happyslider = (Scrollbar*) halegui->createChild("TaharezLook/HorizontalScrollbar","happy");
-  ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","verbBox");
-  ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","normalsBox");
-  ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","orthoBox");
 
   Window*       gui_enumlabel    = (Window*) halegui->createChild("TaharezLook/Label","enumlabel");
   Combobox*     gui_cbox        = halegui->createComboboxFromEnum(halegui->leftPaneLayout, "ShaderType", fruitEnum, 4);
+
+  Window*       gui_happylabel    = (Window*)  halegui->createChild("TaharezLook/Label","happylabel");
+  Scrollbar*    gui_happyslider = (Scrollbar*) halegui->createChild("TaharezLook/HorizontalScrollbar","happy");
 
   Window*       gui_colorlabel    = (Window*) halegui->createChild("TaharezLook/Label","colorlabel");
   HorizontalLayoutContainer* gui_colorpane = (HorizontalLayoutContainer*)halegui->createChild("HorizontalLayoutContainer","colorpane");
@@ -214,26 +215,27 @@ int main(int argc, const char **argv) {
 
   Window*       gui_modelabel    = (Window*) halegui->createChild("TaharezLook/Label","modelabel");
   Editbox*      gui_modebox      = (Editbox*) halegui->createChild("TaharezLook/Editbox","modebox");
+  ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","verbBox");
+  ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","normalsBox");
+  ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","orthoBox");
   // Spinner*      gui_spinner      = (Spinner*) halegui->createSpinner(halegui->leftPaneLayout, "spinner", -10,10,1);
   
 
+  gui_headlabel->setText(" ");
   gui_isolabel->setText("ISO");
   gui_modelabel->setText("String Entry");
   gui_enumlabel->setText("Enumerated Values");
   gui_colorlabel->setText("Clear Color (rgb)");
-
-  /* scrollbar step sizes */
-  gui_isoslider->setStepSize(0.01);
-  gui_sliderR->setStepSize(0.01);
-  gui_sliderG->setStepSize(0.01);
-  gui_sliderB->setStepSize(0.01);
+  gui_happylabel->setText("Discrete Slider");
 
   /* elements may have varying heights */
   UDim unit(0.015,0);
+  gui_headlabel->setHeight(unit*0.5);
   gui_isolabel->setHeight(unit*2);
   gui_modelabel->setHeight(unit*2);
   gui_colorlabel->setHeight(unit*2);
   gui_enumlabel->setHeight(unit*2);
+  gui_happylabel->setHeight(unit*2);
   gui_isoslider->setHeight(unit);
   gui_happyslider->setHeight(unit);
   gui_isobox->setHeight(unit*2);
@@ -254,9 +256,7 @@ int main(int argc, const char **argv) {
 
   /* iso slider. */
   isoval = new VariableBinding<double>("ISO", init_isoval);
-  fprintf(stderr,"\n\nhi\n");
   halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar, double>( gui_isoslider, isoval, isomin, isomax, 0));
-  fprintf(stderr,"\n\nlove\n");
 
   /* iso textbox. */
   halegui->addGUIElement(new GUIElement<CEGUI::Editbox,double>(gui_isobox,isoval));

@@ -409,9 +409,6 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
     while (index < container->getChildCount()){
         CEGUI::Window* child = container->getChildAtIdx(index);
         if(!strcmp(child->getType().c_str(),"HorizontalLayoutContainer")){
-            // printf("layout: %s\n",child->getType().c_str());
-            // child->setWidth(CEGUI::UDim(0.95,0));
-            // child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));
             layoutHoriz((CEGUI::HorizontalLayoutContainer*)child);
         }
         ++index;
@@ -420,14 +417,16 @@ void layoutVert(CEGUI::VerticalLayoutContainer* container){
     while (index < container->getChildCount()){
         CEGUI::Window* child = container->getChildAtIdx(index);
         child->setWidth(CEGUI::UDim(0.95,0));
-        // CEGUI::USize maxSize = child->getMaxSize();
-        // child->setMaxSize(CEGUI::USize(maxSize.d_width, CEGUI::UDim(0,40)));
 
-        if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
-            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(-0.1,0),CEGUI::UDim(0.025,0)));   
+        // custom layout for each type of element.
+        if(child->getType() == CEGUI::String("TaharezLook/Label")){
+            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0)));   
+        }
+        else if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
+            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),child->getHeight()*-0.7 + CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
         }
         else{
-            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.025,0)));   
+            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
         }
         ++index;
     }
