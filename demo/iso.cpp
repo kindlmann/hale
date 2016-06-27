@@ -218,7 +218,7 @@ int main(int argc, const char **argv) {
   ToggleButton* gui_verboseBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","verbBox");
   ToggleButton* gui_normalsBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","normalsBox");
   ToggleButton* gui_orthoBox  = (ToggleButton*) halegui->createChild("TaharezLook/Checkbox","orthoBox");
-  // Spinner*      gui_spinner      = (Spinner*) halegui->createSpinner(halegui->leftPaneLayout, "spinner", -10,10,1);
+  FreeSpinner*      gui_spinner      = (FreeSpinner*) halegui->createSpinner(halegui->leftPaneLayout, "spinner", -10,10,1);
   
 
   gui_headlabel->setText(" ");
@@ -227,6 +227,7 @@ int main(int argc, const char **argv) {
   gui_enumlabel->setText("Enumerated Values");
   gui_colorlabel->setText("Clear Color (rgb)");
   gui_happylabel->setText("Discrete Slider");
+  gui_spinner->setText("5");
 
   /* elements may have varying heights */
   UDim unit(0.015,0);
@@ -244,7 +245,7 @@ int main(int argc, const char **argv) {
   gui_orthoBox->setHeight(unit);
   gui_cbox->setHeight(unit*10);
   gui_modebox->setHeight(unit*2);
-  // gui_spinner->setHeight(unit*2);
+  gui_spinner->setHeight(unit*2);
 
   gui_colorpane->setHeight(unit*11);
   gui_sliderR->setSize(USize(UDim(0,12.5),unit*11));
@@ -266,7 +267,7 @@ int main(int argc, const char **argv) {
   halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar,double>(gui_sliderG, new VariableBinding<double>("colorG", getClearG, setClearG),0,1,0));
   halegui->addGUIElement(new GUIElement<CEGUI::Scrollbar,double>(gui_sliderB, new VariableBinding<double>("colorB", getClearB, setClearB),0,1,0));
 
-  /* toy happiness slider. */
+  /* discrete slider. */
   GUIElement<CEGUI::Scrollbar, double>* happiness;
   happiness = new GUIElement<CEGUI::Scrollbar, double>(gui_happyslider, new VariableBinding<double>("Happy!",15), 0, 100,15);
   halegui->addGUIElement(happiness);

@@ -308,32 +308,40 @@ CEGUI::Combobox* HaleGUI::createComboboxFromEnum(CEGUI::Window* parent, const ch
 
     return cbox;
 }
-#ifdef CEGUI_HAS_PCRE_REGEX
-CEGUI::Spinner* HaleGUI::createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step){
+CEGUI::FreeSpinner* HaleGUI::createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step){
     using namespace CEGUI;
 
 
     // The default spinner implementation relies on the use of a regex
     // library (and compilation of CEGUI with the CEGUI_HAS_PCRE_REGEX
-    // CMake flag). Thus, the following code is untested.
+    // CMake flag). So, we use the FreeSpinner class.
 
-    Spinner* spinner = (Spinner*)parent->createChild( Spinner::WidgetTypeName, name);
+    FreeSpinner* freespinner = (FreeSpinner*)parent->createChild( FreeSpinner::WidgetTypeName, name);
 
-    Editbox* edbox = (Editbox*) spinner->createChild("TaharezLook/Editbox", Spinner::EditboxName);
-    PushButton* upbtn = (PushButton*) spinner->createChild("TaharezLook/Button", Spinner::IncreaseButtonName);
-    PushButton* dnbtn = (PushButton*) spinner->createChild("TaharezLook/Button", Spinner::DecreaseButtonName);
+    Editbox* edbox = (Editbox*) freespinner->createChild("TaharezLook/Editbox", FreeSpinner::EditboxName);
+    PushButton* upbtn = (PushButton*) freespinner->createChild("TaharezLook/ImageButton", FreeSpinner::IncreaseButtonName);
+    PushButton* dnbtn = (PushButton*) freespinner->createChild("TaharezLook/ImageButton", FreeSpinner::DecreaseButtonName);
+
+
+    // edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
+    // edbox->setSize(USize(UDim(1.0,-40),UDim(1.0,0)));
+    // upbtn->setPosition(UVector2(UDim(1.0,-20),UDim(0.0,0)));
+    // upbtn->setSize(USize(UDim(0.0,20),UDim(0.5,0)));
+    // dnbtn->setPosition(UVector2(UDim(1.0,-20),UDim(0.5,0)));
+    // dnbtn->setSize(USize(UDim(0.0,20),UDim(0.5,0)));
 
     edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
-    edbox->setSize(USize(UDim(0.925,0),UDim(1.0,0)));
-    upbtn->setPosition(UVector2(UDim(0,0),UDim(0.925,0)));
-    upbtn->setSize(USize(UDim(0.075,0),UDim(0.5,0)));
-    dnbtn->setPosition(UVector2(UDim(0.5,0),UDim(0.925,0)));
-    dnbtn->setSize(USize(UDim(0.075,0),UDim(0.5,0)));
-    spinner->initialiseComponents();
+    edbox->setSize(USize(UDim(0.8,0),UDim(1.0,0)));
+    upbtn->setPosition(UVector2(UDim(0.8,0),UDim(0.0,0)));
+    upbtn->setSize(USize(UDim(0.2,0),UDim(0.5,0)));
+    upbtn->setMaxSize(USize(UDim(0.02,20),UDim(0.5,0)));
+    dnbtn->setPosition(UVector2(UDim(0.8,0),UDim(0.5,0)));
+    dnbtn->setSize(USize(UDim(0.2,0),UDim(0.5,0)));
+    dnbtn->setMaxSize(USize(UDim(0.02,20),UDim(0.5,0)));
+    freespinner->initialiseComponents();
 
-    return spinner;
+    return freespinner;
 }
-#endif
 
 
 // HaleGUI....
@@ -450,6 +458,8 @@ void HaleGUI::init(){
 
     // create CEGUI system object
     CEGUI::System::create(*cegui_renderer);
+
+    CEGUI::WindowFactoryManager::addWindowType<FreeSpinner>();
 
     // setup resource directories
     DefaultResourceProvider* rp = static_cast<DefaultResourceProvider*>(System::getSingleton().getResourceProvider());

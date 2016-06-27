@@ -1,10 +1,11 @@
 #ifndef HALEGUI_INCLUDED
 #define HALEGUI_INCLUDED
+
 #include <GL/glew.h>
 #include "Hale.h"
 #include <vector>
 #include <CEGUI/CEGUI.h>
-
+#include "FreeSpinner.h"
 
 
 
@@ -62,7 +63,7 @@ public:
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter get, t_setter set);
   VariableBinding(const char* name, T* t_ptr);
-  ~VariableBinding();
+  virtual ~VariableBinding();
 //VariableBinding(const char* name, VariableWrapper<T>* wrapper);
   void updateBoundGUIElements();
   void bindGUIElement(GenericGUIElement* e);
@@ -93,7 +94,7 @@ protected:
   GenericVariableBinding* const m_varbinding;
   GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
 public:
-  ~GenericGUIElement();
+  virtual ~GenericGUIElement();
   CEGUI::Window* getWindow();               // Return the window of this element
 
   const char* getWindowType();              // All CEGUI::Windows contain a member
@@ -239,9 +240,7 @@ public:
 
   // helper functions to create and lay out gui elements.
   CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
-#ifdef CEGUI_HAS_PCRE_REGEX
-  CEGUI::Spinner* createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step);
-#endif
+  CEGUI::FreeSpinner* createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step);
   CEGUI::Window* createChild(const char* type, const char* name);
   void layout();
 
