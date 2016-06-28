@@ -3,9 +3,9 @@
 
 #include <GL/glew.h>
 #include "Hale.h"
+#include <nanogui/screen.h>
 #include <vector>
-#include <CEGUI/CEGUI.h>
-#include "FreeSpinner.h"
+// #include "FreeSpinner.h"
 
 
 
@@ -90,12 +90,12 @@ public:
  */
 class GenericGUIElement {
 protected:
-  CEGUI::Window* const m_window;
+  // CEGUI::Window* const m_window;
   GenericVariableBinding* const m_varbinding;
-  GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
+  // GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding);
 public:
   virtual ~GenericGUIElement();
-  CEGUI::Window* getWindow();               // Return the window of this element
+  // CEGUI::Window* getWindow();               // Return the window of this element
 
   const char* getWindowType();              // All CEGUI::Windows contain a member
                                             // type string. Just return that.
@@ -103,7 +103,7 @@ public:
   const char* getVarName();
 
   virtual void updateGUIFromBinding() =0;
-  virtual bool handleEvent(const CEGUI::EventArgs& e) =0;
+  // virtual bool handleEvent(const CEGUI::EventArgs& e) =0;
 
 };
 
@@ -119,71 +119,26 @@ public:
  * A mapping between Variable Bindings and their corresponding GUI elements
  * (Ie. CEGUI::Windows). W should be a subclass of CEGUI::Window. T can be anything.
  */
-template<class W, class T>
-class GUIElement : public GenericGUIElement{  };
 
 
-template<>
-class GUIElement<CEGUI::Scrollbar, double> : public GenericGUIElement{
-protected:
-    VariableBinding<double>* binding;
-    CEGUI::Scrollbar* window;
-    double max,min,step;
-public:
-    GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double min, double max, double step);
-
-    void updateGUIFromBinding();
-    bool handleEvent(const CEGUI::EventArgs& e);
-};
+// template<class W, class T>
+// class GUIElement : public GenericGUIElement{  };
 
 
-template<>
-class GUIElement<CEGUI::ToggleButton, bool> : public GenericGUIElement{
-protected:
-    VariableBinding<bool>* binding;
-    CEGUI::ToggleButton* window;
-public:
-    GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind);
+// template<>
+// class GUIElement<CEGUI::Scrollbar, double> : public GenericGUIElement{
+// protected:
+//     VariableBinding<double>* binding;
+//     CEGUI::Scrollbar* window;
+//     double max,min,step;
+// public:
+//     GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double min, double max, double step);
 
-    void updateGUIFromBinding();
-    bool handleEvent(const CEGUI::EventArgs& e);
-};
+//     void updateGUIFromBinding();
+//     bool handleEvent(const CEGUI::EventArgs& e);
+// };
 
-template<>
-class GUIElement<CEGUI::Editbox, double> : public GenericGUIElement{
-protected:
-    VariableBinding<double>* binding;
-    CEGUI::Editbox* window;
-public:
-    GUIElement(CEGUI::Editbox* window, VariableBinding<double>* bind);
 
-    void updateGUIFromBinding();
-    bool handleEvent(const CEGUI::EventArgs& e);
-};
-
-template<>
-class GUIElement<CEGUI::Combobox, int> : public GenericGUIElement{
-protected:
-    VariableBinding<int>* binding;
-    CEGUI::Combobox* window;
-public:
-    GUIElement(CEGUI::Combobox* window, VariableBinding<int>* bind);
-
-    void updateGUIFromBinding();
-    bool handleEvent(const CEGUI::EventArgs& e);
-};
-
-template<>
-class GUIElement<CEGUI::Editbox, const char*> : public GenericGUIElement{
-protected:
-    VariableBinding<const char*>* binding;
-    CEGUI::Editbox* window;
-public:
-    GUIElement(CEGUI::Editbox* window, VariableBinding<const char*>* bind);
-
-    void updateGUIFromBinding();
-    bool handleEvent(const CEGUI::EventArgs& e);
-};
 
 
 /* 
@@ -199,10 +154,6 @@ public:
 class HaleGUI{ 
 public:
   static HaleGUI* inst;
-  CEGUI::OpenGL3Renderer* cegui_renderer;
-  CEGUI::Window* leftPane;
-  CEGUI::VerticalLayoutContainer* leftPaneLayout;
-  CEGUI::ScrollablePane* scrollpane;
 protected:
   std::vector<GenericGUIElement*> guiElements;
   HaleGUI();
@@ -231,17 +182,10 @@ public:
   void forceGUIUpdate();                 // update state of all gui elements from variable binding.
   void forceGUIUpdate(const char* name); //   - for a particular variable
 
-  static bool windowEventHandler(const CEGUI::EventArgs& e);
+  // static bool windowEventHandler(const CEGUI::EventArgs& e);
 
   // functions for setting up/managing window layouts.
 
-  // linear-time lookup of Window given ID.
-  CEGUI::Window* getWithID(unsigned int id);
-
-  // helper functions to create and lay out gui elements.
-  CEGUI::Combobox* createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues);
-  CEGUI::FreeSpinner* createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step);
-  CEGUI::Window* createChild(const char* type, const char* name);
   void layout();
 
 

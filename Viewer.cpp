@@ -73,7 +73,6 @@ static int buttonIdx(int button, int mods) {
 /* CEGUI functions. todo: make cleaner */
 
 
-
 /*
 ** GLK believes that the window size callback is not actually needed: any
 ** window resize will also resize the framebuffer, and moving a window
@@ -133,19 +132,19 @@ Viewer::_buffAlloc(void) {
 }
 
 void cegui_charCallback(GLFWwindow* window, unsigned int char_pressed){
-    HaleGUI::gui_charCallback(window,char_pressed);    
+    // HaleGUI::gui_charCallback(window,char_pressed);    
 }
 
 void cegui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod){
-    HaleGUI::gui_keyCallback(window,key,scan,action,mod);
+    // HaleGUI::gui_keyCallback(window,key,scan,action,mod);
 }
 
 void cegui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod){
-    HaleGUI::gui_mouseButtonCallback(window,button,state,mod);
+    // HaleGUI::gui_mouseButtonCallback(window,button,state,mod);
 }
 
 void cegui_mouseWheelCallback(GLFWwindow* window, double x, double y){
-    HaleGUI::gui_mouseWheelCallback(window,x,y);
+    // HaleGUI::gui_mouseWheelCallback(window,x,y);
 }
 
 void
@@ -815,21 +814,21 @@ void Viewer::scene(Scene *scn) { _scene = scn; }
 void Viewer::draw(void) {
 
 
-  if(HaleGUI::getInstance()->leftPane){
-    static float prev_rect_height = 0;
-    HaleGUI::getInstance()->leftPane->setPosition(CEGUI::UVector2(CEGUI::UDim(0,0),CEGUI::UDim(0,0)));
-    float rect_width = HaleGUI::getInstance()->leftPane->getClipRect().getWidth();
-    float rect_height= HaleGUI::getInstance()->leftPane->getClipRect().getHeight();
-    if(rect_height != prev_rect_height){
-      HaleGUI::getInstance()->layout();
-    }
-    int newwidth = _widthBuffer-rect_width;
-    if(newwidth < 1){
-      newwidth = 1;
-    }
-    prev_rect_height = rect_height;
-    glViewport(rect_width, 0, newwidth, _heightBuffer);
-  }
+  // if(HaleGUI::getInstance()->leftPane){
+  //   static float prev_rect_height = 0;
+  //   HaleGUI::getInstance()->leftPane->setPosition(CEGUI::UVector2(CEGUI::UDim(0,0),CEGUI::UDim(0,0)));
+  //   float rect_width = HaleGUI::getInstance()->leftPane->getClipRect().getWidth();
+  //   float rect_height= HaleGUI::getInstance()->leftPane->getClipRect().getHeight();
+  //   if(rect_height != prev_rect_height){
+  //     HaleGUI::getInstance()->layout();
+  //   }
+  //   int newwidth = _widthBuffer-rect_width;
+  //   if(newwidth < 1){
+  //     newwidth = 1;
+  //   }
+  //   prev_rect_height = rect_height;
+  //   glViewport(rect_width, 0, newwidth, _heightBuffer);
+  // }
 
   // glViewport(0, 0, _widthBuffer/2, _heightBuffer);
   // glScissor(0, 0, _widthBuffer/2, _heightBuffer);
@@ -845,7 +844,7 @@ void Viewer::draw(void) {
   // glClearColor(0,0,0,0);
   // glScissor(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
   // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  HaleGUI::getInstance()->renderAll();
+  // HaleGUI::getInstance()->renderAll();
 }
 
 /*

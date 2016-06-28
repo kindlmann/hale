@@ -4,8 +4,7 @@
 TEEM = ~/dev/teem/teem-install
 HALE = ..
 GLM = /usr/include/glm/
-CEGUI = /usr/local/include/cegui-0/
-CEGUILIB = /usr/local/lib/
+NANOGUI = /home/ashwin/repo/nanogui
 
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
@@ -16,12 +15,11 @@ endif
 
 # TODO: clean this up a little bit with LPATH
 
-LIBS = -lCEGUISILLYImageCodec -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz $(CEGUILIB)libCEGUIBase-0.so.2 -lCEGUICommonDialogs-0 -lCEGUICoreWindowRendererSet -lCEGUILibXMLParser  -lCEGUIOpenGLRenderer-0
+LIBS =  -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz -lnanogui
 
-
-RPATH = -Wl,-rpath,$(TEEM)/lib,-rpath,$(CEGUILIB),-rpath,$(CEGUILIB)cegui-0.8
-IPATH = -I$(HALE) -I$(TEEM)/include -I$(GLM) -I$(CEGUI)
-LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM) -L$(CEGUILIB) -L$(CEGUILIB)cegui-0.8
+RPATH = -Wl,-rpath,$(TEEM)/lib,-rpath,$(NANOGUI)
+IPATH = -I$(HALE) -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen -I$(NANOGUI)/ext/nanovg/src/
+LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM) -L$(NANOGUI)
 
 CC = g++ -g -O0 -std=c++11
 

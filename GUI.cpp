@@ -108,42 +108,40 @@ template class VariableBinding<const char*>;
 // this is the singular function which is called
 // by all window events.
 
-bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
-    // figure out which window is being pointed to.
-    CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
-    CEGUI::Window* w = args->window;
+// bool HaleGUI::windowEventHandler(const CEGUI::EventArgs& e){
+//     // figure out which window is being pointed to.
+//     CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
+//     CEGUI::Window* w = args->window;
 
-    // search for the handlers to the matching window.
-    std::vector<GenericGUIElement*>::iterator it;
-    int i = 0;
-    bool retval = false;
-    for(it=inst->guiElements.begin() ; it < inst->guiElements.end(); it++,i++ ) {
-        GenericGUIElement* curr = (*it);
-        // if(curr->getWindow()->getID() == w->getID()){
-        if(curr->getWindow() == w){
-            // these are the same window.
-            if(curr->handleEvent(e)){
-                retval = true;
-                ++eventHandledCount;
-            }
-            retval = retval || curr->handleEvent(e);
-        }
-    }
-    return retval;
-}
+//     // search for the handlers to the matching window.
+//     std::vector<GenericGUIElement*>::iterator it;
+//     int i = 0;
+//     bool retval = false;
+//     for(it=inst->guiElements.begin() ; it < inst->guiElements.end(); it++,i++ ) {
+//         GenericGUIElement* curr = (*it);
+//         // if(curr->getWindow()->getID() == w->getID()){
+//         if(curr->getWindow() == w){
+//             // these are the same window.
+//             if(curr->handleEvent(e)){
+//                 retval = true;
+//                 ++eventHandledCount;
+//             }
+//             retval = retval || curr->handleEvent(e);
+//         }
+//     }
+//     return retval;
+// }
 
-GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding) : m_window(window), m_varbinding(binding){
-    binding->bindGUIElement(this);
-}
+// GenericGUIElement::GenericGUIElement(CEGUI::Window* window, GenericVariableBinding* binding) : m_window(window), m_varbinding(binding){
+//     binding->bindGUIElement(this);
+// }
 GenericGUIElement::~GenericGUIElement(){
-    delete m_window;
-    delete m_varbinding;
 }
-CEGUI::Window* GenericGUIElement::getWindow(){
-    return m_window;
-}
+// CEGUI::Window* GenericGUIElement::getWindow(){
+//     return m_window;
+// }
 const char* GenericGUIElement::getWindowType(){
-    return m_window->getType().c_str();
+    // return m_window->getType().c_str();
 }
 bool GenericGUIElement::hasChanged(){
     if(m_varbinding->changed){
@@ -160,192 +158,19 @@ const char* GenericGUIElement::getVarName(){
 
 // Double scrollbar
 
-bool GUIElement<CEGUI::Scrollbar, double>::handleEvent(const CEGUI::EventArgs& e){
-  double val = window->getScrollPosition();
-  val = min + val*(max-min);
+// bool GUIElement<CEGUI::Scrollbar, double>::handleEvent(const CEGUI::EventArgs& e){
+//   double val = window->getScrollPosition();
+//   val = min + val*(max-min);
 
-  // enforce step size
-  if(step!=0){
-    int div = (int)(0.5 + val / step);
-    val = div*step;
-  }
-  binding->setValue(val);
-  fprintf(stderr,"%s: %.2f\n",binding->name,binding->getValue());
-  return true;
-};
-
-GUIElement<CEGUI::Scrollbar, double>::GUIElement(CEGUI::Scrollbar* window, VariableBinding<double>* bind, double min, double max, double step) : GenericGUIElement(window, bind){
-    this->window = window;
-    this->binding = bind;
-    this->max = max;
-    this->min = min;
-    this->step =step;
-    window->setStepSize(step == 0 ? 0.01 : (step/(max-min)));
-    window->subscribeEvent(CEGUI::Scrollbar::EventScrollPositionChanged, HaleGUI::windowEventHandler);
-}
-void GUIElement<CEGUI::Scrollbar, double>::updateGUIFromBinding(){
-    double val = binding->getValue();
-    window->setScrollPosition((val-min)/(max-min));
-}
-
-// Double editbox
-
-bool GUIElement<CEGUI::Editbox, double>::handleEvent(const CEGUI::EventArgs& e){
-  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
-  double val = atof(window->getText().c_str());
-  binding->setValue(val);
-  printf("%s: %.2f\n",binding->name,binding->getValue());
-  return true;
-};
-
-GUIElement<CEGUI::Editbox, double>::GUIElement(CEGUI::Editbox* window, VariableBinding<double>* bind) : GenericGUIElement(window, bind){
-    this->window = window;
-    this->binding = bind;
-    window->subscribeEvent(CEGUI::Editbox::EventTextAccepted
-, HaleGUI::windowEventHandler);
-}
-void GUIElement<CEGUI::Editbox, double>::updateGUIFromBinding(){
-    double val = binding->getValue();
-    window->setText(std::to_string(val).c_str());
-}
-
-// const char* editbox
-
-bool GUIElement<CEGUI::Editbox, const char*>::handleEvent(const CEGUI::EventArgs& e){
-  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
-  const char* val = window->getText().c_str();
-  binding->setValue(val);
-  printf("%s: %s\n",binding->name,binding->getValue());
-  return true;
-};
-
-GUIElement<CEGUI::Editbox, const char*>::GUIElement(CEGUI::Editbox* window, VariableBinding<const char*>* bind) : GenericGUIElement(window, bind){
-    this->window = window;
-    this->binding = bind;
-    window->subscribeEvent(CEGUI::Editbox::EventTextAccepted
-, HaleGUI::windowEventHandler);
-}
-void GUIElement<CEGUI::Editbox, const char*>::updateGUIFromBinding(){
-    const char* val = binding->getValue();
-    window->setText(val);
-}
-
-
-// Boolean toggle-button
-
-bool GUIElement<CEGUI::ToggleButton, bool>::handleEvent(const CEGUI::EventArgs& e){
-  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
-  bool val = window->isSelected();
-  binding->setValue(val);
-  printf("%s: %s\n",binding->name,binding->getValue()?"true":"false");
-  return true;
-};
-
-GUIElement<CEGUI::ToggleButton, bool>::GUIElement(CEGUI::ToggleButton* window, VariableBinding<bool>* bind) : GenericGUIElement(window, bind){
-    this->window = window;
-    this->binding = bind;
-    window->subscribeEvent(CEGUI::ToggleButton::EventSelectStateChanged, HaleGUI::windowEventHandler);
-}
-void GUIElement<CEGUI::ToggleButton, bool>::updateGUIFromBinding(){
-    bool val = binding->getValue();
-    window->setSelected(val);
-}
-
-// Integer combobox
-
-bool GUIElement<CEGUI::Combobox, int>::handleEvent(const CEGUI::EventArgs& e){
-  // CEGUI::WindowEventArgs* args =(CEGUI::WindowEventArgs*) (&e);
-  int val = window->getItemIndex(window->getSelectedItem());
-  binding->setValue(val);
-  printf("%s: %d\n",binding->name,binding->getValue());
-  return true;
-};
-
-GUIElement<CEGUI::Combobox, int>::GUIElement(CEGUI::Combobox* window, VariableBinding<int>* bind) : GenericGUIElement(window, bind){
-    this->window = window;
-    this->binding = bind;
-    window->subscribeEvent(CEGUI::Combobox::EventListSelectionAccepted
-, HaleGUI::windowEventHandler);
-}
-void GUIElement<CEGUI::Combobox, int>::updateGUIFromBinding(){
-    int val = binding->getValue();
-    if(window->getSelectedItem() != 0){
-        window->setItemSelectState(window->getSelectedItem(),false);
-    }
-    window->setItemSelectState(val,true);
-}
-
-template class GUIElement<CEGUI::Editbox, double>;
-template class GUIElement<CEGUI::Editbox, const char*>;
-template class GUIElement<CEGUI::Scrollbar, double>;
-template class GUIElement<CEGUI::ToggleButton, bool>;
-template class GUIElement<CEGUI::Combobox, int>;
-
-// Helper function, create a combobox:
-
-CEGUI::Combobox* HaleGUI::createComboboxFromEnum(CEGUI::Window* parent, const char* name, const char* values[], int numValues){
-    using namespace CEGUI;
-    Combobox* cbox = (Combobox*)parent->createChild( Combobox::WidgetTypeName, name);
-
-    Editbox* edbox = (Editbox*) cbox->createChild("TaharezLook/Editbox", Combobox::EditboxName);
-    ComboDropList* dlist = (ComboDropList*) cbox->createChild("TaharezLook/ComboDropList", Combobox::DropListName);
-    PushButton* button = (PushButton*) cbox->createChild("TaharezLook/Button", Combobox::ButtonName);
-    for(int i=0;i<numValues;++i){
-        cbox->addItem(new ListboxTextItem(values[i],i));
-    }
-
-    edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
-    edbox->setSize(USize(UDim(0.8,0),UDim(0.3,0)));
-    dlist->setPosition(UVector2(UDim(0,0),UDim(0.3f,0)));
-    dlist->setSize(USize(UDim(1.0,0),UDim(0.7,0)));
-    button->setPosition(UVector2(UDim(0.8,0),UDim(0,0)));
-    button->setSize(USize(UDim(0.2f,0),UDim (0.3f,0)));
-
-    cbox->setWidth(UDim(1,-10));
-    cbox->initialiseComponents();
-    dlist->getVertScrollbar()->setWidth(UDim(1.0,100));
-
-
-    return cbox;
-}
-CEGUI::FreeSpinner* HaleGUI::createSpinner(CEGUI::Window* parent, const char* name, double min, double max, double step){
-    using namespace CEGUI;
-
-
-    // The default spinner implementation relies on the use of a regex
-    // library (and compilation of CEGUI with the CEGUI_HAS_PCRE_REGEX
-    // CMake flag). So, we use the FreeSpinner class.
-
-    FreeSpinner* freespinner = (FreeSpinner*)parent->createChild( FreeSpinner::WidgetTypeName, name);
-
-    Editbox* edbox = (Editbox*) freespinner->createChild("TaharezLook/Editbox", FreeSpinner::EditboxName);
-    PushButton* upbtn = (PushButton*) freespinner->createChild("TaharezLook/ImageButton", FreeSpinner::IncreaseButtonName);
-    PushButton* dnbtn = (PushButton*) freespinner->createChild("TaharezLook/ImageButton", FreeSpinner::DecreaseButtonName);
-
-
-    // edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
-    // edbox->setSize(USize(UDim(1.0,-40),UDim(1.0,0)));
-    // upbtn->setPosition(UVector2(UDim(1.0,-20),UDim(0.0,0)));
-    // upbtn->setSize(USize(UDim(0.0,20),UDim(0.5,0)));
-    // dnbtn->setPosition(UVector2(UDim(1.0,-20),UDim(0.5,0)));
-    // dnbtn->setSize(USize(UDim(0.0,20),UDim(0.5,0)));
-
-    edbox->setPosition(UVector2(UDim(0,0),UDim(0,0)));
-    edbox->setSize(USize(UDim(0.8,0),UDim(1.0,0)));
-    upbtn->setPosition(UVector2(UDim(0.8,0),UDim(0.0,0)));
-    upbtn->setSize(USize(UDim(0.2,0),UDim(0.5,0)));
-    upbtn->setMaxSize(USize(UDim(0.02,20),UDim(0.5,0)));
-    dnbtn->setPosition(UVector2(UDim(0.8,0),UDim(0.5,0)));
-    dnbtn->setSize(USize(UDim(0.2,0),UDim(0.5,0)));
-    dnbtn->setMaxSize(USize(UDim(0.02,20),UDim(0.5,0)));
-    freespinner->initialiseComponents();
-
-    return freespinner;
-}
-
-
-// HaleGUI....
-
+//   // enforce step size
+//   if(step!=0){
+//     int div = (int)(0.5 + val / step);
+//     val = div*step;
+//   }
+//   binding->setValue(val);
+//   fprintf(stderr,"%s: %.2f\n",binding->name,binding->getValue());
+//   return true;
+// };
 
 
 
@@ -356,15 +181,15 @@ HaleGUI::HaleGUI(){
     inst = 0;
 }
 HaleGUI::~HaleGUI(){
-    delete leftPaneLayout;
-    delete scrollpane;
-    delete leftPane;
-    delete inst;
-    std::vector<GenericGUIElement*>::iterator it;
-    for(it=guiElements.begin() ; it < guiElements.end(); it++) {
-        GenericGUIElement* ptr = (*it);
-        delete ptr;
-    }
+    // delete leftPaneLayout;
+    // delete scrollpane;
+    // delete leftPane;
+    // delete inst;
+    // std::vector<GenericGUIElement*>::iterator it;
+    // for(it=guiElements.begin() ; it < guiElements.end(); it++) {
+    //     GenericGUIElement* ptr = (*it);
+    //     delete ptr;
+    // }
 }
 HaleGUI* HaleGUI::getInstance(){
     if(!HaleGUI::inst){
@@ -380,152 +205,153 @@ void HaleGUI::addGUIElement(GenericGUIElement* in){
     layout();
 }
 void HaleGUI::renderAll(){
-  using namespace CEGUI;
-  if(cegui_renderer){
-    // save state of program.
-    int old_state_program;
-    glGetIntegerv(GL_CURRENT_PROGRAM,&old_state_program);
+  // using namespace CEGUI;
+  // if(cegui_renderer){
+  //   // save state of program.
+  //   int old_state_program;
+  //   glGetIntegerv(GL_CURRENT_PROGRAM,&old_state_program);
 
-    // render with CEGUI. Let CEGUI handle all of its own internals, without us interfering.
-    glUseProgram(0);
-    cegui_renderer->beginRendering();
-    System::getSingleton().renderAllGUIContexts();
-    cegui_renderer->endRendering();
+  //   // render with CEGUI. Let CEGUI handle all of its own internals, without us interfering.
+  //   glUseProgram(0);
+  //   cegui_renderer->beginRendering();
+  //   System::getSingleton().renderAllGUIContexts();
+  //   cegui_renderer->endRendering();
 
-    // reset state of program.
-    glUseProgram(old_state_program);
-    glEnable(GL_DEPTH_TEST);
-  }
+  //   // reset state of program.
+  //   glUseProgram(old_state_program);
+  //   glEnable(GL_DEPTH_TEST);
+  // }
 }
-void layoutHoriz(CEGUI::HorizontalLayoutContainer* container);
-void layoutVert(CEGUI::VerticalLayoutContainer* container);
-void layoutHoriz(CEGUI::HorizontalLayoutContainer* container){
-    // preserve height.
-    CEGUI::UDim oldHeight = container->getHeight();
-    size_t index = 0;
-    while (index < container->getChildCount()){
-       CEGUI::Window* child = container->getChildAtIdx(index);
-       // child->setHeight(CEGUI::UDim(0.95,0));
-       child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0)));
-       ++index;
-    }
-    container->layout(); 
-    container->setHeight(oldHeight);
-}
-void layoutVert(CEGUI::VerticalLayoutContainer* container){
-    size_t index = 0;
-    while (index < container->getChildCount()){
-        CEGUI::Window* child = container->getChildAtIdx(index);
-        if(!strcmp(child->getType().c_str(),"HorizontalLayoutContainer")){
-            layoutHoriz((CEGUI::HorizontalLayoutContainer*)child);
-        }
-        ++index;
-    }
-    index = 0;
-    while (index < container->getChildCount()){
-        CEGUI::Window* child = container->getChildAtIdx(index);
-        child->setWidth(CEGUI::UDim(0.95,0));
+// void layoutHoriz(CEGUI::HorizontalLayoutContainer* container);
+// void layoutVert(CEGUI::VerticalLayoutContainer* container);
+// void layoutHoriz(CEGUI::HorizontalLayoutContainer* container){
+//     // preserve height.
+//     CEGUI::UDim oldHeight = container->getHeight();
+//     size_t index = 0;
+//     while (index < container->getChildCount()){
+//        CEGUI::Window* child = container->getChildAtIdx(index);
+//        // child->setHeight(CEGUI::UDim(0.95,0));
+//        child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0),CEGUI::UDim(0.0075,0),CEGUI::UDim(0.05,0)));
+//        ++index;
+//     }
+//     container->layout(); 
+//     container->setHeight(oldHeight);
+// }
+// void layoutVert(CEGUI::VerticalLayoutContainer* container){
+//     size_t index = 0;
+//     while (index < container->getChildCount()){
+//         CEGUI::Window* child = container->getChildAtIdx(index);
+//         if(!strcmp(child->getType().c_str(),"HorizontalLayoutContainer")){
+//             layoutHoriz((CEGUI::HorizontalLayoutContainer*)child);
+//         }
+//         ++index;
+//     }
+//     index = 0;
+//     while (index < container->getChildCount()){
+//         CEGUI::Window* child = container->getChildAtIdx(index);
+//         child->setWidth(CEGUI::UDim(0.95,0));
 
-        // custom layout for each type of element.
-        if(child->getType() == CEGUI::String("TaharezLook/Label")){
-            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0)));   
-        }
-        else if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
-            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),child->getHeight()*-0.7 + CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
-        }
-        else{
-            child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
-        }
-        ++index;
-    }
-    container->layout();
+//         // custom layout for each type of element.
+//         if(child->getType() == CEGUI::String("TaharezLook/Label")){
+//             child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0)));   
+//         }
+//         else if(!strcmp(child->getType().c_str(),CEGUI::Combobox::WidgetTypeName.c_str())){
+//             child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),child->getHeight()*-0.7 + CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
+//         }
+//         else{
+//             child->setMargin(CEGUI::UBox(CEGUI::UDim(0.0,0),CEGUI::UDim(0.025,0),CEGUI::UDim(0.015,0),CEGUI::UDim(0.025,0)));   
+//         }
+//         ++index;
+//     }
+//     container->layout();
 
-   // "HorizontalLayoutContainer"
-}
-void HaleGUI::layout(){
-    layoutVert(leftPaneLayout);
-    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),leftPaneLayout->getHeight()));
-}
-CEGUI::Window* HaleGUI::createChild(const char* type, const char* name){
-    return leftPaneLayout->createChild(type,name);
-}
+//    // "HorizontalLayoutContainer"
+// }
+// void HaleGUI::layout(){
+//     layoutVert(leftPaneLayout);
+//     leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),leftPaneLayout->getHeight()));
+// }
+// CEGUI::Window* HaleGUI::createChild(const char* type, const char* name){
+//     return leftPaneLayout->createChild(type,name);
+// }
 void HaleGUI::init(){
-    using namespace CEGUI;
+}
+    // using namespace CEGUI;
 
     // create renderer and enable extra states
-    cegui_renderer = &(OpenGL3Renderer::create(Sizef(800.f, 600.f)));
-    cegui_renderer->enableExtraStateSettings(true);
+    // cegui_renderer = &(OpenGL3Renderer::create(Sizef(800.f, 600.f)));
+    // cegui_renderer->enableExtraStateSettings(true);
 
     // create CEGUI system object
-    CEGUI::System::create(*cegui_renderer);
+    // CEGUI::System::create(*cegui_renderer);
 
-    CEGUI::WindowFactoryManager::addWindowType<FreeSpinner>();
+//     CEGUI::WindowFactoryManager::addWindowType<FreeSpinner>();
 
-    // setup resource directories
-    DefaultResourceProvider* rp = static_cast<DefaultResourceProvider*>(System::getSingleton().getResourceProvider());
+//     // setup resource directories
+//     DefaultResourceProvider* rp = static_cast<DefaultResourceProvider*>(System::getSingleton().getResourceProvider());
 
-    rp->setResourceGroupDirectory("schemes", "datafiles/schemes/");
-    rp->setResourceGroupDirectory("imagesets", "datafiles/imagesets/");
-    rp->setResourceGroupDirectory("fonts", "datafiles/fonts/");
-    rp->setResourceGroupDirectory("layouts", "datafiles/layouts/");
-    rp->setResourceGroupDirectory("looknfeels", "datafiles/looknfeel/");
-    rp->setResourceGroupDirectory("lua_scripts", "datafiles/lua_scripts/");
-    rp->setResourceGroupDirectory("schemas", "datafiles/xml_schemas/");
+//     rp->setResourceGroupDirectory("schemes", "datafiles/schemes/");
+//     rp->setResourceGroupDirectory("imagesets", "datafiles/imagesets/");
+//     rp->setResourceGroupDirectory("fonts", "datafiles/fonts/");
+//     rp->setResourceGroupDirectory("layouts", "datafiles/layouts/");
+//     rp->setResourceGroupDirectory("looknfeels", "datafiles/looknfeel/");
+//     rp->setResourceGroupDirectory("lua_scripts", "datafiles/lua_scripts/");
+//     rp->setResourceGroupDirectory("schemas", "datafiles/xml_schemas/");
 
-    // set default resource groups
-    ImageManager::setImagesetDefaultResourceGroup("imagesets");
-    Font::setDefaultResourceGroup("fonts");
-    Scheme::setDefaultResourceGroup("schemes");
-    WidgetLookManager::setDefaultResourceGroup("looknfeels");
-    WindowManager::setDefaultResourceGroup("layouts");
-    ScriptModule::setDefaultResourceGroup("lua_scripts");
+//     // set default resource groups
+//     ImageManager::setImagesetDefaultResourceGroup("imagesets");
+//     Font::setDefaultResourceGroup("fonts");
+//     Scheme::setDefaultResourceGroup("schemes");
+//     WidgetLookManager::setDefaultResourceGroup("looknfeels");
+//     WindowManager::setDefaultResourceGroup("layouts");
+//     ScriptModule::setDefaultResourceGroup("lua_scripts");
 
-    // load TaharezLook scheme and DejaVuSans-10 font
-    SchemeManager::getSingleton().createFromFile("TaharezLook.scheme", "schemes");
-    FontManager::getSingleton().createFromFile("DejaVuSans-10.font");
+//     // load TaharezLook scheme and DejaVuSans-10 font
+//     SchemeManager::getSingleton().createFromFile("TaharezLook.scheme", "schemes");
+//     FontManager::getSingleton().createFromFile("DejaVuSans-10.font");
 
-    // set default font and cursor image and tooltip type
-    System::getSingleton().getDefaultGUIContext().setDefaultFont("DejaVuSans-10");
-    // System::getSingleton().getDefaultGUIContext().getMouseCursor().setDefaultImage("TaharezLook/MouseArrow");
-    System::getSingleton().getDefaultGUIContext().setDefaultTooltipType("TaharezLook/Tooltip");
+//     // set default font and cursor image and tooltip type
+//     System::getSingleton().getDefaultGUIContext().setDefaultFont("DejaVuSans-10");
+//     // System::getSingleton().getDefaultGUIContext().getMouseCursor().setDefaultImage("TaharezLook/MouseArrow");
+//     System::getSingleton().getDefaultGUIContext().setDefaultTooltipType("TaharezLook/Tooltip");
 
-    using namespace CEGUI;
+//     using namespace CEGUI;
 
-    // create root window, the parent for all gui windows.
-    WindowManager& wmgr = WindowManager::getSingleton();
-    Window* root = (Window*) wmgr.createWindow("DefaultWindow", "root");
-    System::getSingleton().getDefaultGUIContext().setRootWindow(root);
-    cegui_renderer = static_cast<CEGUI::OpenGL3Renderer*>(CEGUI::System::getSingleton().getRenderer());
-    root->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1,0),UDim(1,0)));
-    root->setSize(USize(UDim(1,0),UDim(1,0)));
-    root->setMousePassThroughEnabled(true);     // so that events can also be seen by the underlying application.
+//     // create root window, the parent for all gui windows.
+//     WindowManager& wmgr = WindowManager::getSingleton();
+//     Window* root = (Window*) wmgr.createWindow("DefaultWindow", "root");
+//     System::getSingleton().getDefaultGUIContext().setRootWindow(root);
+//     cegui_renderer = static_cast<CEGUI::OpenGL3Renderer*>(CEGUI::System::getSingleton().getRenderer());
+//     root->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1,0),UDim(1,0)));
+//     root->setSize(USize(UDim(1,0),UDim(1,0)));
+//     root->setMousePassThroughEnabled(true);     // so that events can also be seen by the underlying application.
 
-    // leftPane is the container for the application's tools/options.
-    leftPane = (Window*) root->createChild("TaharezLook/FrameWindow","LeftPane");
-    leftPane->setID(2);
-    leftPane->setText("Options");
-    leftPane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(0.2,0),UDim(1.0,0)));
-    leftPane->setMaxSize(CEGUI::USize(CEGUI::UDim(1.0,-10),CEGUI::UDim(1,0)));
+//     // leftPane is the container for the application's tools/options.
+//     leftPane = (Window*) root->createChild("TaharezLook/FrameWindow","LeftPane");
+//     leftPane->setID(2);
+//     leftPane->setText("Options");
+//     leftPane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(0.2,0),UDim(1.0,0)));
+//     leftPane->setMaxSize(CEGUI::USize(CEGUI::UDim(1.0,-10),CEGUI::UDim(1,0)));
 
-    // create scrollable pane.
-    scrollpane = (ScrollablePane*) leftPane->createChild("TaharezLook/ScrollablePane", "scrollpane");
-    scrollpane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1.0,0),UDim(1.0,0)));
+//     // create scrollable pane.
+//     scrollpane = (ScrollablePane*) leftPane->createChild("TaharezLook/ScrollablePane", "scrollpane");
+//     scrollpane->setArea(UVector2(UDim(0,0),UDim(0,0)),USize(UDim(1.0,0),UDim(1.0,0)));
 
-    // set up layout manager.
-    leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(scrollpane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
-    leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
+//     // set up layout manager.
+//     leftPaneLayout = (CEGUI::VerticalLayoutContainer*)(scrollpane->createChild("VerticalLayoutContainer", "leftPaneLayout"));
+//     leftPaneLayout->setSize(CEGUI::USize(CEGUI::UDim(1,0),CEGUI::UDim(1,0)));
 
-    scrollpane->initialiseComponents();
-}
-CEGUI::Window* HaleGUI::getWithID(unsigned int id){
-    CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());
-    while(!wit.isAtEnd()){
-        if(wit.getCurrentValue()->getID() == id)
-            return wit.getCurrentValue();
-        ++wit;
-    }
-    return 0;
-}
+//     scrollpane->initialiseComponents();
+// }
+// CEGUI::Window* HaleGUI::getWithID(unsigned int id){
+//     CEGUI::WindowManager::WindowIterator wit(CEGUI::WindowManager::getSingleton().getIterator());
+//     while(!wit.isAtEnd()){
+//         if(wit.getCurrentValue()->getID() == id)
+//             return wit.getCurrentValue();
+//         ++wit;
+//     }
+//     return 0;
+// }
 void HaleGUI::forceGUIUpdate(){
     std::vector<GenericGUIElement*>::iterator it;
     for(it=guiElements.begin() ; it < guiElements.end(); it++) {
@@ -558,6 +384,9 @@ bool HaleGUI::hasChanged(const char* name){
     }
     return false;
 }
+
+
+/*
 // CEGUI input and callbacks
 CEGUI::MouseButton cegui_toCEGUIButton(int button){
   switch (button){
@@ -699,3 +528,5 @@ void HaleGUI::gui_errorCallback(int error, const char* message){
 //   GenericGUIElement* removeGUIElement(char* varname);
 
 // };
+
+*/
