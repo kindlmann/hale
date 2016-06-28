@@ -387,7 +387,7 @@ Viewer::_slrevalue(const char *me, double xx) {
 void
 Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   static const char me[]="mouseButtonCB";
-  if(HaleGUI::gui_mouseButtonCallback(gwin,button,action,mods))return;
+  // if(HaleGUI::gui_mouseButtonCallback(gwin,button,action,mods))return;
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   double xpos, ypos, xf, yf;
 
@@ -474,8 +474,8 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
 void
 Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
 
-  bool handled = (HaleGUI::gui_cursorPosCallback(gwin, xx, yy));
-  if(handled)return;
+  // bool handled = (HaleGUI::gui_cursorPosCallback(gwin, xx, yy));
+  // if(handled)return;
   static const char me[]="cursorPosCB";
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
   float vsize, ssize, frcX, frcY, rotX, rotY, trnX, trnY;
@@ -707,7 +707,7 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
 
   // // window callback
-  glfwSetWindowSizeCallback(_window, HaleGUI::gui_windowResizedCallback);
+  // glfwSetWindowSizeCallback(_window, HaleGUI::gui_windowResizedCallback);
 
     // // error callback
   // glfwSetErrorCallback(errorCallback);}

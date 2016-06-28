@@ -24,8 +24,9 @@ LIB = libhale.a
 
 TEEM = $(HOME)/teem-install
 GLM = /usr/local/include/glm/
+NANOGUI = /home/ashwin/repo/nanogui/
 
-IPATH = -I$(TEEM)/include -I$(GLM)
+IPATH = -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen
 
 CXX = g++
 AR = ar crs
@@ -33,7 +34,7 @@ CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h
-SRCS = enums.cpp globals.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp \
+SRCS = GUI.cpp enums.cpp globals.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp \
 	Polydata.cpp Scene.cpp
 OBJS = $(SRCS:.cpp=.o)
 
