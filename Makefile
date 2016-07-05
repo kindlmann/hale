@@ -26,7 +26,7 @@ TEEM = $(HOME)/teem-install
 GLM = /usr/local/include/glm/
 NANOGUI = /home/ashwin/repo/nanogui/
 
-IPATH = -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen
+IPATH = -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen -I$(NANOGUI)/ext/nanovg/src
 
 CXX = g++
 AR = ar crs
