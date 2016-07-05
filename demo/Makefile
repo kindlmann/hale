@@ -15,7 +15,7 @@ endif
 
 # TODO: clean this up a little bit with LPATH
 
-LIBS =  -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz -lnanogui
+LIBS =  -lGLU -lGL -lglfw3 $(HALE)/libhale.a -lGLEW -lteem -lpng -lz -lnanogui
 
 RPATH = -Wl,-rpath,$(TEEM)/lib,-rpath,$(NANOGUI)
 IPATH = -I$(HALE) -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen -I$(NANOGUI)/ext/nanovg/src/
