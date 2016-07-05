@@ -131,22 +131,9 @@ Viewer::_buffAlloc(void) {
   return;
 }
 
-void cegui_charCallback(GLFWwindow* window, unsigned int char_pressed){
-    // HaleGUI::gui_charCallback(window,char_pressed);    
+GLFWwindow *Viewer::getWindow(){
+  return _window;
 }
-
-void cegui_keyCallback(GLFWwindow* window, int key, int scan, int action, int mod){
-    // HaleGUI::gui_keyCallback(window,key,scan,action,mod);
-}
-
-void cegui_mouseButtonCallback(GLFWwindow* window, int button, int state, int mod){
-    // HaleGUI::gui_mouseButtonCallback(window,button,state,mod);
-}
-
-void cegui_mouseWheelCallback(GLFWwindow* window, double x, double y){
-    // HaleGUI::gui_mouseWheelCallback(window,x,y);
-}
-
 void
 Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   static const char me[]="framebufferSizeCB";
@@ -163,6 +150,7 @@ Viewer::framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight) {
   vwr->title();
   return;
 }
+
 
 #define V2S(vv)                                 \
   (sprintf(buff[0], "%g,", vv[0]),               \
@@ -191,13 +179,19 @@ Viewer::origRowCol(void) {
                      "vec3 cVec= [" + V2S(cvec) + "];\n");
   return ret;
 }
-
+void Viewer::setFocused(GLFWwindow* gwin, bool focus){
+  fprintf(stderr,"\n * focus: %s\n", focus?"true":"false");
+  if(!focus){
+    Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+    vwr->_mode = viewerModeNone;
+  }
+}
 void
 Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   static const char me[]="keyCB";
-  cegui_keyCallback(gwin,key,scancode,action,mods);
+  // cegui_keyCallback(gwin,key,scancode,action,mods);
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
-
+  vwr->verbose(2);
   if (vwr->verbose() > 1) {
     printf("%s(%d,%d,%d,%d)\n", me, key, scancode, action, mods);
   }
@@ -299,7 +293,7 @@ void Viewer::helpPrint(FILE *file) const {
   fprintf(file, "u: fix up vector\n");
   fprintf(file, "v,V: for debugging: increase,decrease verbosity\n");
 }
-
+  
 void Viewer::slider(double *slvalue, double min, double max) {
   if (slvalue) {
     _slvalue = slvalue;
@@ -389,6 +383,7 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   static const char me[]="mouseButtonCB";
   // if(HaleGUI::gui_mouseButtonCallback(gwin,button,action,mods))return;
   Viewer *vwr = static_cast<Viewer*>(glfwGetWindowUserPointer(gwin));
+  vwr->verbose(1);
   double xpos, ypos, xf, yf;
 
   /* on Macs you can "right-click" downwards, via modifier keys, but then
@@ -410,6 +405,7 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
   glfwGetCursorPos(gwin, &xpos, &ypos);
   xf = xpos/vwr->_widthScreen;
   yf = ypos/vwr->_heightScreen;
+  fprintf(stderr,"Xf, Yf: %.3f,%.3f\n", xf, yf);
   /* lots of conditions can lead to ceasing interactions with camera */
   if ( !(vwr->_button[0] || vwr->_button[1])
        /* both buttons up => we're done */
@@ -536,11 +532,14 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
     switch (vwr->_mode) {
     case viewerModeRotateUV:
       nfrom = vwr->camera.at() + elen*glm::normalize(toeye + rotX*uu - rotY*vv);
+      fprintf(stderr, "(UV)");
       break;
     case viewerModeRotateU:
       nfrom = vwr->camera.at() + elen*glm::normalize(toeye - rotY*vv);
+      fprintf(stderr, "(UU)");
       break;
     case viewerModeRotateV:
+      fprintf(stderr, "(VV)");
       if (!vwr->_upFix) {
         nfrom = vwr->camera.at() + elen*glm::normalize(toeye + rotX*uu);
       } else {
@@ -677,7 +676,11 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   /* look into using this!
      glfwWindowHint(GLFW_SAMPLES, 0); */
   _label = label ? label : "Viewer";
-  _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
+  
+  _window = glfwGetCurrentContext();
+  if(!_window){
+    _window = glfwCreateWindow(width, height, _label.c_str(), NULL, NULL);
+  }
   if (!_window) {
     fprintf(stderr, "%s: glfwCreateWindow(%d,%d) failed\n",
             me, width, height);
@@ -689,22 +692,22 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   _nbuffRGBA[1] = nrrdNew();
   _buffAlloc();
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
-  glfwSetCursorPosCallback(_window, cursorPosCB);
-  glfwSetMouseButtonCallback(_window, mouseButtonCB);
+  // glfwSetCursorPosCallback(_window, cursorPosCB);
+  // glfwSetMouseButtonCallback(_window, mouseButtonCB);
   // glfwSetWindowSizeCallback(_window, windowSizeCB);
-  glfwSetFramebufferSizeCallback(_window, framebufferSizeCB);
-  glfwSetKeyCallback(_window, keyCB);
-  glfwSetWindowCloseCallback(_window, windowCloseCB);
-  glfwSetWindowRefreshCallback(_window, windowRefreshCB);
+  // glfwSetFramebufferSizeCallback(_window, framebufferSizeCB);
+  // glfwSetKeyCallback(_window, keyCB);
+  // glfwSetWindowCloseCallback(_window, windowCloseCB);
+  // glfwSetWindowRefreshCallback(_window, windowRefreshCB);
 
 
   /*     CEGUI  input callbacks    */
 
-  glfwSetCharCallback(_window, cegui_charCallback);
+  // glfwSetCharCallback(_window, cegui_charCallback);
   // glfwSetCursorPosCallback(window, cegui_cursorPosCallback);
   // glfwSetKeyCallback(window, cegui_keyCallback);
   // glfwSetMouseButtonCallback(window, cegui_mouseButtonCallback);
-  glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
+  // glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
 
   // // window callback
   // glfwSetWindowSizeCallback(_window, HaleGUI::gui_windowResizedCallback);
@@ -763,7 +766,7 @@ void Viewer::bufferSwap() {
 }
 
 void Viewer::current() {
-  glfwMakeContextCurrent(_window);
+  // glfwMakeContextCurrent(_window);
 
   fprintf(stderr, "Initializing glew\n");
 
@@ -832,14 +835,20 @@ void Viewer::draw(void) {
 
   // glViewport(0, 0, _widthBuffer/2, _heightBuffer);
   // glScissor(0, 0, _widthBuffer/2, _heightBuffer);
+  // fprintf(stderr,"Setting uniforms\n");
   Hale::uniform("projectMat", camera.project(), true);
   Hale::uniform("viewMat", camera.view(), true);
   /* Here is where we convert view-space light direction into world-space */
   glm::vec3 ldir = glm::vec3(camera.viewInv()*glm::vec4(_lightDir,0.0f));
   Hale::uniform("lightDir", ldir, true);
+    int prog;
+  glGetIntegerv(GL_CURRENT_PROGRAM,&prog);
+  // fprintf(stderr, "\nusing program %d\n", prog);
+  // fprintf(stderr,"Drawing!\n\n");
   _scene->draw();
 
-  glViewport(0, 0, _widthBuffer, _heightBuffer);
+  // fprintf(stderr,"~~~~drawrn\n\n");
+  // glViewport(0, 0, _widthBuffer, _heightBuffer);
   // glViewport(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
   // glClearColor(0,0,0,0);
   // glScissor(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);

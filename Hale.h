@@ -329,6 +329,7 @@ class Viewer {
  /* we can return a const Scene* via scene(), but then the caller can't
     draw() it; this draw() just calls the scene's draw() */
   void draw(void);
+  GLFWwindow *getWindow();
 
  protected:
   glm::vec3 _lightDir;
@@ -357,12 +358,14 @@ class Viewer {
   int *_tvalue; // value to toggle via space bar
 
   GLFWwindow *_window; // the window we manage
+public:
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
   static void framebufferSizeCB(GLFWwindow *gwin, int newWidth, int newHeight);
   static void keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods);
   static void windowCloseCB(GLFWwindow *gwin);
   static void windowRefreshCB(GLFWwindow *gwin);
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
+  static void setFocused(GLFWwindow* gwin, bool infocus);
 
   void shapeUpdate();
 };

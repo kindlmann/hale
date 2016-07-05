@@ -228,7 +228,7 @@ Program::compile() {
   _vertId = shaderNew(GL_VERTEX_SHADER, _vertCode);
   _fragId = shaderNew(GL_FRAGMENT_SHADER, _fragCode);
   _progId = glCreateProgram();
-  if (debugging)
+  // if (debugging)d
     printf("# glCreateProgram() -> %d\n", _progId);
   glErrorCheck(me, "glCreateProgram");
   glAttachShader(_progId, _vertId);
@@ -323,8 +323,10 @@ Program::use() const {
 
   if (Hale::_programCurrent == this) {
     /* we're already using this program; nothing to do here */
-    return;
+    /* But still set the program, in case it was changed elsewhere. */
+    // return;
   }
+  // fprintf(stderr,"\nusing program %d\n", _progId);
   glUseProgram(_progId);
   if (debugging)
     printf("# glUseProgram(%u)\n", _progId);

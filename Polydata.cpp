@@ -284,11 +284,9 @@ std::string Polydata::name() const {
 void
 Polydata::draw() const {
   static const char me[]="Hale::Polydata::draw";
-
   if (debugging)
     printf("!%s(%s): ____________________________________________ \n", me, _name.c_str());
   _program->use();
-
   const limnPolyData *lpld = this->lpld();
   int ibits = limnPolyDataInfoBitFlag(lpld);
   if (!(ibits & (1 << limnPolyDataInfoRGBA))) {
