@@ -326,7 +326,7 @@ Program::use() const {
     /* But still set the program, in case it was changed elsewhere. */
     // return;
   }
-  // fprintf(stderr,"\nusing program %d\n", _progId);
+  fprintf(stderr,"\nusing program %d\n", _progId);
   glUseProgram(_progId);
   if (debugging)
     printf("# glUseProgram(%u)\n", _progId);

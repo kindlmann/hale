@@ -3,12 +3,6 @@
 #include <glm/glm.hpp>
 #include <GL/glu.h>
 
-void render(Hale::Viewer *viewer){
-    fprintf(stderr,"hello");
-  // viewer->draw();
-  // viewer->bufferSwap();
-}
-
 #include <nanogui/screen.h>
 #include <nanogui/window.h>
 #include <nanogui/layout.h>
@@ -36,6 +30,7 @@ void render(Hale::Viewer *viewer){
 #include <nanogui/screen.h>
 #include <nanogui/layout.h>
 #include <nanogui/serializer/core.h>
+#include <nanogui/formhelper.h>
 #if defined(_WIN32)
 #include <windows.h>
 #endif
@@ -50,19 +45,13 @@ using std::string;
 using std::to_string;
 
 
-Hale::Viewer *pViewer;
-class HaleApp : public nanogui::Window {
+class VisApp : public nanogui::Screen {
 public:
-    HaleApp(Widget *parent, const std::string &title) : Window(parent,title){
-
-    }
-    virtual nanogui::Vector2i preferredSize(NVGcontext *ctx){
-        return nanogui::Vector2i(100,100);
-    }
-};
-class ExampleApplication : public nanogui::Screen {
-public:
-    ExampleApplication(int width, int height) : nanogui::Screen(Eigen::Vector2i(width, height), "Hale with NanoGUI") {
+    /*
+     * let the default size be 400x300. This works well on all resolutions.
+    */
+    VisApp(int argc, const char** argv) : nanogui::Screen(Eigen::Vector2i(400, 300), "Hale with NanoGUI") {
+        setOptions(argc, argv);
         using namespace nanogui;
         Window *window = new Window(this, "Button demo");
         window->setPosition(Vector2i(15, 15));
@@ -146,10 +135,35 @@ public:
         VScrollPanel *vscroll = new VScrollPanel(popup);
         ImagePanel *imgPanel = new ImagePanel(vscroll);
         imgPanel->setImages(icons);
+
         popup->setFixedSize(Vector2i(245, 150));
 
-        auto hale_window = new HaleApp(this, "Visualization");
-        hale_window->setPosition(Vector2i(710,450));
+        /// dvar, bar, strvar, etc. are double/bool/string/.. variables
+
+        FormHelper *gui = new FormHelper(this);
+        ref<Window> win = gui->addWindow(Eigen::Vector2i(10, 10), "Form helper example");
+        gui->addGroup("Basic types");
+        // bool* boolptr = new bool(true);
+        bool boolptr = true;
+        gui->addVariable<double>("boolean",
+            [&](double v) { fprintf(stderr,"setting %f\n",v); },
+            [&]() -> double { return 4.2; });
+        // gui->addVariable("string", "strvar");
+
+        // gui->addGroup("Validating fields");
+        // gui->addVariable("int", 3);
+        // gui->addVariable("float", 3.5);
+        // gui->addVariable("double", 3.14);
+
+        // gui->addGroup("Complex types");
+        // gui->addVariable("Enumeration", enumval, enabled)
+        //    ->setItems({"Item 1", "Item 2", "Item 3"});
+        // gui->addVariable("Color", colval);
+
+        // gui->addGroup("Other widgets");
+        // gui->addButton("A button", [](){ std::cout << "Button pressed." << std::endl; });
+
+        // other stuff
 
         auto img_window = new Window(this, "Selected image");
         img_window->setPosition(Vector2i(710, 15));
@@ -375,6 +389,9 @@ public:
             }
         });
 
+
+
+
         performLayout();
 
         /* All NanoGUI widgets are initialized at this point. Now
@@ -385,49 +402,47 @@ public:
            buffer object management.
         */
 
-        mShader.init(
-            /* An identifying name */
-            "a_simple_shader",
+        // mShader.init(
+        //     /* An identifying name */
+        //     "a_simple_shader",
 
-            /* Vertex shader */
-            "#version 330\n"
-            "uniform mat4 modelViewProj;\n"
-            "in vec3 position;\n"
-            "void main() {\n"
-            "    gl_Position = modelViewProj * vec4(position, 1.0);\n"
-            "}",
+        //     /* Vertex shader */
+        //     "#version 330\n"
+        //     "uniform mat4 modelViewProj;\n"
+        //     "in vec3 position;\n"
+        //     "void main() {\n"
+        //     "    gl_Position = modelViewProj * vec4(position, 1.0);\n"
+        //     "}",
 
-            /* Fragment shader */
-            "#version 330\n"
-            "out vec4 color;\n"
-            "uniform float intensity;\n"
-            "void main() {\n"
-            "    color = vec4(vec3(intensity), 1.0);\n"
-            "}"
-        );
+        //     /* Fragment shader */
+        //     "#version 330\n"
+        //     "out vec4 color;\n"
+        //     "uniform float intensity;\n"
+        //     "void main() {\n"
+        //     "    color = vec4(vec3(intensity), 1.0);\n"
+        //     "}"
+        // );
 
-        MatrixXu indices(3, 2); /* Draw 2 triangles */
-        indices.col(0) << 0, 1, 2;
-        indices.col(1) << 2, 3, 0;
+        // MatrixXu indices(3, 2); /* Draw 2 triangles */
+        // indices.col(0) << 0, 1, 2;
+        // indices.col(1) << 2, 3, 0;
 
-        MatrixXf positions(3, 4);
-        positions.col(0) << -1, -1, 0;
-        positions.col(1) <<  1, -1, 0;
-        positions.col(2) <<  1,  1, 0;
-        positions.col(3) << -1,  1, 0;
+        // MatrixXf positions(3, 4);
+        // positions.col(0) << -1, -1, 0;
+        // positions.col(1) <<  1, -1, 0;
+        // positions.col(2) <<  1,  1, 0;
+        // positions.col(3) << -1,  1, 0;
 
-        mShader.bind();
-        mShader.uploadIndices(indices);
-        mShader.uploadAttrib("position", positions);
-        mShader.setUniform("intensity", 0.5f);
+        // mShader.bind();
+        // mShader.uploadIndices(indices);
+        // mShader.uploadAttrib("position", positions);
+        // mShader.setUniform("intensity", 0.5f);
     }
 
-    ~ExampleApplication() {
-        mShader.free();
+    ~VisApp() {
+        // mShader.free();
     }
     virtual bool mouseMotionEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button, int modifiers){
-        // fprintf(stderr,"\nmotion (%d, %d)\n", p[0],p[1]);
-
         int fpathsize = mFocusPath.size();
         if(!Screen::mouseMotionEvent(p,rel,button,modifiers) && fpathsize <= 1){
             // pass focus to hale application.
@@ -477,7 +492,6 @@ public:
     }
 
     virtual void draw(NVGcontext *ctx) {
-        // glLoadIdentity();
         /* Animate the scrollbar */
         mProgress->setValue(std::fmod((float) glfwGetTime() / 10, 1.0f));
 
@@ -487,22 +501,40 @@ public:
         drawContents();
     }
 
+
     virtual void drawContents() {
+        static int prog_last = 0;
         using namespace nanogui;
-        Hale::glErrorCheck("wut1", "idk");
 
-        int prog;glGetIntegerv(GL_CURRENT_PROGRAM,&prog);
+        // int prog;glGetIntegerv(GL_CURRENT_PROGRAM,&prog);
         // fprintf(stderr, "\nusing program %d\n", prog);
-        if(prog !=18){
+        // if(prog !=18){
             // fprintf(stderr,"setting program to 18\n");
-            glUseProgram(18);
-        }
+            // glUseProgram(18);
+        // }
+        sleep(0.1);
         glEnable(GL_DEPTH_TEST);
-        pViewer->draw();
-        // glPopMatrix();
-        // pViewer->bufferSwap();
+        // if (pViewer.sliding() && sliso != isovalue) {
+        //   isovalue = sliso;
+        //   printf("%s: isosurfacing at %g\n", me, isovalue);
+        //   seekIsovalueSet(sctx, isovalue);
+        //   seekUpdate(sctx);
+        //   seekExtract(sctx, lpld);
+        //   hply.rebuffer();
+        // }
+        if(prog_last){
+          glUseProgram(prog_last);
+        }
 
-        /* Draw the window contents using OpenGL */
+        pViewer->draw();
+
+        glGetIntegerv(GL_CURRENT_PROGRAM,&prog_last);
+        // fprintf(stderr, "\nused program %d\n", prog_last);
+
+
+        /* Example code using 2D NanoVectorGraphics (NVG) framework */
+
+/*
         mShader.bind();
 
         Matrix4f mvp;
@@ -512,17 +544,22 @@ public:
         mvp.row(0) *= (float) mSize.y() / (float) mSize.x();
         mShader.setUniform("modelViewProj", mvp);
 
-        /* Draw 2 triangles starting at index 0 */
+        // Draw 2 triangles starting at index 0 
         mShader.drawIndexed(GL_TRIANGLES, 0, 2);
+*/
+
     }
+    void setOptions(int argc, const char** argv){
+
+    }
+    Hale::Viewer *pViewer;
 private:
     nanogui::ProgressBar *mProgress;
-    nanogui::GLShader mShader;
+    // nanogui::GLShader mShader;
 };
 
 int
 main(int argc, const char **argv) {
-
 
   const char *me;
   char *err;
@@ -543,6 +580,8 @@ main(int argc, const char **argv) {
   hparm = hestParmNew();
   hparm->respFileEnable = AIR_TRUE;
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
+  
+
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
   hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
@@ -606,20 +645,19 @@ main(int argc, const char **argv) {
             me, isovalue);
   }
 
-  /* then create empty scene */
+
+  /* initialize gui and viewer */
 
   nanogui::init();
-nanogui::ref<ExampleApplication> app = new ExampleApplication(camsize[0],camsize[1]);
-    // app->drawAll();
-    app->setVisible(true);
-  // glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
-  
-  Hale::init();
+  nanogui::ref<VisApp> app = new VisApp(argc, argv);
+  // app
 
+  Hale::init();
   Hale::Scene scene;
+  
   /* then create viewer (in order to create the OpenGL context) */
   Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
-  pViewer = &viewer;
+  app->pViewer = &viewer;
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
   viewer.camera.init(glm::vec3(camfr[0], camfr[1], camfr[2]),
                      glm::vec3(camat[0], camat[1], camat[2]),
@@ -627,13 +665,9 @@ nanogui::ref<ExampleApplication> app = new ExampleApplication(camsize[0],camsize
                      camFOV, (float)camsize[0]/camsize[1],
                      camnc, camfc, camortho);
 
-  // viewer.refreshCB((Hale::ViewerRefresher)render);
-
   viewer.refreshData(&viewer);
   sliso = isovalue;
   viewer.slider(&sliso, isomin, isomax);
-
-
 
   /* then create geometry, and add it to scene */
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
@@ -644,55 +678,34 @@ nanogui::ref<ExampleApplication> app = new ExampleApplication(camsize[0],camsize
   hply.rebuffer();
   viewer.current();
   
-  
-
-    try {
-
-        {
-            app->drawAll();
-            app->setVisible(true);
-            nanogui::mainloop();
-        }
-
-        nanogui::shutdown();
-    } catch (const std::runtime_error &e) {
-        std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
-        #if defined(_WIN32)
-            MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
-        #else
-            std::cerr << error_msg << endl;
-        #endif
-        return -1;
-    }
-
-  return 0;
-
-  render(&viewer);
-  if (hitandquit) {
-    seekIsovalueSet(sctx, isovalue);
-    seekUpdate(sctx);
-    seekExtract(sctx, lpld);
-    hply.rebuffer();
-
-    render(&viewer);
-    glfwWaitEvents();
-    render(&viewer);
-    viewer.snap();
-    Hale::done();
-    airMopOkay(mop);
-    return 0;
-  }
-  while(!Hale::finishing){
-    glfwWaitEvents();
-    if (viewer.sliding() && sliso != isovalue) {
-      isovalue = sliso;
-      printf("%s: isosurfacing at %g\n", me, isovalue);
+  try {
+    app->drawAll();
+    app->setVisible(true);
+    if (hitandquit) {
       seekIsovalueSet(sctx, isovalue);
       seekUpdate(sctx);
       seekExtract(sctx, lpld);
       hply.rebuffer();
+
+      app->drawAll();
+      glfwWaitEvents();
+      app->drawAll();
+      viewer.snap();
+      Hale::done();
+      airMopOkay(mop);
+      return 0;
     }
-    render(&viewer);
+    nanogui::mainloop();
+    nanogui::shutdown();
+  }
+  catch (const std::runtime_error &e) {
+    std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
+#if defined(_WIN32)
+        MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
+#else
+        std::cerr << error_msg << endl;
+#endif
+    return -1;
   }
 
   /* clean exit; all okay */
@@ -700,52 +713,3 @@ nanogui::ref<ExampleApplication> app = new ExampleApplication(camsize[0],camsize
   airMopOkay(mop);
   return 0;
 }
-/*
-    try {
-        nanogui::init();
-
-        {
-            // nanogui::ref<ExampleApplication> app = new ExampleApplication();
-            // app->drawAll();
-            // app->setVisible(true);
-            // nanogui::mainloop();
-        }
-
-        // nanogui::shutdown();
-    } catch (const std::runtime_error &e) {
-        std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
-        #if defined(_WIN32)
-            MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
-        #else
-            std::cerr << error_msg << endl;
-        #endif
-        return -1;
-    }
-  return 0;
-*/
-/*
-
-    try {
-        nanogui::init();
-
-        {
-            nanogui::ref<ExampleApplication> app = new ExampleApplication();
-            app->drawAll();
-            app->setVisible(true);
-            nanogui::mainloop();
-        }
-
-        nanogui::shutdown();
-    } catch (const std::runtime_error &e) {
-        std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
-        #if defined(_WIN32)
-            MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
-        #else
-            std::cerr << error_msg << endl;
-        #endif
-        return -1;
-    }
-
-    return 0;
-
-*/
