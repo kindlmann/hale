@@ -24,6 +24,7 @@
 #define HALE_INCLUDED
 
 
+#include <nanogui/screen.h>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -255,7 +256,7 @@ class Scene;  // (forward declaration)
 /* Viewer.cpp: Viewer contains and manages a GLFW window, including the
    camera that defines the view within the viewer.  We intercept all
    the events in order to handle how the camera is updated */
-class Viewer {
+class Viewer : public nanogui::Screen{
  public:
   explicit Viewer(int width,  int height, const char *label, Scene *scene);
   ~Viewer();
@@ -330,8 +331,11 @@ class Viewer {
     draw() it; this draw() just calls the scene's draw() */
   void draw(void);
   GLFWwindow *getWindow();
+  void setUpdateFunction(void (*func)());
 
  protected:
+  void (*_updateFunc)();
+  nanogui::ProgressBar *mProgress;
   glm::vec3 _lightDir;
   bool _button[2];     // true iff button (left:0, right:1) is down
   std::string _label;
@@ -357,6 +361,8 @@ class Viewer {
     _slmin, _slmax;  // range of possible slider values
   int *_tvalue; // value to toggle via space bar
 
+  int viewportX, viewportY, viewportW, viewportH;
+
   GLFWwindow *_window; // the window we manage
 public:
   static void cursorPosCB(GLFWwindow *gwin, double xx, double yy);
@@ -366,6 +372,14 @@ public:
   static void windowRefreshCB(GLFWwindow *gwin);
   static void mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods);
   static void setFocused(GLFWwindow* gwin, bool infocus);
+
+  void updateViewportSize();
+  bool mouseMotionEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button, int modifiers);
+  bool resizeEvent(const nanogui::Vector2i &s);
+  bool mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers);
+  bool keyboardEvent(int key, int scancode, int action, int modifiers);
+  void draw(NVGcontext *ctx);
+  void drawContents();
 
   void shapeUpdate();
 };

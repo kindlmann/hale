@@ -1,10 +1,17 @@
 #ifndef HALEGUI_INCLUDED
 #define HALEGUI_INCLUDED
 
-#include <GL/glew.h>
-#include "Hale.h"
 #include <nanogui/screen.h>
+#include <nanogui/textbox.h>
+#include <nanogui/checkbox.h>
+#include <nanogui/colorpicker.h>
+#include <nanogui/colorwheel.h>
+#include <nanogui/combobox.h>
+#include <nanogui/slider.h>
 #include <vector>
+#include <iostream>
+#include <list>
+#include <iterator>
 // #include "FreeSpinner.h"
 
 
@@ -34,6 +41,69 @@ public:
  * of getting/setting data from the GUI and otherwise.
  */
 
+class GenericBoundWidget {
+public:
+  virtual void updateFromBinding() = 0;  
+};
+
+template <typename T, typename S, typename sfinae = std::true_type> class BoundWidget { };
+
+// We do this for each variable/widget pair we need.
+
+template <> class BoundWidget<std::string, nanogui::TextBox, std::true_type> : public nanogui::TextBox, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<std::string>* binding);
+  void updateFromBinding();
+  VariableBinding<std::string>* mBinding;
+};
+
+template <> class BoundWidget<bool, nanogui::CheckBox, std::true_type> : public nanogui::CheckBox, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<bool>* binding);
+  void updateFromBinding();
+  VariableBinding<bool>* mBinding;
+};
+
+template <> class BoundWidget<nanogui::Color, nanogui::ColorPicker, std::true_type> : public nanogui::ColorPicker, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<nanogui::Color>* binding);
+  void updateFromBinding();
+  VariableBinding<nanogui::Color>* mBinding;
+};
+
+template <typename T> class BoundWidget<T, nanogui::IntBox<T>, typename std::is_integral<T>::type> : public nanogui::IntBox<T>, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding);
+  void updateFromBinding();
+  VariableBinding<T>* mBinding;
+};
+
+template <typename T> class BoundWidget<T, nanogui::FloatBox<T>, typename std::is_floating_point<T>::type> : public nanogui::FloatBox<T>, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding);
+  void updateFromBinding();
+  VariableBinding<T>* mBinding;
+};
+
+template <> class BoundWidget<int, nanogui::ComboBox, std::true_type> : public nanogui::ComboBox, public GenericBoundWidget {
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names);
+  void updateFromBinding();
+  VariableBinding<int>* mBinding;
+};
+
+template <typename T> class BoundWidget<T, nanogui::Slider, typename std::is_arithmetic<T>::type> : public nanogui::Slider, public GenericBoundWidget {
+protected:
+  T mMin;
+  T mMax;
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding);
+  void updateFromBinding();
+  void setRange(T vmin, T vmax);
+  VariableBinding<T>* mBinding;
+};
+
+
 class GenericVariableBinding{
 public:
     GenericVariableBinding(const char* name);
@@ -51,36 +121,38 @@ class VariableBinding : public GenericVariableBinding{
 public:
   typedef T (*t_getter)();
   typedef void (*t_setter)(T);
+  typedef std::function<T(void)> t_fun_getter;
+  typedef std::function<void(T)> t_fun_setter;
 protected:
   T* value;               // pointer to real value, if a setter/getter are not used.
   const t_getter getter;  // the function which gets the value (wherever it may be).
   const t_setter setter;  // the function which sets the value.
+  const t_fun_getter fGetter;
+  const t_fun_setter fSetter; 
   bool deleteonexit;      // whether we should free (value) on exit.
 //VariableWrapper* varWrapper;  // pointer to variable wrapper if neither value nor
                                 // getter/setter are used.
   std::list<GenericGUIElement*> boundGUIElements;
+  std::list<GenericBoundWidget*> boundWidgets;
+  bool changed;
 public:
   VariableBinding(const char* name, T init_value);
   VariableBinding(const char* name, t_getter get, t_setter set);
+  VariableBinding(const char* name, std::function<T(void)> get, std::function<void(T)> set);
   VariableBinding(const char* name, T* t_ptr);
   virtual ~VariableBinding();
 //VariableBinding(const char* name, VariableWrapper<T>* wrapper);
   void updateBoundGUIElements();
+  void updateBoundWidgets();
   void bindGUIElement(GenericGUIElement* e);
+  void bindWidget(GenericBoundWidget* e);
   void setValue(T val);             // set the real value of this variable.
   void setValue(T* val);            // set value, pass-by-reference
   T getValue();                     // get the real value of this variable.
-
-  // vv these two functions are only partially implemented,
-  //    and may just be removed.
-  double toDouble();                // get the numerical (double) representation
-                                    // of what this variable is bound to. This
-                                    // function may very well just be a wrapper
-                                    // for (double) casting (which will fail if
-                                    // T is of an incorrect type)
-  char* toString();                 // get the string representation of what this
-                                    // variable is bound to.
+  bool hasChanged();                // returns whether this value has been set since the
+                                    // last call to this function.
 };
+
 
 
 /*

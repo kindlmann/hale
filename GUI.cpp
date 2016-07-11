@@ -1,23 +1,4 @@
 #include "GUI.h"
-
-
-
-template <typename Type>
-double getDoubleRep(Type in){
-    return (double)in;
-}
-
-
-template<> double    getDoubleRep<double>(double in) { return in;        }
-template<> double    getDoubleRep<int>   (int in)    { return double(in);   }
-template<> double    getDoubleRep<float> (float in)  { return double(in); }
-template<> double    getDoubleRep<short> (short in)  { return double(in); }
-template<> double    getDoubleRep<char>  (char in)   { return double(in);  }
-template<> double    getDoubleRep<long>  (long in)   { return double(in);  }
-template<> double    getDoubleRep<const char*> (const char* in)   { return atof(in);  }
-
-
- 
  
 GenericVariableBinding::GenericVariableBinding(const char* myname) : name(myname), changed(false){
 
@@ -27,18 +8,23 @@ GenericVariableBinding::~GenericVariableBinding(){
 } 
 
 template <class T>
-VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set), deleteonexit(false){
+VariableBinding<T>::VariableBinding(const char* name, t_fun_getter get, t_fun_setter set) : GenericVariableBinding(name), getter(0), setter(0), fGetter(get), fSetter(set), deleteonexit(false){
     this->value  = 0;
     this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* myname, T val) : GenericVariableBinding(myname), getter(0), setter(0), deleteonexit(false){
+VariableBinding<T>::VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set), fGetter(0), fSetter(0), deleteonexit(false){
+    this->value  = 0;  
+    this->changed = true;
+}
+template <class T>
+VariableBinding<T>::VariableBinding(const char* myname, T val) : GenericVariableBinding(myname), getter(0), setter(0), fGetter(0), fSetter(0), deleteonexit(false){
     this->value  = new T;
     *(this->value) = val;
     this->changed = true;
 }
 template <class T>
-VariableBinding<T>::VariableBinding(const char* myname, T* val_ptr) : GenericVariableBinding(myname), getter(0), setter(0), deleteonexit(true){
+VariableBinding<T>::VariableBinding(const char* myname, T* val_ptr) : GenericVariableBinding(myname), getter(0), setter(0), fGetter(0), fSetter(0), deleteonexit(true){
     this->value  = val_ptr;
     this->changed = true;
 }
@@ -48,40 +34,29 @@ VariableBinding<T>::~VariableBinding(){
 }
 template <class T>
 void VariableBinding<T>::setValue(T in) {
-    if(setter){
-        setter(in);
-    }else{
-        *value = in;
-    }
-    updateBoundGUIElements();
-    this->changed = true;
+    setValue(&in);
 }
-
 template <class T>
 void VariableBinding<T>::setValue(T* in) {
     if(setter){
         setter(*in);
-    }else{
+    }else if(value){
         *value = *in;
+    }else{
+        fSetter(*in);
     }
     updateBoundGUIElements();
+    updateBoundWidgets();
     this->changed = true;
 }
 template <class T>
 T VariableBinding<T>::getValue(){
     if(getter){
         return getter();
-    }else{
+    }else if(value){
         return *value;
-    }
-}
-template <class T>
-double VariableBinding<T>::toDouble(){
-    if(getter){
-        return getDoubleRep(getter());
-    }
-    else{
-        return getDoubleRep(*value);
+    }else{
+        return fGetter();
     }
 }
 template <class T>
@@ -94,16 +69,172 @@ template <class T>
 void VariableBinding<T>::bindGUIElement(GenericGUIElement* e){
     boundGUIElements.push_back(e);
 }
-
-template <typename Type> const char* toString(Type in){ return "[todo: string rep]";        }
-template<> const char*   toString<double>(double in) {  return "[todo: string rep<double>]";        }
+template <class T>
+void VariableBinding<T>::updateBoundWidgets(){
+    for (std::list<GenericBoundWidget*>::const_iterator itr = boundWidgets.begin(), end = boundWidgets.end(); itr != end; ++itr) {
+        (*itr)->updateFromBinding();
+    }
+}
+template <class T>
+void VariableBinding<T>::bindWidget(GenericBoundWidget* e){
+    boundWidgets.push_back(e);
+    e->updateFromBinding();
+}
+template <class T>
+bool VariableBinding<T>::hasChanged(){
+    if(changed){
+        changed = false;
+        return true;
+    }
+    return false;
+}
 
 // http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
+template class VariableBinding<float>;
 template class VariableBinding<double>;
+template class VariableBinding<long double>;
+template class VariableBinding<unsigned int>;
 template class VariableBinding<int>;
+template class VariableBinding<long int>;
+template class VariableBinding<long long int>;
+template class VariableBinding<short>;
 template class VariableBinding<bool>;
 template class VariableBinding<const char*>;
+template class VariableBinding<std::string>;
+template class VariableBinding<nanogui::Color>;
 
+
+BoundWidget<std::string, nanogui::TextBox, std::true_type>::BoundWidget(nanogui::Widget *p, VariableBinding<std::string>* binding) : nanogui::TextBox(p, "text"), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    setEditable(true);
+    TextBox::setCallback([binding](const std::string &str) {
+        binding->setValue(str);
+        return true;
+    });
+}
+void BoundWidget<std::string, nanogui::TextBox, std::true_type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    mValue = mBinding->getValue();
+}
+
+BoundWidget<bool, nanogui::CheckBox, std::true_type>::BoundWidget(nanogui::Widget *p, VariableBinding<bool>* binding) : nanogui::CheckBox(p), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    mCaption = binding->name;
+    CheckBox::setCallback([binding](const bool &val) {
+        binding->setValue(val);
+        return true;
+    });
+}
+void BoundWidget<bool, nanogui::CheckBox, std::true_type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    mPushed = mBinding->getValue();
+}
+
+BoundWidget<nanogui::Color, nanogui::ColorPicker, std::true_type>::BoundWidget(nanogui::Widget *p, VariableBinding<nanogui::Color>* binding) : nanogui::ColorPicker(p), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    // mCaption = binding->name;
+    nanogui::ColorPicker::setCallback([binding](const nanogui::Color &val) {
+        binding->setValue(val);
+        return true;
+    });
+}
+void BoundWidget<nanogui::Color, nanogui::ColorPicker, std::true_type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    nanogui::Color color = mBinding->getValue();
+    nanogui::Color fg = color.contrastingColor();
+    nanogui::ColorPicker::setBackgroundColor(color);
+    nanogui::ColorPicker::setTextColor(fg);
+    mColorWheel->setColor(color);
+    nanogui::ColorPicker::mPickButton->setBackgroundColor(color);
+    nanogui::ColorPicker::mPickButton->setTextColor(fg);
+}
+
+template<typename T>
+BoundWidget<T, nanogui::IntBox<T>, typename std::is_integral<T>::type>::BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : nanogui::IntBox<T>(p, 12), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    nanogui::IntBox<T>::setEditable(true);
+    nanogui::IntBox<T>::setCallback([binding](const T val) {
+        binding->setValue(val);
+        return true;
+    });
+}
+template<typename T>
+void BoundWidget<T, nanogui::IntBox<T>, typename std::is_integral<T>::type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    nanogui::TextBox::mValue = std::to_string(mBinding->getValue());
+}
+
+
+template<typename T>
+BoundWidget<T, nanogui::FloatBox<T>, typename std::is_floating_point<T>::type>::BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : nanogui::FloatBox<T>(p, 12), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    nanogui::FloatBox<T>::setEditable(true);
+    nanogui::FloatBox<T>::setCallback([binding](const T val) {
+        binding->setValue(val);
+        return true;
+    });
+}
+template<typename T>
+void BoundWidget<T, nanogui::FloatBox<T>, typename std::is_floating_point<T>::type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    nanogui::TextBox::mValue = std::to_string(mBinding->getValue());
+}
+
+template<typename T>
+BoundWidget<T, nanogui::Slider, typename std::is_arithmetic<T>::type>::BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : nanogui::Slider(p), mBinding(binding){
+    mMin = 0;
+    mMax = 10;
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    auto self = this;
+    nanogui::Slider::setCallback([binding, self](const T val) {
+        binding->setValue(self->mMin + val*(self->mMax - self->mMin));
+        return true;
+    });
+}
+template<typename T>
+void BoundWidget<T, nanogui::Slider, typename std::is_arithmetic<T>::type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    nanogui::Slider::mValue = (float)(mBinding->getValue()-mMin)/((float)mMax - mMin);
+}
+template<typename T>
+void BoundWidget<T, nanogui::Slider, typename std::is_arithmetic<T>::type>::setRange(T vmin, T vmax){
+    mMin = vmin;
+    mMax = vmax;
+    updateFromBinding();
+}
+
+BoundWidget<int, nanogui::ComboBox, std::true_type>::BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names) : nanogui::ComboBox(p), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    auto self = this;
+    setItems(names,names);
+    nanogui::ComboBox::setCallback([binding, self](const int ind) {
+        binding->setValue(ind);
+        return true;
+    });
+}
+void BoundWidget<int, nanogui::ComboBox, std::true_type>::updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    nanogui::ComboBox::setSelectedIndex(mBinding->getValue());
+}
+
+template class BoundWidget<float, nanogui::Slider, std::true_type>;
+template class BoundWidget<double, nanogui::Slider, std::true_type>;
+template class BoundWidget<int, nanogui::Slider, std::true_type>;
+template class BoundWidget<short, nanogui::Slider, std::true_type>;
+template class BoundWidget<long int, nanogui::Slider, std::true_type>;
+
+template class BoundWidget<float, nanogui::FloatBox<float>, std::true_type>;
+template class BoundWidget<double, nanogui::FloatBox<double>, std::true_type>;
+template class BoundWidget<int, nanogui::IntBox<int>, std::true_type>;
+template class BoundWidget<nanogui::Color, nanogui::ColorPicker, std::true_type>;
+template class BoundWidget<int, nanogui::ComboBox, std::true_type>;
 // CEGUI callbacks require a function pointer.
 // this is the singular function which is called
 // by all window events.
@@ -202,7 +333,7 @@ HaleGUI* HaleGUI::getInstance(){
 void HaleGUI::addGUIElement(GenericGUIElement* in){
     guiElements.push_back(in);
     in->updateGUIFromBinding();
-    layout();
+    // layout();
 }
 void HaleGUI::renderAll(){
   // using namespace CEGUI;

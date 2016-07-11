@@ -25,6 +25,41 @@
 #include "GUI.h"
 #include "privateHale.h"
 
+#include <nanogui/screen.h>
+#include <nanogui/window.h>
+#include <nanogui/layout.h>
+#include <nanogui/label.h>
+#include <nanogui/checkbox.h>
+#include <nanogui/button.h>
+#include <nanogui/toolbutton.h>
+#include <nanogui/popupbutton.h>
+#include <nanogui/combobox.h>
+#include <nanogui/progressbar.h>
+#include <nanogui/entypo.h>
+#include <nanogui/messagedialog.h>
+#include <nanogui/textbox.h>
+#include <nanogui/slider.h>
+#include <nanogui/imagepanel.h>
+#include <nanogui/imageview.h>
+#include <nanogui/vscrollpanel.h>
+#include <nanogui/colorwheel.h>
+#include <nanogui/graph.h>
+#include <nanogui/tabwidget.h>
+
+#include <nanogui/window.h>
+#include <nanogui/theme.h>
+#include <nanogui/opengl.h>
+#include <nanogui/screen.h>
+#include <nanogui/layout.h>
+#include <nanogui/serializer/core.h>
+#include <nanogui/formhelper.h>
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+#include <nanogui/glutil.h>
+#include <iostream>
+#include <map>
+
 /* the fraction of window width along its border that will be treated
    as its margin, to support the different kinds of interactions
    triggered there */
@@ -69,8 +104,6 @@ static int buttonIdx(int button, int mods) {
   }
   return ret;
 }
-
-/* CEGUI functions. todo: make cleaner */
 
 
 /*
@@ -403,8 +436,8 @@ Viewer::mouseButtonCB(GLFWwindow *gwin, int button, int action, int mods) {
            vwr->_button[0] ? "_" : "^", vwr->_button[1] ? "_" : "^");
   }
   glfwGetCursorPos(gwin, &xpos, &ypos);
-  xf = xpos/vwr->_widthScreen;
-  yf = ypos/vwr->_heightScreen;
+  xf = (xpos-vwr->viewportX)/vwr->viewportW;
+  yf = (ypos-vwr->viewportY)/vwr->viewportH;
   fprintf(stderr,"Xf, Yf: %.3f,%.3f\n", xf, yf);
   /* lots of conditions can lead to ceasing interactions with camera */
   if ( !(vwr->_button[0] || vwr->_button[1])
@@ -648,7 +681,7 @@ Viewer::cursorPosCB(GLFWwindow *gwin, double xx, double yy) {
 }
 
 /* constructor */
-Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
+Viewer::Viewer(int width, int height, const char *label, Scene *scene) : nanogui::Screen(Eigen::Vector2i(width, height), "Hale with NanoGUI"){
   static const char me[]="Hale::Viewer::Viewer";
 
   _lightDir = glm::normalize(glm::vec3(-1.0f, 1.0f, 3.0f));
@@ -667,6 +700,12 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   _slmin = _slmax = AIR_NAN;
   _slidable = false;
   _sliding = false;
+
+  _updateFunc = 0;
+
+
+
+  // perform layout
 
   // http://www.glfw.org/docs/latest/window.html
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Use OpenGL Core v3.2
@@ -687,40 +726,286 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
     finishing = true;
   }
 
+  setBackground(nanogui::Vector3f(mTheme->mWindowFillUnfocused[0],mTheme->mWindowFillUnfocused[1],mTheme->mWindowFillUnfocused[2]));
+
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
   _nbuffRGBA[0] = nrrdNew();
   _nbuffRGBA[1] = nrrdNew();
   _buffAlloc();
   glfwSetWindowUserPointer(_window, static_cast<void*>(this));
-  // glfwSetCursorPosCallback(_window, cursorPosCB);
-  // glfwSetMouseButtonCallback(_window, mouseButtonCB);
-  // glfwSetWindowSizeCallback(_window, windowSizeCB);
-  // glfwSetFramebufferSizeCallback(_window, framebufferSizeCB);
-  // glfwSetKeyCallback(_window, keyCB);
-  // glfwSetWindowCloseCallback(_window, windowCloseCB);
-  // glfwSetWindowRefreshCallback(_window, windowRefreshCB);
-
-
-  /*     CEGUI  input callbacks    */
-
-  // glfwSetCharCallback(_window, cegui_charCallback);
-  // glfwSetCursorPosCallback(window, cegui_cursorPosCallback);
-  // glfwSetKeyCallback(window, cegui_keyCallback);
-  // glfwSetMouseButtonCallback(window, cegui_mouseButtonCallback);
-  // glfwSetScrollCallback(_window, cegui_mouseWheelCallback);
-
-  // // window callback
-  // glfwSetWindowSizeCallback(_window, HaleGUI::gui_windowResizedCallback);
-
-    // // error callback
-  // glfwSetErrorCallback(errorCallback);}
-
   shapeUpdate();
   title();
-
-
-
   printf("\nType 'r' to reset view, 'h' for help using keyboard and viewer\n");
+
+
+}
+
+bool Viewer::mouseMotionEvent(const nanogui::Vector2i &p, const nanogui::Vector2i &rel, int button, int modifiers){
+    int fpathsize = mFocusPath.size();
+    if(!Screen::mouseMotionEvent(p,rel,button,modifiers) && fpathsize <= 1){
+        // pass focus to hale application.
+        // setFocused(getWindow(), true);
+        cursorPosCB(_window, p[0], p[1]);
+    }
+    return true;
+}
+
+bool Viewer::resizeEvent(const nanogui::Vector2i &s) {
+    fprintf(stderr,"resized");
+    framebufferSizeCB(_window, s[0],s[1]);
+    updateViewportSize();
+    return Screen::resizeEvent(s);
+}
+
+struct WindowProperties{
+  int sticky; // 0 if not sticky, 1,2,3,4 for top,left,bottom,right edge.
+};
+std::map<nanogui::Widget*, WindowProperties> windowmgr;
+
+
+bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down, int modifiers){
+    // within the nanogui framework, only mouse clicks are able to
+    // change the focus of a window.
+    fprintf(stderr,"mouse button");
+    int fpathsize = mFocusPath.size();
+    fprintf(stderr,"path size: %d\n",fpathsize);
+    if(!Screen::mouseButtonEvent(p,button,down,modifiers) && fpathsize <= 1){
+        // the underlying (hale) application has focus.
+        setFocused(_window, true);
+        mouseButtonCB(_window, button, down?GLFW_PRESS:GLFW_RELEASE, modifiers);
+    }
+    else{
+        // lost focus.
+        setFocused(_window, false);
+
+        // resize viewport around sticky windows on sides of screen.
+
+        for(Widget* w : mChildren){
+          std::map<nanogui::Widget*, WindowProperties>::iterator found = windowmgr.find(w);
+          if(found != windowmgr.end()){
+            // do window-managerial things
+            nanogui::Vector2i pos = w->absolutePosition();
+            nanogui::Vector2i size = w->size();
+            WindowProperties* props = &(*found).second;
+
+            if (!down){
+              // mouse release. set windows to be sticky if not already.
+              if(pos[0] < 30){
+                pos[0] = 0;
+                // make sticky window on left of screen.
+                props->sticky = 2;
+              }
+              else if(mSize[0] - pos[0] - size[0] < 30){
+                pos[0] = mSize[0] - size[0];
+                // make sticky window on right of screen.
+                props->sticky = 4;
+              }
+              else{
+                props->sticky = 0;
+              }
+              fprintf(stderr,"set sticky %d\n", props->sticky);
+            }
+
+            w->setSize(size);
+            w->setPosition(pos);
+          }else{
+            windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0}));
+          }
+        }
+
+        updateViewportSize();
+
+    }
+    return true;
+}
+
+void Viewer::updateViewportSize(){
+
+  // bounds of viewport from edges of screen.
+  int vtop=0, vleft=0, vbot=0, vright=0;
+  int lpft=0, rpft=0;   // current left pane vertical position (from top) for sticky windows.
+  for(auto elt : windowmgr){
+    Widget* w = elt.first;
+    WindowProperties *props = &elt.second;
+    if(w->visible()){
+      // bounds of viewport from edges of screen.
+      int vt1=0, vl1=0, vb1=0, vr1=0;
+       // which edges the window hugs.
+      bool at=false,al=false,ab=false,ar=false;
+      // wehther this window fits within the space on
+      // a particular edge allotted for another.
+      bool shadowed = false;
+      nanogui::Vector2i pos = w->absolutePosition();
+      nanogui::Vector2i size = w->size();
+      
+      // make sure windows are on the screen.
+      if (pos[0] + size[0] >mSize[0])pos[0] = mSize[0] - size[0];
+      if (pos[1] + size[1] >mSize[1])pos[1] = mSize[1] - size[1];
+      if (pos[0] < 0)pos[0] = 0;
+      if (pos[1] < 0)pos[1] = 0;
+
+      if(props->sticky == 2){
+        if(size[0] > vleft){
+          vl1 = size[0];
+          al = true;
+        }else{
+          shadowed = true;
+        }
+        pos[0] = 0;
+        pos[1] = lpft;
+        lpft += size[1];
+      }
+      if(props->sticky == 4){
+        // pos[0] = mSize[0] - pos[0] - size[0];
+        // sticky window on right of screen.
+        if(size[0] > vright){
+          vr1 = size[0];
+          ar = true;
+        }else{
+          shadowed = true;
+        }
+        pos[0] = mSize[0] - size[0];
+        pos[1] = rpft;
+        rpft += size[1];
+      }
+
+      w->setSize(size);
+      w->setPosition(pos);
+/*
+      if(pos[0] < 10){
+        pos[0] = 0;
+        // sticky window on left of screen.
+        if(size[0] > vleft){
+          vl1 = size[0];
+          al = true;
+        }else{
+          shadowed = true;
+        }
+        pos[1] = lpft;
+        lpft += size[1];
+      }
+*/        
+/*        disallow stickiness on top of screen.
+      if(pos[1] < 2){
+        // sticky window on top of screen.
+        if(size[1] > vtop){
+          vt1 = size[1];
+          at = true;
+        }else{
+          shadowed = true;
+        }
+      }
+*/
+
+/*        disallow stickiness on top of screen.
+      if(mSize[1] - pos[1] - size[1] < 2){
+        // sticky window on bottom of screen.
+        if(size[1] > vbot){
+          vb1 = size[1];
+          ab = true;
+        }else{
+          shadowed = true;
+        }
+      }
+*/
+      // skip the math if there are no sticky edges.
+      if(!shadowed && (at || al || ab || ar)){
+        // change the one viewport dimension which results in the smallest change in area.
+        int viewportDimChange = 0;    // encode which dimension is being adjusted.
+        int areachange = mSize[0] * mSize[1];
+        int areat = areachange, areab = areachange, areal = areachange, arear = areachange;
+
+        // now, figure out which dimension change leads to the greatest viewport area.
+        if(at){
+          areat = (vt1-vtop)*(mSize[0] - vleft - vright);
+          areachange = areat;
+        }
+        if(ab){
+          areab = (vb1-vbot)*(mSize[0] - vleft - vright);
+          if(areab < areat){
+            areachange = areab;
+            viewportDimChange = 1;
+          }
+        }
+        if(al){
+          areal = (vl1-vleft)*(mSize[1] - vtop - vbot);
+          if(areal < areachange){
+            areachange = areal;
+            viewportDimChange = 2;
+          }
+        }
+        if(ar){
+          arear = (vr1-vright)*(mSize[1] - vtop - vbot);
+          if(arear < areachange){
+            areachange = arear;
+            viewportDimChange = 3;
+          }
+        }
+
+        // then, make the necessary adjustment.
+        if(viewportDimChange == 0)vtop = vt1;
+        else if(viewportDimChange == 1)vbot = vb1;
+        else if(viewportDimChange == 2)vleft = vl1;
+        else if(viewportDimChange == 3)vright = vr1;
+      }
+
+    }
+  }
+
+  viewportX = vleft;
+  viewportY = vbot;
+  viewportW = width() - vleft - vright;
+  viewportH = height() - vtop - vbot;
+  fprintf(stderr, "viewport: %d, %d, %d, %d\n", viewportX, viewportY, viewportW, viewportH);
+}
+bool Viewer::keyboardEvent(int key, int scancode, int action, int modifiers) {
+    fprintf(stderr,"keyboard");
+    int fpathsize = mFocusPath.size();
+    if (!Screen::keyboardEvent(key, scancode, action, modifiers) && fpathsize <= 1){
+        // pass events to hale application.
+        setFocused(_window, true);
+        keyCB(_window, key, scancode, action, modifiers);
+    }
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        setVisible(false);
+        return true;
+    }
+    return true;
+}
+
+void Viewer::draw(NVGcontext *ctx) {
+    /* Animate the scrollbar */
+
+    /* Draw the user interface */
+    Screen::draw(ctx);
+
+    drawContents();
+}
+
+void Viewer::setUpdateFunction(void (*func)()){
+  if(func)_updateFunc = func;
+}
+void Viewer::drawContents() {
+  if(_updateFunc){
+    _updateFunc();
+  }
+  // if (pViewer.sliding() && sliso != isovalue) {
+  //   isovalue = sliso;
+  //   printf("%s: isosurfacing at %g\n", me, isovalue);
+  //   seekIsovalueSet(sctx, isovalue);
+  //   seekUpdate(sctx);
+  //   seekExtract(sctx, lpld);
+  //   hply.rebuffer();
+  // }
+
+  // the last program that was used for rendering.
+  static int prog_last = 0;
+
+  sleep(0.1);
+  glEnable(GL_DEPTH_TEST);
+  if(prog_last)glUseProgram(prog_last);
+  draw();
+  glGetIntegerv(GL_CURRENT_PROGRAM,&prog_last);
 }
 
 Viewer::~Viewer() {
@@ -779,7 +1064,7 @@ void Viewer::current() {
   
   if (glerr != GLEW_OK){
     fprintf(stderr, "GLEW init failed: %d\n\n", glerr);
-    exit(1); // or handle the error in a nicer way
+    exit(1);
   }
 
 }
@@ -816,26 +1101,6 @@ void Viewer::scene(Scene *scn) { _scene = scn; }
 
 void Viewer::draw(void) {
 
-
-  // if(HaleGUI::getInstance()->leftPane){
-  //   static float prev_rect_height = 0;
-  //   HaleGUI::getInstance()->leftPane->setPosition(CEGUI::UVector2(CEGUI::UDim(0,0),CEGUI::UDim(0,0)));
-  //   float rect_width = HaleGUI::getInstance()->leftPane->getClipRect().getWidth();
-  //   float rect_height= HaleGUI::getInstance()->leftPane->getClipRect().getHeight();
-  //   if(rect_height != prev_rect_height){
-  //     HaleGUI::getInstance()->layout();
-  //   }
-  //   int newwidth = _widthBuffer-rect_width;
-  //   if(newwidth < 1){
-  //     newwidth = 1;
-  //   }
-  //   prev_rect_height = rect_height;
-  //   glViewport(rect_width, 0, newwidth, _heightBuffer);
-  // }
-
-  // glViewport(0, 0, _widthBuffer/2, _heightBuffer);
-  // glScissor(0, 0, _widthBuffer/2, _heightBuffer);
-  // fprintf(stderr,"Setting uniforms\n");
   Hale::uniform("projectMat", camera.project(), true);
   Hale::uniform("viewMat", camera.view(), true);
   /* Here is where we convert view-space light direction into world-space */
@@ -845,35 +1110,20 @@ void Viewer::draw(void) {
   glGetIntegerv(GL_CURRENT_PROGRAM,&prog);
   // fprintf(stderr, "\nusing program %d\n", prog);
   // fprintf(stderr,"Drawing!\n\n");
+  glEnable(GL_SCISSOR_TEST);
+  glViewport(viewportX, viewportY, viewportW, viewportH);
+  glScissor(viewportX, viewportY, viewportW, viewportH);
+  _scene->drawInit();
   _scene->draw();
-
-  // fprintf(stderr,"~~~~drawrn\n\n");
-  // glViewport(0, 0, _widthBuffer, _heightBuffer);
-  // glViewport(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
-  // glClearColor(0,0,0,0);
-  // glScissor(_widthBuffer/2, 0, _widthBuffer/2, _heightBuffer);
-  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // HaleGUI::getInstance()->renderAll();
+  glViewport(0,0,mSize[0], mSize[1]);
+  glScissor(0,0,mSize[0], mSize[1]);
+  glDisable(GL_SCISSOR_TEST);
 }
-
-/*
-int Viewer::bufferSave(Nrrd *nrgba, Nrrd *ndepth) {
-  static const char me[]="Hale::Viewer::bufferSave";
-
-  if (!nrgba && !ndepth) { // huh; no output requested?
-    return 0;
-  }
-
-  return 0;
-}
-*/
 
 void Viewer::shapeUpdate() {
-  // static const char me[]="Hale::Viewer::shapeUpdate";
-
   _pixDensity = _widthBuffer/_widthScreen;
   camera.aspect(static_cast<double>(_widthBuffer)/_heightBuffer);
-  glViewport(0, 0, _widthBuffer, _heightBuffer);
+  updateViewportSize();
 }
 
 } // namespace Hale
