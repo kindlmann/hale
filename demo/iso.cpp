@@ -48,10 +48,10 @@ limnPolyData *lpld;
 Hale::Polydata *phply;
 
 void update(){
+    const char *me = "update()";
     static time_t start = time(0);
     if(isoBinding && isoBinding->hasChanged()){
-        fprintf(stderr,"iso changed!\n");
-          //       fprintf(stderr,"%s: isosurfacing at %g\n", me, isovalue);
+        fprintf(stderr,"%s: isosurfacing at %g\n", me, isoBinding->getValue());
         seekIsovalueSet(sctx, isoBinding->getValue());
         seekUpdate(sctx);
         seekExtract(sctx, lpld);
@@ -59,6 +59,7 @@ void update(){
     }
     timeBinding->setValue((int)difftime( time(0), start));
 }
+
 
 int
 main(int argc, const char **argv) {
@@ -178,7 +179,6 @@ main(int argc, const char **argv) {
   viewer.setUpdateFunction(update);
 
   /* now create gui elements */
-    // populate with various gui elements.
 
   {
     using namespace nanogui;
@@ -188,8 +188,6 @@ main(int argc, const char **argv) {
     using std::string;
     using std::to_string;
 
-
-    /// dvar, bar, strvar, etc. are double/bool/string/.. variables
 
     FormHelper *gui = new FormHelper(&viewer);
     ref<Window> win = gui->addWindow(Eigen::Vector2i(10, 10), "Form helper example");
@@ -219,13 +217,14 @@ main(int argc, const char **argv) {
             viewer.camera.orthographic(in);
         });
 
+
     VariableBinding<int> *enumbox =new VariableBinding<int>("enumbox", 1);
     std::vector<std::string> vals = {"Apples", "Oranges", "Bananas", "Grapefruits"};
     isoBinding =new VariableBinding<double>("isoval", &isovalue);
 
 
     Window* window = new Window(&viewer, "Hale ISO");
-    window->setPosition(Vector2i(200, 15));
+    window->setPosition(Vector2i(400, 15));
     window->setLayout(new GroupLayout());
 
     new Label(window, "Controls", "sans-bold", 20);
@@ -241,18 +240,15 @@ main(int argc, const char **argv) {
     new Label(window, "Favorite Fruit", "sans-bold", 16);
     new BoundWidget<int, nanogui::ComboBox>(window, enumbox, vals);
 
-    sliso->setRange(0,1000);
-    sliso->setValue(isovalue);
+    sliso->setRange(isomin,isomax);
     binding->setValue("String entry");
  
 
-
-
-
-
-
+    window = new Window(&viewer, "File");
+    window->setPosition(Vector2i(200, 15));
+    window->setLayout(new GroupLayout());
     
-    new Label(window, "File", "sans-bold", 20);
+    new Label(window, "Model (nrrd)", "sans-bold", 20);
     Widget* tools = new Widget(window);
     tools->setLayout(new BoxLayout(Orientation::Horizontal,
                                    Alignment::Middle, 0, 6));
@@ -294,9 +290,9 @@ main(int argc, const char **argv) {
   catch (const std::runtime_error &e) {
     std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
 #if defined(_WIN32)
-        MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
+    MessageBoxA(nullptr, error_msg.c_str(), NULL, MB_ICONERROR | MB_OK);
 #else
-        std::cerr << error_msg << std::endl;
+    std::cerr << error_msg << std::endl;
 #endif
     return -1;
   }

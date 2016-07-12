@@ -759,7 +759,12 @@ bool Viewer::resizeEvent(const nanogui::Vector2i &s) {
 
 struct WindowProperties{
   int sticky; // 0 if not sticky, 1,2,3,4 for top,left,bottom,right edge.
+  nanogui::Theme *unstickyTheme;
+  nanogui::Vector2i realSize;
 };
+
+nanogui::Theme *stickyTheme = 0;
+
 std::map<nanogui::Widget*, WindowProperties> windowmgr;
 
 
@@ -777,43 +782,78 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
     else{
         // lost focus.
         setFocused(_window, false);
+        if(!stickyTheme){
+          stickyTheme = new nanogui::Theme(*mTheme);
+          stickyTheme->mDropShadow = nanogui::Color(0,0,0,0);
+          stickyTheme->mWindowFillUnfocused = nanogui::Color(43, 230);
+          stickyTheme->mWindowFillFocused =   nanogui::Color(55, 230);
+        }
+
+        bool stickychanged[] = {false,false,false,false,false};
+        int  panelSizes[] = {0,0,0,0,0};
 
         // resize viewport around sticky windows on sides of screen.
 
         for(Widget* w : mChildren){
           std::map<nanogui::Widget*, WindowProperties>::iterator found = windowmgr.find(w);
           if(found != windowmgr.end()){
-            // do window-managerial things
-            nanogui::Vector2i pos = w->absolutePosition();
-            nanogui::Vector2i size = w->size();
-            WindowProperties* props = &(*found).second;
-
             if (!down){
+              // do window-managerial things
+              nanogui::Vector2i pos = w->absolutePosition();
+              nanogui::Vector2i size = w->size();
+              WindowProperties* props = &(*found).second;
               // mouse release. set windows to be sticky if not already.
               if(pos[0] < 30){
                 pos[0] = 0;
-                // make sticky window on left of screen.
-                props->sticky = 2;
+                if(props->sticky != 2){
+                  // make sticky window on left of screen.
+                  stickychanged[2] = true;
+                  stickychanged[props->sticky] = true;
+                  props->sticky = 2;
+                  w->setTheme(stickyTheme);
+                }
+                if(panelSizes[2] < size[0])panelSizes[2] = size[0];
               }
               else if(mSize[0] - pos[0] - size[0] < 30){
                 pos[0] = mSize[0] - size[0];
-                // make sticky window on right of screen.
-                props->sticky = 4;
+                if(props->sticky != 4){
+                  // make sticky window on right of screen.
+                  stickychanged[4] = true;
+                  stickychanged[props->sticky] = true;
+                  props->sticky = 4;
+                  w->setTheme(stickyTheme);
+                }
+                if(panelSizes[4] < size[0])panelSizes[4] = size[0];
               }
               else{
-                props->sticky = 0;
+                if(props->sticky){
+                  // make a sticky window unsticky.
+                  stickychanged[props->sticky] = true;
+                  props->sticky = 0;
+                  w->setTheme(props->unstickyTheme);
+                  w->setSize(props->realSize);
+                }
               }
               fprintf(stderr,"set sticky %d\n", props->sticky);
             }
-
-            w->setSize(size);
-            w->setPosition(pos);
           }else{
-            windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0}));
+            // add widget to window manager if not already present.
+            windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0,w->theme(), w->size()}));
           }
         }
-
-        updateViewportSize();
+        if(!down){
+          // fprintf(stderr,"{%d,%d,%d,%d,%d}", panelSizes[0],panelSizes[1],panelSizes[2],panelSizes[3],panelSizes[4]);
+          for(auto elt : windowmgr){
+            Widget* w = elt.first;
+            WindowProperties *props = &elt.second;
+            if(w->visible()){
+              // make window sizes in panels uniform.
+              if(props->sticky == 2 || props->sticky==4)w->setSize(nanogui::Vector2i(panelSizes[props->sticky], w->size()[1]));
+              if(props->sticky == 1 || props->sticky==3)w->setSize(nanogui::Vector2i(w->size()[0], panelSizes[props->sticky]));
+            }
+          }
+          updateViewportSize();
+        }
 
     }
     return true;
@@ -821,7 +861,7 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
 
 void Viewer::updateViewportSize(){
 
-  // bounds of viewport from edges of screen.
+  // bounds of viewport in pixels from edges of screen.
   int vtop=0, vleft=0, vbot=0, vright=0;
   int lpft=0, rpft=0;   // current left pane vertical position (from top) for sticky windows.
   for(auto elt : windowmgr){
@@ -844,6 +884,7 @@ void Viewer::updateViewportSize(){
       if (pos[0] < 0)pos[0] = 0;
       if (pos[1] < 0)pos[1] = 0;
 
+      // now, position windows that are on sticky edges.
       if(props->sticky == 2){
         if(size[0] > vleft){
           vl1 = size[0];
@@ -871,43 +912,7 @@ void Viewer::updateViewportSize(){
 
       w->setSize(size);
       w->setPosition(pos);
-/*
-      if(pos[0] < 10){
-        pos[0] = 0;
-        // sticky window on left of screen.
-        if(size[0] > vleft){
-          vl1 = size[0];
-          al = true;
-        }else{
-          shadowed = true;
-        }
-        pos[1] = lpft;
-        lpft += size[1];
-      }
-*/        
-/*        disallow stickiness on top of screen.
-      if(pos[1] < 2){
-        // sticky window on top of screen.
-        if(size[1] > vtop){
-          vt1 = size[1];
-          at = true;
-        }else{
-          shadowed = true;
-        }
-      }
-*/
-
-/*        disallow stickiness on top of screen.
-      if(mSize[1] - pos[1] - size[1] < 2){
-        // sticky window on bottom of screen.
-        if(size[1] > vbot){
-          vb1 = size[1];
-          ab = true;
-        }else{
-          shadowed = true;
-        }
-      }
-*/
+      
       // skip the math if there are no sticky edges.
       if(!shadowed && (at || al || ab || ar)){
         // change the one viewport dimension which results in the smallest change in area.
@@ -942,7 +947,7 @@ void Viewer::updateViewportSize(){
           }
         }
 
-        // then, make the necessary adjustment.
+        // then, make the necessary viewport adjustment.
         if(viewportDimChange == 0)vtop = vt1;
         else if(viewportDimChange == 1)vbot = vb1;
         else if(viewportDimChange == 2)vleft = vl1;
@@ -956,6 +961,8 @@ void Viewer::updateViewportSize(){
   viewportY = vbot;
   viewportW = width() - vleft - vright;
   viewportH = height() - vtop - vbot;
+  if(viewportW < 1)viewportW = 1;
+  if(viewportH < 1)viewportH = 1;
   fprintf(stderr, "viewport: %d, %d, %d, %d\n", viewportX, viewportY, viewportW, viewportH);
 }
 bool Viewer::keyboardEvent(int key, int scancode, int action, int modifiers) {
@@ -989,14 +996,6 @@ void Viewer::drawContents() {
   if(_updateFunc){
     _updateFunc();
   }
-  // if (pViewer.sliding() && sliso != isovalue) {
-  //   isovalue = sliso;
-  //   printf("%s: isosurfacing at %g\n", me, isovalue);
-  //   seekIsovalueSet(sctx, isovalue);
-  //   seekUpdate(sctx);
-  //   seekExtract(sctx, lpld);
-  //   hply.rebuffer();
-  // }
 
   // the last program that was used for rendering.
   static int prog_last = 0;

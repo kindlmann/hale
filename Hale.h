@@ -31,11 +31,6 @@
 #include <map>
 #include <list>
 
-/* Include relevant CEGUI headers. */
-// #include <CEGUI/CEGUI.h>
-// #include <CEGUI/RendererModules/OpenGL/GL3Renderer.h>
-// #include <CEGUI/System.h>
-
 /* This will include all the Teem headers at once */
 #include <teem/meet.h>
 
@@ -335,7 +330,6 @@ class Viewer : public nanogui::Screen{
 
  protected:
   void (*_updateFunc)();
-  nanogui::ProgressBar *mProgress;
   glm::vec3 _lightDir;
   bool _button[2];     // true iff button (left:0, right:1) is down
   std::string _label;
