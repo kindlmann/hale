@@ -761,6 +761,8 @@ struct WindowProperties{
   int sticky; // 0 if not sticky, 1,2,3,4 for top,left,bottom,right edge.
   nanogui::Theme *unstickyTheme;
   nanogui::Vector2i realSize;
+  nanogui::Vector2i realAnchorPos;
+  bool floatingAnchorPos;
 };
 
 nanogui::Theme *stickyTheme = 0;
@@ -794,7 +796,10 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
 
         // resize viewport around sticky windows on sides of screen.
 
+        fprintf(stderr,"iterating\n");
         for(Widget* w : mChildren){
+          // if(!w->visible())continue;
+          nanogui::Popup* popup = dynamic_cast<nanogui::Popup*>(w);
           std::map<nanogui::Widget*, WindowProperties>::iterator found = windowmgr.find(w);
           if(found != windowmgr.end()){
             if (!down){
@@ -802,47 +807,104 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
               nanogui::Vector2i pos = w->absolutePosition();
               nanogui::Vector2i size = w->size();
               WindowProperties* props = &(*found).second;
-              // mouse release. set windows to be sticky if not already.
-              if(pos[0] < 30){
-                pos[0] = 0;
-                if(props->sticky != 2){
-                  // make sticky window on left of screen.
-                  stickychanged[2] = true;
-                  stickychanged[props->sticky] = true;
-                  props->sticky = 2;
-                  w->setTheme(stickyTheme);
+
+              if(popup != 0){
+                
+                // this is a popup.
+                fprintf(stderr, "anchor: %f, %f\n", popup->anchorPos()[0], popup->anchorPos()[1]);
+                int w = popup->size()[0];
+                int h = popup->size()[1];
+                int absx = popup->absolutePosition()[0];
+                int absy = popup->absolutePosition()[1];
+                if(!props->floatingAnchorPos){
+                  if(absx+w > mSize[0] || absy+h > mSize[1]){
+                    props->realAnchorPos = popup->anchorPos();
+                    props->floatingAnchorPos = true;
+                  }
                 }
-                if(panelSizes[2] < size[0])panelSizes[2] = size[0];
-              }
-              else if(mSize[0] - pos[0] - size[0] < 30){
-                pos[0] = mSize[0] - size[0];
-                if(props->sticky != 4){
-                  // make sticky window on right of screen.
-                  stickychanged[4] = true;
-                  stickychanged[props->sticky] = true;
-                  props->sticky = 4;
-                  w->setTheme(stickyTheme);
+                if(props->floatingAnchorPos){
+                  int corrx = (absx + w - mSize[0]);
+                  int corry = (absy + h - mSize[1]);
+                  if(corrx > 0){
+                    popup->setAnchorPos(nanogui::Vector2i(popup->anchorPos()[0] - (absx+w-mSize[0]), popup->anchorPos()[1])); 
+                  }
+                  else if(corrx < 0){
+                    if(-corrx > props->realAnchorPos[0] - popup->anchorPos()[0]){
+                      fprintf(stderr,"anchoring x \n");
+                      popup->setAnchorPos(nanogui::Vector2i(props->realAnchorPos[0], popup->anchorPos()[1]));
+                    }else{
+                      popup->setAnchorPos(nanogui::Vector2i(popup->anchorPos()[0] - (absx+w-mSize[0]), popup->anchorPos()[1]));
+                    }
+                  }
+                  if(corry > 0){
+                    popup->setAnchorPos(nanogui::Vector2i(popup->anchorPos()[0], popup->anchorPos()[1] - (absy+h-mSize[1]))); 
+                  }
+                  else if(corry < 0){
+                    if(-corry > props->realAnchorPos[1] - popup->anchorPos()[1]){
+                      fprintf(stderr,"anchoring y\n");
+                      popup->setAnchorPos(nanogui::Vector2i(popup->anchorPos()[0], props->realAnchorPos[1]));
+                    }else{
+                      popup->setAnchorPos(nanogui::Vector2i(popup->anchorPos()[0], popup->anchorPos()[1] - (absy+h-mSize[1])));
+                    }
+                  }
+                  if(popup->anchorPos() == props->realAnchorPos){
+                    props->floatingAnchorPos = false;
+                  }
                 }
-                if(panelSizes[4] < size[0])panelSizes[4] = size[0];
+                
               }
               else{
-                if(props->sticky){
-                  // make a sticky window unsticky.
-                  stickychanged[props->sticky] = true;
-                  props->sticky = 0;
-                  w->setTheme(props->unstickyTheme);
-                  w->setSize(props->realSize);
+                // mouse release. set windows to be sticky if not already.
+                fprintf(stderr,"stickying\n");
+                if(pos[0] < 30){
+                  pos[0] = 0;
+                  if(props->sticky != 2){
+                    // make sticky window on left of screen.
+                    stickychanged[2] = true;
+                    stickychanged[props->sticky] = true;
+                    props->sticky = 2;
+                    w->setTheme(stickyTheme);
+                    w->theme()->incRef();
+                  }
+                  if(panelSizes[2] < size[0])panelSizes[2] = size[0];
+                }
+                else if(mSize[0] - pos[0] - size[0] < 30){
+                  pos[0] = mSize[0] - size[0];
+                  if(props->sticky != 4){
+                    // make sticky window on right of screen.
+                    stickychanged[4] = true;
+                    stickychanged[props->sticky] = true;
+                    props->sticky = 4;
+                    w->setTheme(stickyTheme);
+                    w->theme()->incRef();
+                  }
+                  if(panelSizes[4] < size[0])panelSizes[4] = size[0];
+                }
+                else{
+                  if(props->sticky){
+                    // make a sticky window unsticky.
+                    fprintf(stderr,"making unsticky\n");
+                    stickychanged[props->sticky] = true;
+                    fprintf(stderr,"1\n");
+                    props->sticky = 0;
+                    fprintf(stderr," 2\n");
+                    if(props->unstickyTheme)w->setTheme(props->unstickyTheme);
+                    fprintf(stderr,"  3\n");
+                    w->setSize(props->realSize);
+                    fprintf(stderr,"   4\n");
+                  }
                 }
               }
               fprintf(stderr,"set sticky %d\n", props->sticky);
             }
           }else{
             // add widget to window manager if not already present.
-            windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0,w->theme(), w->size()}));
+            // if(popup)windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0,w->theme(), nanogui::Vector2i(w->size()), nanogui::Vector2i(popup->anchorPos()), false}));
+            /*else */windowmgr.insert(std::pair<nanogui::Widget*, WindowProperties>(w, {0,w->theme(), nanogui::Vector2i(w->size()), nanogui::Vector2i(0,0), false}));
           }
         }
         if(!down){
-          // fprintf(stderr,"{%d,%d,%d,%d,%d}", panelSizes[0],panelSizes[1],panelSizes[2],panelSizes[3],panelSizes[4]);
+          fprintf(stderr,"{%d,%d,%d,%d,%d}\n", panelSizes[0],panelSizes[1],panelSizes[2],panelSizes[3],panelSizes[4]);
           for(auto elt : windowmgr){
             Widget* w = elt.first;
             WindowProperties *props = &elt.second;
@@ -856,6 +918,7 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
         }
 
     }
+    fprintf(stderr,"mouse click\n");
     return true;
 }
 

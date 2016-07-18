@@ -1,6 +1,8 @@
 #ifndef HALEGUI_INCLUDED
 #define HALEGUI_INCLUDED
 
+
+#include "teem/air.h"
 #include <nanogui/screen.h>
 #include <nanogui/textbox.h>
 #include <nanogui/checkbox.h>
@@ -230,13 +232,39 @@ public:
     nanogui::TextBox::mValue = std::to_string(mBinding->getValue());
   }
 };
+/*
+** _airEnumIndex()
+**
+** given an enum "enm" and value "val", return the index into enm->str[]
+** and enm->desc[] which correspond to that value.  To be safe, when
+** given an invalid enum value, we return zero.
+*/
+static unsigned int
+_airEnumIndex(const airEnum *enm, int val) {
+  unsigned int ii, ret;
 
+  ret = 0;
+  if (enm->val) {
+    for (ii=1; ii<=enm->M; ii++) {
+      if (val == enm->val[ii]) {
+        ret = ii;
+        break;
+      }
+    }
+  } else {
+    unsigned int uval;
+    uval = AIR_UINT(val);
+    ret = (0 <= val && uval <= enm->M) ? uval : 0;
+  }
+  return ret;
+}
 
 template <> class BoundWidget<int, nanogui::ComboBox, std::true_type> : public nanogui::ComboBox, public GenericBoundWidget {
 protected:
   VariableBinding<int>* mBinding;
+  const airEnum *myAirEnum;
 public:
-  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names) : nanogui::ComboBox(p), mBinding(binding){
+  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names) : myAirEnum(0), nanogui::ComboBox(p), mBinding(binding){
     binding->bindWidget(this);
     fprintf(stderr,"\ncreated bound widget.\n");
     auto self = this;
@@ -246,9 +274,46 @@ public:
         return true;
     });
   }
+  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, const airEnum* aenum) : myAirEnum(aenum), nanogui::ComboBox(p), mBinding(binding){
+    binding->bindWidget(this);
+    fprintf(stderr,"\ncreated bound widget.\n");
+    auto self = this;
+
+    std::vector<std::string> names;
+    for(int i=1;i<aenum->M;++i){
+      names.push_back(std::string(aenum->str[i]));
+    }
+    setItems(names,names);
+    nanogui::ComboBox::setCallback([binding, self](const int ind) {
+      fprintf(stderr, "set to %d\n", ind);
+      if(self->myAirEnum){
+        if(self->myAirEnum->val){
+          binding->setValue(self->myAirEnum->val[ind+1]);
+        }
+        else{
+          binding->setValue(ind+1);
+          fprintf(stderr, "actually-> %d\n", ind+1);
+        }
+      }
+      else{
+        binding->setValue(ind);
+      }
+      return true;
+    });
+  }
   void updateFromBinding(){
     // update in such a way that the callback does NOT get called.
-    nanogui::ComboBox::setSelectedIndex(mBinding->getValue());
+    if(myAirEnum){
+      if(myAirEnum->val){
+        nanogui::ComboBox::setSelectedIndex(_airEnumIndex(myAirEnum, mBinding->getValue())-1);
+      }
+      else{
+        nanogui::ComboBox::setSelectedIndex(mBinding->getValue()-1);
+      }
+    }
+    else{
+      nanogui::ComboBox::setSelectedIndex(mBinding->getValue());
+    }
   }
 };
 

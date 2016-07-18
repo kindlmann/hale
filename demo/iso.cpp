@@ -24,6 +24,7 @@
 #include <nanogui/graph.h>
 #include <nanogui/tabwidget.h>
 
+
 #include <nanogui/window.h>
 #include <nanogui/theme.h>
 #include <nanogui/opengl.h>
@@ -39,9 +40,11 @@
 #include <string>
 #include <time.h>
 
-
+  
 VariableBinding<double> *isoBinding;
 VariableBinding<int> *timeBinding;
+VariableBinding<int> *formatBinding;
+VariableBinding<std::string> *fileBinding;
 
 seekContext *sctx;
 limnPolyData *lpld;
@@ -84,6 +87,19 @@ main(int argc, const char **argv) {
   hparm->respFileEnable = AIR_TRUE;
   airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   
+
+  // handle input parameters:
+
+  // VariableBinding<float>
+  // GenericVariableBinding *volume = 
+  //   Hale::loadArgument(
+  //     flag='i',
+  //     name="volume",
+  //     type=airTypeOther,
+  //     minNumArgs=1,
+  //     maxNumArgs=1,
+  //     argDefault=NULL,
+  //     info="input volume to isosurface");
 
   /* setting up the command-line options */
   hparm->respFileEnable = AIR_TRUE;
@@ -190,16 +206,17 @@ main(int argc, const char **argv) {
 
 
     FormHelper *gui = new FormHelper(&viewer);
-    ref<Window> win = gui->addWindow(Eigen::Vector2i(10, 10), "Form helper example");
+    ref<Window> win = gui->addWindow(Eigen::Vector2i(31, 15), "Form helper example");
     gui->addGroup("Basic types");
     // bool* boolptr = new bool(true);
     bool boolptr = true;
-    gui->addVariable<double>("boolean",
+    gui->addVariable<double>("double",
         [&](double v) { fprintf(stderr,"setting %f\n",v); },
         [&]() -> double { return 4.2; });
 
 
     VariableBinding<std::string> *binding =new VariableBinding<std::string>("textname", "something");
+    fileBinding = new VariableBinding<std::string>("Filename", "~/~");
     VariableBinding<nanogui::Color> *colorBinding =new VariableBinding<nanogui::Color>("colorbox", 
         [&viewer, &scene](){
             glm::vec3 bgcol = scene.bgColor();
@@ -218,9 +235,9 @@ main(int argc, const char **argv) {
         });
 
 
-    VariableBinding<int> *enumbox =new VariableBinding<int>("enumbox", 1);
     std::vector<std::string> vals = {"Apples", "Oranges", "Bananas", "Grapefruits"};
     isoBinding =new VariableBinding<double>("isoval", &isovalue);
+    formatBinding =new VariableBinding<int>("format", 1);
 
 
     Window* window = new Window(&viewer, "Hale ISO");
@@ -237,31 +254,37 @@ main(int argc, const char **argv) {
     new BoundWidget<bool, nanogui::CheckBox>(window, orthographic);
     new Label(window, "Background Color", "sans-bold", 16);
     new BoundWidget<nanogui::Color, nanogui::ColorPicker>(window,colorBinding);
-    new Label(window, "Favorite Fruit", "sans-bold", 16);
-    new BoundWidget<int, nanogui::ComboBox>(window, enumbox, vals);
 
     sliso->setRange(isomin,isomax);
     binding->setValue("String entry");
  
 
     window = new Window(&viewer, "File");
-    window->setPosition(Vector2i(200, 15));
+    window->setPosition(Vector2i(210, 15));
     window->setLayout(new GroupLayout());
     
-    new Label(window, "Model (nrrd)", "sans-bold", 20);
+    new Label(window, "Things With Files", "sans-bold", 20);
+    new Label(window, "Filename", "sans-bold", 16);
+    new BoundWidget<std::string, nanogui::TextBox>(window, fileBinding);
+
     Widget* tools = new Widget(window);
     tools->setLayout(new BoxLayout(Orientation::Horizontal,
                                    Alignment::Middle, 0, 6));
     nanogui::Button *b = new Button(tools, "Open");
     b->setCallback([&] {
-        cout << "File dialog result: " << file_dialog(
-                { {"png", "Portable Network Graphics"}, {"txt", "Text file"} }, false) << endl;
+        fileBinding->setValue(file_dialog(
+                { {airEnumStr(nrrdFormatType, formatBinding->getValue()), airEnumDesc(nrrdFormatType, formatBinding->getValue())}, {"txt", "Text file"} }, false));
     });
     b = new Button(tools, "Save");
     b->setCallback([&] {
         cout << "File dialog result: " << file_dialog(
-                { {"png", "Portable Network Graphics"}, {"txt", "Text file"} }, true) << endl;
+                { {airEnumStr(nrrdFormatType, formatBinding->getValue()), airEnumDesc(nrrdFormatType, formatBinding->getValue())}, {"txt", "Text file"} }, true) << endl;
     });
+
+    new Label(window, "File Format", "sans-bold", 16);
+
+    new BoundWidget<int, nanogui::ComboBox>(window, formatBinding, nrrdFormatType);
+
     viewer.performLayout();
   }
   
