@@ -1056,6 +1056,7 @@ void Viewer::setUpdateFunction(void (*func)()){
   if(func)_updateFunc = func;
 }
 void Viewer::drawContents() {
+  glfwMakeContextCurrent(mGLFWWindow);
   if(_updateFunc){
     _updateFunc();
   }

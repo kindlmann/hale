@@ -2,7 +2,7 @@
 #define HALEGUI_INCLUDED
 
 
-#include "teem/air.h"
+#include "Hale.h"
 #include <nanogui/screen.h>
 #include <nanogui/textbox.h>
 #include <nanogui/checkbox.h>
@@ -86,6 +86,9 @@ public:
     boundWidgets.push_back(e);
     e->updateFromBinding();
   }
+  void setRaw(void *in){
+    setValue((T*) in);
+  }
   // set the real value of this variable.
   void setValue(T in){
     setValue(&in);
@@ -125,8 +128,9 @@ public:
 };
 
 
-// http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
 
+// http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
+  
 template <typename T, typename S, typename sfinae = std::true_type> class BoundWidget { };
 
 // We do this for each variable/widget pair we need.
@@ -343,6 +347,101 @@ public:
     mMin = vmin;
     mMax = vmax;
     updateFromBinding();
+  }
+};
+class HCI{
+protected:
+  struct param{
+    void* hestPtr;
+    GenericVariableBinding* binding;
+    char *flag;
+    char *name;
+    int type;
+    int minargs;
+    int maxargs;
+    char* argDefault;
+    char* info;
+    void (*createBindingFun)(param*);
+  };
+public:
+  static bool initialized;
+  static std::vector<param*> parameters;
+
+  /* boilerplate hest code */
+
+  static hestOpt *hopt;
+  static char *err;
+  static hestParm *hparm;
+  static airArray *mop;
+
+  
+
+  // handle input parameters:
+
+  // Function that creates a variable binding for a
+  // particular type inside a given param object.
+  template<typename T>
+  static void createVariableBinding(param *pm){
+    // reinterpret the data which hest gives us to construct a T.
+    T v = *((T*)(pm->hestPtr));
+    // then, create a new VariableBinding using that T.
+    pm->binding = new VariableBinding<T>(pm->name, v);
+    // debug:
+
+    //end debug.
+    fprintf(stderr, "%s: populated at %p with %f\n", pm->name, (pm->hestPtr), *(double*)(pm->hestPtr));
+  }
+public:
+  // returns a pointer to a VariableBinding pointer.
+  // This is because VariableBinding doesn't have a meaningful NULL/unitialized state.
+  // The return value will, at the end of the function, point to a pointer to NULL.
+  // eg:
+  //   VariableBinding<...> **binding = buildParameter(...);
+  //   assert(*binding == NULL);
+  //   // here, the variable binding is still unitialized.
+  //   loadParameters();
+  //   // here, the binding is now set to something.
+  //   *binding->setValue(...);
+  template <typename T>
+  static VariableBinding<T>** buildParameter(char *flag, char* name, int type, int minNumArgs, int maxNumArgs, char* argDefault, char* info, unsigned int* sawP, airEnum* enm, hestCB* callback){
+    if(!initialized){
+      mop = airMopNew();
+      hparm = hestParmNew();
+      hparm->respFileEnable = AIR_TRUE;
+      airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
+      hparm->respFileEnable = AIR_TRUE;
+
+      initialized = true;
+    }
+    
+    param* p = new param;
+    *p = {(T*)malloc(sizeof(T)), NULL,flag,name,type,minNumArgs,maxNumArgs,argDefault,info,createVariableBinding<T>};
+    if(sawP){
+      hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault,
+           p->info, sawP);
+    }else if(enm){
+      hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault,
+           p->info, NULL, enm);
+    }else if(callback){
+      hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault,
+           p->info, NULL, NULL, callback);
+    }else{
+      hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault, p->info);
+    }
+    
+    fprintf(stderr,"%s: allocated %d at %p\n", name, sizeof(T), p->hestPtr);
+
+    parameters.push_back(p);
+    return (VariableBinding<T>**)&(p->binding);
+  }
+  static void loadParameters(int argc, const char** argv){
+    const char* me = argv[0];
+    hestParseOrDie(hopt, argc-1, argv+1, hparm,
+                 me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
+    for(param* m : parameters){
+      fprintf(stderr, "param itr: %p\n", m);
+      m->createBindingFun(m);
+    }
   }
 };
 

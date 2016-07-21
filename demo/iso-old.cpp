@@ -81,75 +81,106 @@ main(int argc, const char **argv) {
 
   const char *me;
   char *err;
+
+  /* variables learned via hest */
+  Nrrd *nin =0;
+  float camfr[3], camat[3], camup[3], camnc, camfc, camFOV;
+  int camortho, hitandquit;
+  unsigned int camsize[2];
+  double isovalue, sliso, isomin, isomax;
+
+  /* boilerplate hest code */
+  // me = argv[0];
+  // mop = airMopNew();
+  // hparm = hestParmNew();
+  // hparm->respFileEnable = AIR_TRUE;
+  // airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
   
-  // create variable bindings from the command line.
-  // the type of each auto is: VariableBinding<T>**,
-  // where T is the template parameter passed to
-  // buildParameter.
+  // VariableBinding<Nrrd*> **ninbind =
+  //   HCI::buildParameter<Nrrd*>("i", "volume", airTypeOther, 1, 1, NULL,
+  //   "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
+  VariableBinding<double> **isovalbind = HCI::buildParameter<double>
+  ("v", "isovalue", airTypeDouble, 1, 1, "nan",
+             "isovalue at which to run Marching Cubes",0,0,0);
+  HCI::hparm->respFileEnable = AIR_TRUE;
+  hestOptAdd(&HCI::hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
+           "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
 
-  auto ninbind = HCI::buildParameter<Nrrd*>(
-    "i", "volume", airTypeOther, 1, 1, NULL,
-    "input volume to isosurface", NULL, NULL, nrrdHestNrrd
-  );
-  auto isovalbind = HCI::buildParameter<double>(
-    "v", "isovalue", airTypeDouble, 1, 1, "nan",
-    "isovalue at which to run Marching Cubes",0,0,0
-  );
-  auto camfrbind = HCI::buildParameter<array<float, 3>>(
-    "fr", "x y z", airTypeFloat, 3, 3, "3 4 5",
-    "look-from point",0,0,0
-  );
-  auto camatbind = HCI::buildParameter<array<float, 3>>(
-    "at", "x y z", airTypeFloat, 3, 3, "0 0 0",
-    "look-at point",0,0,0);
-  auto camupbind = HCI::buildParameter<array<float, 3>>(
-    "up", "x y z", airTypeFloat, 3, 3, "0 0 1",
-    "up direction",0,0,0);
+  VariableBinding<array<float, 3>> **camfrbind = HCI::buildParameter<array<float, 3>>("fr", "x y z", airTypeFloat, 3, 3, "3 4 5",
+             "look-from point",0,0,0);
+  VariableBinding<array<float, 3>> **camatbind = HCI::buildParameter<array<float, 3>>("at", "x y z", airTypeFloat, 3, 3, "0 0 0",
+             "look-at point",0,0,0);
+  VariableBinding<array<float, 3>> **camupbind = HCI::buildParameter<array<float, 3>>("up", "x y z", airTypeFloat, 3, 3, "0 0 1",
+             "up direction",0,0,0);
 
-  auto camncbind = HCI::buildParameter<float>(
-    "nc", "dist", airTypeFloat, 1, 1, "-2",
-    "at-relative near clipping distance",0,0,0
-  );
-  auto camfcbind = HCI::buildParameter<float>(
-    "fc", "dist", airTypeFloat, 1, 1, "2",
-    "at-relative far clipping distance",0,0,0
-  );
-  auto camFOVbind = HCI::buildParameter<float>(
-    "fov", "angle", airTypeFloat, 1, 1, "20",
-    "vertical field-of-view, in degrees. Full vertical extent of image plane subtends this angle",0,0,0
-  );
-  auto camsizebind = HCI::buildParameter<array<unsigned int, 2>>(
-    "sz", "s0 s1", airTypeUInt, 2, 2, "640 480",
-    "# samples (horz vert) of image plane. ",0,0,0
-  );
-  auto camorthobind = HCI::buildParameter<int>(
-    "ortho", NULL, airTypeInt, 0, 0, NULL,
-    "use orthographic projection",0,0,0
-  );
-  auto hitandquitbind = HCI::buildParameter<bool>(
-    "haq", NULL, airTypeBool, 0, 0, NULL,
-    "save a screenshot rather than display the viewer",0,0,0
-  );
-
+  VariableBinding<double> **camncbind =
+    HCI::buildParameter<double>("nc", "dist", airTypeFloat, 1, 1, "-2",
+    "at-relative near clipping distance",0,0,0);
+  VariableBinding<double> **camfcbind = 
+    HCI::buildParameter<double>("fc", "dist", airTypeFloat, 1, 1, "2",
+    "at-relative far clipping distance",0,0,0);
+  VariableBinding<double> **camFOVbind = 
+    HCI::buildParameter<double>("fov", "angle", airTypeFloat, 1, 1, "20",
+    "vertical field-of-view, in degrees. Full vertical extent of image plane subtends this angle",0,0,0);
+  VariableBinding<array<unsigned int, 2>> **camsizebind = 
+    HCI::buildParameter<array<unsigned int, 2>>("sz", "s0 s1", airTypeUInt, 2, 2, "640 480",
+    "# samples (horz vert) of image plane. ",0,0,0);
+  VariableBinding<int> **camorthobind = 
+    HCI::buildParameter<int>("ortho", NULL, airTypeInt, 0, 0, NULL,
+    "use orthographic projection",0,0,0);
+  VariableBinding<bool> **hitandquitbind = 
+    HCI::buildParameter<bool>("haq", NULL, airTypeBool, 0, 0, NULL,
+    "save a screenshot rather than display the viewer",0,0,0);
   HCI::loadParameters(argc, argv);
   airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestParseFree, airMopAlways);
 
   fprintf(stderr,"1\n\n");
-  Nrrd* nin = (*ninbind)->getValue();
+  // nin = (*ninbind)->getValue();
+  isovalue = (*isovalbind)->getValue();
+  fprintf(stderr,"  2\n\n");
+  camfr[0] = (*camfrbind)->getValue().v[0];
+  camfr[1] = (*camfrbind)->getValue().v[1];
+  camfr[2] = (*camfrbind)->getValue().v[2];
+  camat[0] = (*camatbind)->getValue().v[0];
+  camat[1] = (*camatbind)->getValue().v[1];
+  camat[2] = (*camatbind)->getValue().v[2];
+  camup[0] = (*camupbind)->getValue().v[0];
+  camup[1] = (*camupbind)->getValue().v[1];
+  camup[2] = (*camupbind)->getValue().v[2];
+  fprintf(stderr,"hi\n\n");
+  camnc = (*camncbind)->getValue();
+  camfc = (*camfcbind)->getValue();
+  camFOV = (*camFOVbind)->getValue();
+  camsize[0] = (*camsizebind)->getValue().v[0];
+  camsize[1] = (*camsizebind)->getValue().v[1];
+  camortho = (*camorthobind)->getValue();
+  hitandquit = (*hitandquitbind)->getValue();
 
-  isoBinding = *isovalbind;
+  fprintf(stderr,"iso: %f\n", isovalue);
+  fprintf(stderr, "hit: %s\n", hitandquit?"true":"false");
 
+  // fprintf(stderr, "isoval: %p, %p\n", isovalbind, (*isovalbind));
+  // HCI::loadParameters(argc, argv);
+  // fprintf(stderr, "parammed...\n");
+  // fprintf(stderr, "isoval: %p, %p\n", isovalbind, (*isovalbind));
+  // VariableBinding<double> *ivbd = *isovalbind;
+  // fprintf(stderr, "isoval: %p, %s, %f\n", ivbd, ivbd->name, ivbd->getValue());
+  // fprintf(stderr, "x y z: %f, %f, %f\n", (*camfrbind)->getValue().v[0], (*camfrbind)->getValue().v[1], (*camfrbind)->getValue().v[2]);
+  // exit(0);
+  // handle input parameters:
+  /* learn value range, and set initial isovalue if needed */
+  fprintf(stderr,"  3\n");
   NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
 
   fprintf(stderr,"  3-%p, %p = %s\n",nin, nin->content, nin->content);
   fprintf(stderr,"  Nrrd: %s, dim %d\n",nin, nin->content, nin->type);
   airMopAdd(HCI::mop, range, (airMopper)nrrdRangeNix, airMopAlways);
-  double isomin = range->min;
-  double isomax = range->max;
-  if (!AIR_EXISTS(isoBinding->getValue())) {
-    isoBinding->setValue((isomin + isomax)/2);
-  }
+  isomin = range->min;
+  isomax = range->max;
+  // if (!AIR_EXISTS(isovalue)) {
+    isovalue = (isomin + isomax)/2;
+  // }
   fprintf(stderr,"   4\n");
 
   /* first, make sure we can isosurface ok */
@@ -161,7 +192,7 @@ main(int argc, const char **argv) {
   seekNormalsFindSet(sctx, AIR_TRUE);
   if (seekDataSet(sctx, nin, NULL, 0)
       || seekTypeSet(sctx, seekTypeIsocontour)
-      || seekIsovalueSet(sctx, isoBinding->getValue())
+      || seekIsovalueSet(sctx, isovalue)
       || seekUpdate(sctx)
       || seekExtract(sctx, lpld)) {
     airMopAdd(HCI::mop, err=biffGetDone(SEEK), airFree, airMopAlways);
@@ -171,7 +202,7 @@ main(int argc, const char **argv) {
   }
   if (!lpld->xyzwNum) {
     fprintf(stderr, "%s: warning: No isocontour generated at isovalue %g\n",
-            me, isoBinding->getValue());
+            me, isovalue);
   }
 
 
@@ -184,15 +215,17 @@ main(int argc, const char **argv) {
 
 
   /* then create viewer (in order to create the OpenGL context) */
-  Hale::Viewer viewer((*camsizebind)->getValue().v[0], (*camsizebind)->getValue().v[1], "Iso", &scene);
+  Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
-  viewer.camera.init(glm::vec3((*camfrbind)->getValue().v[0], (*camfrbind)->getValue().v[1], (*camfrbind)->getValue().v[2]),
-                     glm::vec3((*camatbind)->getValue().v[0], (*camatbind)->getValue().v[1], (*camatbind)->getValue().v[2]),
-                     glm::vec3((*camupbind)->getValue().v[0], (*camupbind)->getValue().v[1], (*camupbind)->getValue().v[2]),
-                     (*camFOVbind)->getValue(), (float)(*camsizebind)->getValue().v[0]/(*camsizebind)->getValue().v[1],
-                     (*camncbind)->getValue(), (*camfcbind)->getValue(), (*camorthobind)->getValue());
+  viewer.camera.init(glm::vec3(camfr[0], camfr[1], camfr[2]),
+                     glm::vec3(camat[0], camat[1], camat[2]),
+                     glm::vec3(camup[0], camup[1], camup[2]),
+                     camFOV, (float)camsize[0]/camsize[1],
+                     camnc, camfc, camortho);
 
   viewer.refreshData(&viewer);
+  sliso = isovalue;
+  viewer.slider(&sliso, isomin, isomax);
 
   /* then create geometry, and add it to scene */
   Hale::Polydata hply(lpld, true,  // hply now owns lpld
@@ -248,7 +281,7 @@ main(int argc, const char **argv) {
 
 
     std::vector<std::string> vals = {"Apples", "Oranges", "Bananas", "Grapefruits"};
-
+    isoBinding =new VariableBinding<double>("isoval", &isovalue);
     formatBinding =new VariableBinding<int>("format", 1);
 
 
@@ -309,8 +342,8 @@ main(int argc, const char **argv) {
     viewer.drawAll();
     viewer.setVisible(true);
 
-    if ((*hitandquitbind)->getValue()) {
-      seekIsovalueSet(sctx, isoBinding->getValue());
+    if (hitandquit) {
+      seekIsovalueSet(sctx, isovalue);
       seekUpdate(sctx);
       seekExtract(sctx, lpld);
       hply.rebuffer();
