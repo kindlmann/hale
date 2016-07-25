@@ -42,6 +42,32 @@ Camera::Camera(glm::vec3 from, glm::vec3 at, glm::vec3 up,
   _clipFar = clipFar;
   _orthographic = false;
 
+  VariableExposure<double>::expose(this, "fov", [&](){return this->fov();}, [&](double in){this->fov(in);});
+  VariableExposure<double>::expose(this, "nearclip", [&](){return this->clipNear();}, [&](double in){this->clipNear(in);});
+  VariableExposure<double>::expose(this, "farclip", [&](){return this->clipFar();}, [&](double in){this->clipFar(in);});
+  VariableExposure<bool>::expose(this, "ortho", [&](){return this->orthographic();}, [&](bool in){this->orthographic(in);});
+  VariableExposure<glm::vec3>::expose(this, "upvec",
+    [&](){return this->_up;},
+    [&](glm::vec3 in){
+      _up = in;
+      updateView();
+      updateProject();
+    });
+  VariableExposure<glm::vec3>::expose(this, "fromvec",
+    [&](){return this->_from;},
+    [&](glm::vec3 in){
+      _from = in;
+      updateView();
+      updateProject();
+    });
+  VariableExposure<glm::vec3>::expose(this, "atvec",
+    [&](){return this->_at;},
+    [&](glm::vec3 in){
+      _at = in;
+      updateView();
+      updateProject();
+    });
+
   updateView();
   updateProject();
 }
@@ -56,7 +82,7 @@ void Camera::init(glm::vec3 from, glm::vec3 at, glm::vec3 up,
 
   _from = from;
   _at = at;
-  _up = up;
+  // _up = up;
   _fov = AIR_CLAMP(fovMin/fovPerc, fov, fovMax*fovPerc);
   _aspect = aspect;
   _clipNear = clipNear;

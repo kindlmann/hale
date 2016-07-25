@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "GUI.h"
+#include <Hale.h>
 #include <glm/glm.hpp>
 
 #include <nanogui/screen.h>
@@ -71,9 +71,44 @@ public:
 
 };
 
+// this array<> object has the same bit structure
+// as a C-array. However, unlike arrays, it can
+// be passed as a return value from functions.
 template<typename T, int N>
 struct array{
   T v[N];
+};
+template<>
+struct array<float, 3>{
+  array(glm::vec3 &vec){
+    v[0]=vec.x;
+    v[1]=vec.y;
+    v[2]=vec.z;
+  }
+  array(){
+    v[0]=0;
+    v[1]=0;
+    v[2]=0;
+  }
+  float v[3];
+  operator glm::vec3(){
+    return glm::vec3(v[0],v[1],v[2]);
+  }
+};
+template<>
+struct array<unsigned int, 2>{
+  array(nanogui::Vector2i &vec){
+    v[0]=vec[0];
+    v[1]=vec[1];
+  }
+  array(){
+    v[0]=0;
+    v[1]=0;
+  }
+  unsigned int v[3];
+  operator nanogui::Vector2i(){
+    return nanogui::Vector2i(v[0],v[1]);
+  }
 };
 
 int
@@ -84,73 +119,92 @@ main(int argc, const char **argv) {
   
   // create variable bindings from the command line.
   // the type of each auto is: VariableBinding<T>**,
-  // where T is the template parameter passed to
+  // where T is the first template parameter passed to
   // buildParameter.
 
+  nanogui::init();
+  Hale::init();
+  Hale::Scene scene;
+  Hale::Viewer viewer(600, 900, "Iso", &scene);
+  viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
+
+  // rename to FreeBinding
+
+  
+  // example: we can create our own exposures externally.
+  VariableExposure<nanogui::Vector2i>::expose(&viewer, "size",
+    [&viewer](){ return viewer.size(); },
+    [&viewer](nanogui::Vector2i in){
+      if(in[0] <= 0)in[0] = 1;
+      if(in[1] <= 0)in[1] = 1;
+      viewer.setSize(nanogui::Vector2i(in[0],in[1]));
+    });
+
+  // we can get a list of exposed variables at runtime.
+  VariableExposure<double>::printExposedVariables();
+  VariableExposure<int>::printExposedVariables();
+
+  // build parameters. bind to exposed variablebindings.
   auto ninbind = HCI::buildParameter<Nrrd*>(
-    "i", "volume", airTypeOther, 1, 1, NULL,
-    "input volume to isosurface", NULL, NULL, nrrdHestNrrd
-  );
-  auto isovalbind = HCI::buildParameter<double>(
-    "v", "isovalue", airTypeDouble, 1, 1, "nan",
-    "isovalue at which to run Marching Cubes",0,0,0
+    "i", "volume", 1, 1, NULL, NULL, NULL, nrrdHestNrrd,0,0,
+    "input volume to isosurface", airTypeOther
   );
   auto camfrbind = HCI::buildParameter<array<float, 3>>(
-    "fr", "x y z", airTypeFloat, 3, 3, "3 4 5",
-    "look-from point",0,0,0
+    "fr", "x y z", 3, 3, "3 4 5",0,0,0,&viewer.camera, "fromvec",
+    "look-from point", airTypeFloat
   );
   auto camatbind = HCI::buildParameter<array<float, 3>>(
-    "at", "x y z", airTypeFloat, 3, 3, "0 0 0",
-    "look-at point",0,0,0);
-  auto camupbind = HCI::buildParameter<array<float, 3>>(
-    "up", "x y z", airTypeFloat, 3, 3, "0 0 1",
-    "up direction",0,0,0);
+    "at", "x y z", 3, 3, "0 0 0",0,0,0,&viewer.camera, "atvec",
+    "look-at point", airTypeFloat
+  );
+  auto camupbind = HCI::buildParameter<glm::vec3, array<float, 3>>(
+    "up", "x y z", 3, 3, "0 0 1",0,0,0,&viewer.camera, "upvec",
+    "up direction", airTypeFloat
+  );
+  auto camncbind = HCI::buildParameter<double>(
+    "nc", "dist", 1, 1, "-2",0,0,0,&viewer.camera, "nearclip",
+    "at-relative near clipping distance"
+  );
+  auto camfcbind = HCI::buildParameter<double>(
+    "fc", "dist", 1, 1, "2",0,0,0,&viewer.camera, "farclip",
+    "at-relative far clipping distance"
+  );
+  auto camFOVbind = HCI::buildParameter<double>(
+    "fov", "angle", 1, 1, "20",0,0,0,&(viewer.camera),"fov",
+    "vertical field-of-view, in degrees. Full vertical extent of image plane subtends this angle"
+  );
+  auto camsizebind = HCI::buildParameter<nanogui::Vector2i, array<unsigned int, 2>>(
+    "sz", "s0 s1", 2, 2, "640 480",0,0,0,&viewer,"size",
+    "# samples (horz vert) of image plane. ", airTypeUInt
+  );
+  auto camorthobind = HCI::buildParameter<bool>(
+    "ortho", NULL, 0, 0, NULL,0,0,0,&(viewer.camera),"ortho",
+    "use orthographic projection"
+  );
 
-  auto camncbind = HCI::buildParameter<float>(
-    "nc", "dist", airTypeFloat, 1, 1, "-2",
-    "at-relative near clipping distance",0,0,0
-  );
-  auto camfcbind = HCI::buildParameter<float>(
-    "fc", "dist", airTypeFloat, 1, 1, "2",
-    "at-relative far clipping distance",0,0,0
-  );
-  auto camFOVbind = HCI::buildParameter<float>(
-    "fov", "angle", airTypeFloat, 1, 1, "20",
-    "vertical field-of-view, in degrees. Full vertical extent of image plane subtends this angle",0,0,0
-  );
-  auto camsizebind = HCI::buildParameter<array<unsigned int, 2>>(
-    "sz", "s0 s1", airTypeUInt, 2, 2, "640 480",
-    "# samples (horz vert) of image plane. ",0,0,0
-  );
-  auto camorthobind = HCI::buildParameter<int>(
-    "ortho", NULL, airTypeInt, 0, 0, NULL,
-    "use orthographic projection",0,0,0
-  );
+  // program parameters. No existing FreeBindings.
   auto hitandquitbind = HCI::buildParameter<bool>(
-    "haq", NULL, airTypeBool, 0, 0, NULL,
-    "save a screenshot rather than display the viewer",0,0,0
+    "haq", NULL, 0, 0, NULL,0,0,0,0,0,
+    "save a screenshot rather than display the viewer"
   );
-
+  auto isovalbind = HCI::buildParameter<double>(
+    "v", "isovalue", 1, 1, "nan",0,0,0,0,0,
+    "isovalue at which to run Marching Cubes"
+  );
+  // load and initialize everything.
   HCI::loadParameters(argc, argv);
-  airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestOptFree, airMopAlways);
-  airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestParseFree, airMopAlways);
 
-  fprintf(stderr,"1\n\n");
+
   Nrrd* nin = (*ninbind)->getValue();
-
   isoBinding = *isovalbind;
-
   NrrdRange *range = nrrdRangeNewSet(nin, AIR_FALSE);
 
-  fprintf(stderr,"  3-%p, %p = %s\n",nin, nin->content, nin->content);
-  fprintf(stderr,"  Nrrd: %s, dim %d\n",nin, nin->content, nin->type);
   airMopAdd(HCI::mop, range, (airMopper)nrrdRangeNix, airMopAlways);
   double isomin = range->min;
   double isomax = range->max;
   if (!AIR_EXISTS(isoBinding->getValue())) {
     isoBinding->setValue((isomin + isomax)/2);
   }
-  fprintf(stderr,"   4\n");
 
   /* first, make sure we can isosurface ok */
   lpld = limnPolyDataNew();
@@ -177,20 +231,11 @@ main(int argc, const char **argv) {
 
   /* initialize gui and scene */
 
-  nanogui::init();
-  Hale::init();
-  Hale::Scene scene;
 
 
 
-  /* then create viewer (in order to create the OpenGL context) */
-  Hale::Viewer viewer((*camsizebind)->getValue().v[0], (*camsizebind)->getValue().v[1], "Iso", &scene);
-  viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
-  viewer.camera.init(glm::vec3((*camfrbind)->getValue().v[0], (*camfrbind)->getValue().v[1], (*camfrbind)->getValue().v[2]),
-                     glm::vec3((*camatbind)->getValue().v[0], (*camatbind)->getValue().v[1], (*camatbind)->getValue().v[2]),
-                     glm::vec3((*camupbind)->getValue().v[0], (*camupbind)->getValue().v[1], (*camupbind)->getValue().v[2]),
-                     (*camFOVbind)->getValue(), (float)(*camsizebind)->getValue().v[0]/(*camsizebind)->getValue().v[1],
-                     (*camncbind)->getValue(), (*camfcbind)->getValue(), (*camorthobind)->getValue());
+  // There is no FreeBinding for aspect ratio (it doesn't make sense to control this independently)
+  viewer.camera.aspect((float)(*camsizebind)->getValue()[0]/(*camsizebind)->getValue()[1]);
 
   viewer.refreshData(&viewer);
 
@@ -204,9 +249,10 @@ main(int argc, const char **argv) {
   viewer.current();
   viewer.setUpdateFunction(update);
 
+
   /* now create gui elements */
 
-  MyScreen *screen = new MyScreen(nanogui:: Vector2i(500, 700), "NanoGUI test");
+  nanogui::Screen *screen = new nanogui::Screen(nanogui::Vector2i(500, 700), "NanoGUI test");
 
   {
     using namespace nanogui;
@@ -238,13 +284,13 @@ main(int argc, const char **argv) {
             scene.bgColor(in[0],in[1],in[2]);
         });
     timeBinding =new VariableBinding<int>("Elapsed Time", 0);
-    VariableBinding<bool> *orthographic =new VariableBinding<bool>("Orthographic", 
-        [&viewer](){
-            return viewer.camera.orthographic();
-        },
-        [&viewer](bool in){
-            viewer.camera.orthographic(in);
-        });
+    // VariableBinding<bool> *orthographic =new VariableBinding<bool>("Orthographic", 
+    //     [&viewer](){
+    //         return viewer.camera.orthographic();
+    //     },
+    //     [&viewer](bool in){
+    //         viewer.camera.orthographic(in);
+    //     });
 
 
     std::vector<std::string> vals = {"Apples", "Oranges", "Bananas", "Grapefruits"};
@@ -263,7 +309,8 @@ main(int argc, const char **argv) {
     new Label(window, "ISO Value", "sans-bold", 16);
     new BoundWidget<double, nanogui::FloatBox<double>>(window, isoBinding);
     auto *sliso = new BoundWidget<double, nanogui::Slider>(window, isoBinding);
-    new BoundWidget<bool, nanogui::CheckBox>(window, orthographic);
+    new BoundWidget<bool, nanogui::CheckBox>(window, *camorthobind);
+    new BoundWidget<double, nanogui::FloatBox<double>>(window, *camFOVbind);
     new Label(window, "Background Color", "sans-bold", 16);
     new BoundWidget<nanogui::Color, nanogui::ColorPicker>(window,colorBinding);
 

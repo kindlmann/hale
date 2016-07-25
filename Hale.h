@@ -33,7 +33,7 @@
 
 /* This will include all the Teem headers at once */
 #include <teem/meet.h>
-
+#include "GUI.h"
 /*
 ** We don't #define GLM_FORCE_RADIANS here because who knows what Hale users
 ** will expect or need. Hale's own source does use GLM_FORCE_RADIANS but
@@ -172,6 +172,9 @@ typedef struct {
 /* gadget to map GLenum values to something readable */
 extern std::map<GLenum,glEnumItem> glEnumDesc;
 
+
+
+
 /* Camera.cpp: like Teem's limnCamera but simpler: the image plane is
    always considered to be containing look-at point, there is no
    control of right-vs-left handed coordinates (it is always
@@ -183,7 +186,7 @@ class Camera {
   explicit Camera(glm::vec3 from = glm::vec3(3.0f,4.0f,5.0f),
                   glm::vec3 at = glm::vec3(0.0f,0.0f,0.0f),
                   glm::vec3 up = glm::vec3(0.0f,0.0f,1.0f),
-                  double fov = 15,
+                  double fov = 15.0,
                   double aspect = 1.3333333,
                   double clipNear = -2,
                   double clipFar = 2,
@@ -235,7 +238,7 @@ class Camera {
 
   /* essential camera parameters */
   glm::vec3 _from, _at, _up;
-  double _fov, _aspect, _clipNear, _clipFar;
+  double _fov,_aspect, _clipNear, _clipFar;
   bool _orthographic;
 
   /* derived parameters */

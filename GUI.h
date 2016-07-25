@@ -1,8 +1,7 @@
 #ifndef HALEGUI_INCLUDED
 #define HALEGUI_INCLUDED
 
-
-#include "Hale.h"
+#include <teem/meet.h>
 #include <nanogui/screen.h>
 #include <nanogui/textbox.h>
 #include <nanogui/checkbox.h>
@@ -30,6 +29,7 @@ public:
 template <typename T, typename S, typename sfinae> class BoundWidget;
 
 
+
 class GenericVariableBinding{
 public:
     GenericVariableBinding(const char* myname) : name(myname), changed(false){
@@ -39,6 +39,54 @@ public:
     const char* const name;
     bool changed;
 };
+
+template<typename T>
+class VariableExposure{
+public:
+  VariableExposure(void* owner, char* name, std::function<T(void)> getter, std::function<void(T)> setter){
+    this->getter = getter;
+    this->setter = setter;
+    this->owner = owner;
+    this->name = name;
+    binding = 0;
+  }
+  std::function<T(void)> getter;
+  std::function<void(T)> setter;
+  void* owner;
+  char* name;
+  static std::vector<VariableExposure<T>> exposedVariables;
+  bool bind(VariableBinding<T>* vb){
+    if(!binding){
+      binding = vb;
+      return true;
+    }
+    return false;
+  }
+  static void expose(void* owner, char* name, std::function<T(void)> getter, std::function<void(T)> setter){
+    exposedVariables.push_back(VariableExposure(owner, name, getter, setter));
+  }
+  static void printExposedVariables(){
+    // debug function. todo: remove.
+    fprintf(stderr,"Exposed Variables:\n");
+    for(VariableExposure<T> ve : exposedVariables){
+      fprintf(stderr, "  %p: %s\n", ve.owner, ve.name);
+    }
+  }
+  static VariableBinding<T>* getVariableBinding(void* owner, char* name){
+    for(VariableExposure<T> ve : exposedVariables){
+      if(ve.owner == owner && !strcmp(ve.name, name)){
+        ve.binding = new VariableBinding<T>(name, ve.getter, ve.setter);
+        return ve.binding;
+      }
+    }
+    return NULL;
+  }
+private:
+  VariableBinding<T> *binding;
+};
+
+template<typename T>
+typename std::vector<VariableExposure<T>> VariableExposure<T>::exposedVariables;
 
 template<class T>
 class VariableBinding : public GenericVariableBinding{
@@ -56,6 +104,7 @@ protected:
   bool deleteonexit;      // whether we should free (value) on exit.
 
   std::list<GenericBoundWidget*> boundWidgets;
+  std::list<std::function<void(const T)>> varChangeListeners;
 public:
   VariableBinding(const char* myname, T init_value) : GenericVariableBinding(myname), getter(0), setter(0), fGetter(0), fSetter(0), deleteonexit(false){
     this->value  = new T;
@@ -64,6 +113,10 @@ public:
   }
   VariableBinding(const char* name, t_getter get, t_setter set) : GenericVariableBinding(name), getter(get), setter(set), fGetter(0), fSetter(0), deleteonexit(false){
     this->value  = 0;  
+    this->changed = true;
+  }
+  VariableBinding(const char* name, VariableExposure<T>* exp) : GenericVariableBinding(name), getter(0), setter(0), fGetter(exp.getter), fSetter(exp.setter), deleteonexit(false){
+    this->value  = 0;
     this->changed = true;
   }
   VariableBinding(const char* name, std::function<T(void)> get, std::function<void(T)> set) : GenericVariableBinding(name), getter(0), setter(0), fGetter(get), fSetter(set), deleteonexit(false){
@@ -77,17 +130,20 @@ public:
   virtual ~VariableBinding(){
     if(value && deleteonexit)delete value;
   }
-  void updateBoundWidgets(){
+  void updateBound(){
     for (std::list<GenericBoundWidget*>::const_iterator itr = boundWidgets.begin(), end = boundWidgets.end(); itr != end; ++itr) {
         (*itr)->updateFromBinding();
+    }
+    for (typename std::list<std::function<void(T)>>::const_iterator itr = varChangeListeners.begin(), end = varChangeListeners.end(); itr != end; ++itr) {
+        (*itr)(*value);
     }
   }
   void bindWidget(GenericBoundWidget* e){
     boundWidgets.push_back(e);
     e->updateFromBinding();
   }
-  void setRaw(void *in){
-    setValue((T*) in);
+  void addListener(std::function<void(T)> listener){
+    varChangeListeners.push_back(listener);
   }
   // set the real value of this variable.
   void setValue(T in){
@@ -102,7 +158,7 @@ public:
     }else{
         fSetter(*in);
     }
-    updateBoundWidgets();
+    updateBound();
     this->changed = true;
   }
   
@@ -164,12 +220,13 @@ public:
     mCaption = binding->name;
     CheckBox::setCallback([binding](const bool &val) {
         binding->setValue(val);
+        fprintf(stderr,"ortho v: %d\n", binding->getValue()?1:0);
         return true;
     });
   }
   void updateFromBinding(){
     // update in such a way that the callback does NOT get called.
-    mPushed = mBinding->getValue();
+    mChecked = mBinding->getValue();
   }
 };
 
@@ -349,6 +406,17 @@ public:
     updateFromBinding();
   }
 };
+template <typename T>
+int getAirType();
+
+template<typename T>
+int getAirType(){
+  return airTypeOther;
+}
+
+
+
+
 class HCI{
 protected:
   struct param{
@@ -380,16 +448,28 @@ public:
 
   // Function that creates a variable binding for a
   // particular type inside a given param object.
-  template<typename T>
+  // Hest returns data that can be converted bitwise (C-style)
+  // to type R. This is then c++-style casted to a
+  // type T.
+  template<typename T, typename R>
   static void createVariableBinding(param *pm){
     // reinterpret the data which hest gives us to construct a T.
-    T v = *((T*)(pm->hestPtr));
+    T v = T(*((R*)(pm->hestPtr)));
     // then, create a new VariableBinding using that T.
-    pm->binding = new VariableBinding<T>(pm->name, v);
-    // debug:
+    if(!pm->binding)pm->binding = new VariableBinding<T>(pm->name, v);
+    else{
+      ((VariableBinding<T>*)(pm->binding))->setValue(v);
+    }
+    // debug (and bad code):
+
+    if(sizeof(T) <= sizeof(int)){
+      fprintf(stderr, "%s: populated at %p with %d\n", pm->flag, (pm->hestPtr), *(int*)(pm->hestPtr));      
+    }
+    else{
+      fprintf(stderr, "%s: populated at %p with %d %d\n", pm->flag, (pm->hestPtr), *(int*)(pm->hestPtr), *((int*)(pm->hestPtr))+1);      
+    }
 
     //end debug.
-    fprintf(stderr, "%s: populated at %p with %f\n", pm->name, (pm->hestPtr), *(double*)(pm->hestPtr));
   }
 public:
   // returns a pointer to a VariableBinding pointer.
@@ -402,8 +482,15 @@ public:
   //   loadParameters();
   //   // here, the binding is now set to something.
   //   *binding->setValue(...);
-  template <typename T>
-  static VariableBinding<T>** buildParameter(char *flag, char* name, int type, int minNumArgs, int maxNumArgs, char* argDefault, char* info, unsigned int* sawP, airEnum* enm, hestCB* callback){
+
+
+  // R is the type that Hest outputs. Ie. The data that hest
+  // returns can be C-style (bitwise) cast to a type R.
+  // This R is then more intelligently cast (using a constructor)
+  // to an object of type T, which is returned.
+  template <typename T, typename R=T>
+  static VariableBinding<T>** buildParameter(char *flag, char* name, int minNumArgs, int maxNumArgs, char* argDefault, unsigned int* sawP, airEnum* enm, hestCB* callback, void* exposureObj, char* exposureName, char* info, int type = 0){
+
     if(!initialized){
       mop = airMopNew();
       hparm = hestParmNew();
@@ -413,9 +500,13 @@ public:
 
       initialized = true;
     }
+
+    if(type == 0)type = getAirType<T>();
     
     param* p = new param;
-    *p = {(T*)malloc(sizeof(T)), NULL,flag,name,type,minNumArgs,maxNumArgs,argDefault,info,createVariableBinding<T>};
+    fprintf(stderr,"..1..\n");
+    *p = {(T*)malloc(sizeof(T)), VariableExposure<T>::getVariableBinding(exposureObj, exposureName),flag,name,type,minNumArgs,maxNumArgs,argDefault,info,createVariableBinding<T,R>};
+    fprintf(stderr,"...2..\n");
     if(sawP){
       hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault,
            p->info, sawP);
@@ -438,6 +529,8 @@ public:
     const char* me = argv[0];
     hestParseOrDie(hopt, argc-1, argv+1, hparm,
                  me, "demo program", AIR_TRUE, AIR_TRUE, AIR_TRUE);
+    airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestOptFree, airMopAlways);
+    airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestParseFree, airMopAlways);
     for(param* m : parameters){
       fprintf(stderr, "param itr: %p\n", m);
       m->createBindingFun(m);
