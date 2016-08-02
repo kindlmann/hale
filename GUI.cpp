@@ -11,7 +11,16 @@ char *HCI::err =0;
 hestParm *HCI::hparm =0;
 airArray *HCI::mop =0;
 
-
+template<>
+nanogui::Widget *createWidget<bool>(nanogui::Widget* parent, VariableBinding<bool>* binding, char* widgetType){
+  if(!strcmp(widgetType, "checkbox")){
+    return new BoundWidget<bool, nanogui::CheckBox>(parent, binding);
+  }
+  else{
+    fprintf(stderr,"error in GUI::createWidget: type mismatch for BoundWidget type %s\n", widgetType);
+    exit(0);
+  }
+}
 
 template<> int getAirType<bool>(){ return airTypeBool; }
 template<> int getAirType<int>(){ return airTypeInt; }
@@ -23,6 +32,9 @@ template<> int getAirType<double>(){ return airTypeDouble; }
 template<> int getAirType<char>(){ return airTypeChar; }
 template<> int getAirType<char*>(){ return airTypeString; }
 template<> int getAirType<airEnum>(){ return airTypeEnum; }
+
+
+
 
 // enum {
 //   airTypeUnknown,   /*  0 */

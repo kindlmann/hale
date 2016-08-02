@@ -56,6 +56,7 @@ Camera::Camera(glm::vec3 from, glm::vec3 at, glm::vec3 up,
   VariableExposure<glm::vec3>::expose(this, "fromvec",
     [&](){return this->_from;},
     [&](glm::vec3 in){
+      fprintf(stderr,"set fromvec: %f,%f,%f\n", in[0],in[1],in[2]);
       _from = in;
       updateView();
       updateProject();
@@ -67,7 +68,7 @@ Camera::Camera(glm::vec3 from, glm::vec3 at, glm::vec3 up,
       updateView();
       updateProject();
     });
-
+  fprintf(stderr,"exposed varables\n");
   updateView();
   updateProject();
 }
@@ -128,6 +129,7 @@ void Camera::fov(double vv) {
 }
 void Camera::aspect(double aa) {
   _aspect = aa;
+  updateView();
   updateProject();
 }
 void Camera::clipNear(double nn) {

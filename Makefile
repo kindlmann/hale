@@ -34,7 +34,7 @@ CXXFLAGS = -Wall -std=c++11 -g
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h
-SRCS = GUI.cpp enums.cpp globals.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp \
+SRCS = vectorbox.cpp GUI.cpp enums.cpp globals.cpp utils.cpp Camera.cpp Viewer.cpp Program.cpp \
 	Polydata.cpp Scene.cpp
 OBJS = $(SRCS:.cpp=.o)
 
