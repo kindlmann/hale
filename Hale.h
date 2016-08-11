@@ -381,6 +381,28 @@ public:
   void shapeUpdate();
 };
 
+/* 
+** ControllerScreen.cpp
+**
+*/
+class ControllerScreen : public nanogui::Screen{
+private:
+  nanogui::GroupLayout *grouplayout;
+  nanogui::Widget *container;
+  bool initialized=false;
+  Widget* correspondence;
+  static void window_close_callback(GLFWwindow* window);
+public:
+  static std::map<GLFWwindow*, nanogui::Widget*> popupCorrespondence;
+  ControllerScreen(nanogui::Vector2i s, const char* name);
+  void addChild(int index, Widget * widget);
+  void performLayout(NVGcontext *ctx);
+  void setSize();
+  void performLayout();
+  bool resizeEvent(const nanogui::Vector2i &);
+  void addPopInButton(Widget* forWindow);
+};
+
 /*
 ** Program.cpp: a GLSL shader program contains shader objects for vertex and
 ** fragment shaders (can easily add a geometry shader when needed)

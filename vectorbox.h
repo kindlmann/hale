@@ -15,11 +15,9 @@
 
 #include <nanogui/layout.h>
 #include <nanogui/textbox.h>
+#include "convert.h"
 
 using namespace nanogui;
-
-template<typename T, typename S, typename sfinae = std::true_type>
-S convert(const T &in);
 
 template<int N, int M, typename Type = Eigen::Matrix<double, N, M>>
 class MatrixBox : public Widget {
@@ -49,9 +47,8 @@ public:
             for(int j=0;j<N;j++){
                 inputs[j][i]->setCallback([&,j,i](const double val){
                     mMatrix(j,i) = val;
-                    fprintf(stderr, "set mat[%d,%d] = %f\n", j, i, val);
+                    // fprintf(stderr, "set mat[%d,%d] = %f\n", j, i, val);
                     mCallback(matrix());
-                    fprintf(stderr, "callbacked.\n", j, i, val);
                 });
             }
         }
@@ -71,6 +68,6 @@ public:
                 inputs[i][j]->setValue(mMatrix(i,j));
             }
         }
-        fprintf(stderr,"ManSetting Matrix: %f\n",mMatrix(0,0));
+        // fprintf(stderr,"ManSetting Matrix: %f\n",mMatrix(0,0));
     }
 };

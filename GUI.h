@@ -10,18 +10,16 @@
 #include <nanogui/combobox.h>
 #include <nanogui/slider.h>
 #include "vectorbox.h"
+#include "convert.h"
 #include <glm/glm.hpp>
 #include <vector>
 #include <iostream>
 #include <list>
 #include <iterator>
 
+
 template<class T>
 class VariableBinding;
-/*
- * A wrapper over a particular variable. Allows a consistent means
- * of getting/setting data from the GUI and otherwise.
- */
 
 class GenericBoundWidget {
 public:
@@ -29,8 +27,6 @@ public:
 };
 
 template <typename T, typename S, typename sfinae> class BoundWidget;
-
-
 
 class GenericVariableBinding{
 public:
@@ -42,10 +38,17 @@ public:
     bool changed;
 };
 
+/* 
+ * Interface used to facilitate the creation of VariableBindings
+ * and their linkage to actual program state. A particular
+ * VariableExposure represents a conduit through which program
+ * state can be accessed/mutated. Each VariableExposure can
+ * create a single VariableBinding.
+ */
 template<typename T>
 class VariableExposure{
 public:
-  VariableExposure(void* owner, char* name, std::function<T(void)> getter, std::function<void(T)> setter){
+  VariableExposure(void* owner, const char* name, std::function<T(void)> getter, std::function<void(T)> setter){
     this->getter = getter;
     this->setter = setter;
     this->owner = owner;
@@ -55,7 +58,7 @@ public:
   std::function<T(void)> getter;
   std::function<void(T)> setter;
   void* owner;
-  char* name;
+  const char* name;
   static std::vector<VariableExposure<T>> exposedVariables;
   bool bind(VariableBinding<T>* vb){
     if(!binding){
@@ -64,7 +67,7 @@ public:
     }
     return false;
   }
-  static void expose(void* owner, char* name, std::function<T(void)> getter, std::function<void(T)> setter){
+  static void expose(void* owner, const char* name, std::function<T(void)> getter, std::function<void(T)> setter){
     exposedVariables.push_back(VariableExposure(owner, name, getter, setter));
   }
   static void printExposedVariables(){
@@ -81,7 +84,7 @@ public:
     }
     return ret;
   }
-  static VariableBinding<T>* getVariableBinding(void* owner, char* name){
+  static VariableBinding<T>* getVariableBinding(void* owner, const char* name){
     for(VariableExposure<T> ve : exposedVariables){
       if(ve.owner == owner && !strcmp(ve.name, name)){
         ve.binding = new VariableBinding<T>(name, ve.getter, ve.setter);
@@ -94,9 +97,14 @@ private:
   VariableBinding<T> *binding;
 };
 
+/* A list of all (global) VariableExposures */
 template<typename T>
 typename std::vector<VariableExposure<T>> VariableExposure<T>::exposedVariables;
 
+/*
+ * A wrapper over a particular variable. Allows a consistent means
+ * of getting/setting data from the GUI and otherwise.
+ */
 template<class T>
 class VariableBinding : public GenericVariableBinding{
 public:
@@ -196,13 +204,16 @@ public:
   }
 };
 
-
-
-// http://stackoverflow.com/questions/8752837/undefined-reference-to-template-class-constructor
-
+/*
+ * A BoundWidget is a GUI element which has controls for a 
+ * particular VariableBinding type. BoundWidgets should
+ * extend nanogui::Widget, and are implemlented specially
+ * for both a particular variable type and a particular widget
+ * type. For example: BoundWidget<int, Slider> is different
+ * from BoundWidget<int, IntBox>.
+ *
+ */
 template <typename T, typename S, typename sfinae = std::true_type> class BoundWidget;
-// We do this for each variable/widget pair we need.
-
 
 template <> class BoundWidget<std::string, nanogui::TextBox, std::true_type> : public nanogui::TextBox, public GenericBoundWidget {
 protected:
@@ -223,73 +234,15 @@ public:
   }
 };
 
-template<class T>
-class is_glm_mat_type{
-public: 
-  typedef std::false_type type;
-  static const int M = 0;
-  static const int N = 0;
-};
-template<> class is_glm_mat_type<glm::vec2>{public:typedef std::true_type type; static const int M = 1; static const int N = 2;};
-template<> class is_glm_mat_type<glm::vec3>{public:typedef std::true_type type; static const int M = 1; static const int N = 3;};
-template<> class is_glm_mat_type<glm::vec4>{public:typedef std::true_type type; static const int M = 1; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 4;};
-// template<> class is_glm_mat_type<glm::mat4>{public:typedef std::true_type type; static const int M = 4; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat3x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat3x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat3x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 3;};
-// template<> class is_glm_mat_type<glm::mat3>{public:typedef std::true_type type; static const int M = 3; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat2x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 2;};
-template<> class is_glm_mat_type<glm::mat2x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 2;};
-template<> class is_glm_mat_type<glm::mat2x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 2;};
-// template<> class is_glm_mat_type<glm::mat2>{public:typedef std::true_type type; static const int M = 2; static const int N = 2;};
-
-template<int Ni, int Mi> class is_glm_mat_type<Eigen::Matrix<double, Ni, Mi>>{
-public:
-  typedef std::true_type type;
-  static const int M = Mi;
-  static const int N = Ni;
-};
-
-
-// template <typename T> class BoundWidget<T, MatrixBox<T::N,T::M>, typename is_glm_mat_type<T>::type> : public MatrixBox<T::N,T::M>, public GenericBoundWidget {
-template <typename T> class BoundWidget<T, MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, typename is_glm_mat_type<T>::type> : public MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, public GenericBoundWidget {
-protected:
-  static const int M = is_glm_mat_type<T>::M;
-  static const int N = is_glm_mat_type<T>::N;
-  VariableBinding<T>* mBinding;
-public:
-  BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : MatrixBox<N,M,T>(p), mBinding(binding){
-    binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget!\n");
-    MatrixBox<N, M,T>::setMatrix(binding->getValue());
-    fprintf(stderr,"\nset matrix!\n");
-    MatrixBox<N, M,T>::setCallback([binding](const T &val) {
-        binding->setValue(val);
-        fprintf(stderr,"setting value\n");
-        // fprintf(stderr,"ortho v: %d\n", binding->getValue()?1:0);
-        return true;
-    });
-  }
-  void updateFromBinding(){
-    // update in such a way that the callback does NOT get called.
-    MatrixBox<N,M,T>::mMatrix = convert<T, Eigen::Matrix<double, N,M>>(mBinding->getValue());
-  }
-};
-
 template <> class BoundWidget<bool, nanogui::CheckBox, std::true_type> : public nanogui::CheckBox, public GenericBoundWidget {
 protected:
   VariableBinding<bool>* mBinding;
 public:
   BoundWidget(nanogui::Widget *p, VariableBinding<bool>* binding) : nanogui::CheckBox(p), mBinding(binding){
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
     mCaption = binding->name;
     CheckBox::setCallback([binding](const bool &val) {
         binding->setValue(val);
-        fprintf(stderr,"ortho v: %d\n", binding->getValue()?1:0);
         return true;
     });
   }
@@ -305,8 +258,6 @@ protected:
 public:
   BoundWidget(nanogui::Widget *p, VariableBinding<nanogui::Color>* binding) : nanogui::ColorPicker(p), mBinding(binding){
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
-    // mCaption = binding->name;
     nanogui::ColorPicker::setCallback([binding](const nanogui::Color &val) {
         binding->setValue(val);
         return true;
@@ -323,33 +274,6 @@ public:
     nanogui::ColorPicker::mPickButton->setTextColor(fg);
   }
 };
-/*
-template <> class BoundWidget<glm::vec3, nanogui::ColorPicker, std::true_type> : public nanogui::ColorPicker, public GenericBoundWidget {
-protected:
-  VariableBinding<nanogui::Color>* mBinding;
-public:
-  BoundWidget(nanogui::Widget *p, VariableBinding<nanogui::Color>* binding) : nanogui::ColorPicker(p), mBinding(binding){
-    binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
-    // mCaption = binding->name;
-    nanogui::ColorPicker::setCallback([binding](const nanogui::Color &val) {
-        binding->setValue(val);
-        return true;
-    });
-  }
-  void updateFromBinding(){
-    // update in such a way that the callback does NOT get called.
-    nanogui::Color color = mBinding->getValue();
-    nanogui::Color fg = color.contrastingColor();
-    nanogui::ColorPicker::setBackgroundColor(color);
-    nanogui::ColorPicker::setTextColor(fg);
-    mColorWheel->setColor(color);
-    nanogui::ColorPicker::mPickButton->setBackgroundColor(color);
-    nanogui::ColorPicker::mPickButton->setTextColor(fg);
-  }
-};
-*/
-
 template <typename T> class BoundWidget<T, nanogui::IntBox<T>, typename std::is_integral<T>::type> : public nanogui::IntBox<T>, public GenericBoundWidget {
 protected:
   VariableBinding<T>* mBinding;
@@ -375,7 +299,6 @@ protected:
 public:
   BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : nanogui::FloatBox<T>(p, 12), mBinding(binding){
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
     nanogui::FloatBox<T>::setEditable(true);
     nanogui::FloatBox<T>::setCallback([binding](const T val) {
         binding->setValue(val);
@@ -387,6 +310,61 @@ public:
     nanogui::TextBox::mValue = std::to_string(mBinding->getValue());
   }
 };
+
+/*
+ * Helper template to determine whether a particular type
+ * can be represented as either a glm or an Eigen matrix of
+ * doubles.
+ *
+ */
+template<class T>
+class is_glm_mat_type{
+public: 
+  typedef std::false_type type;
+  static const int M = 0;
+  static const int N = 0;
+};
+template<> class is_glm_mat_type<glm::vec2>{public:typedef std::true_type type; static const int M = 1; static const int N = 2;};
+template<> class is_glm_mat_type<glm::vec3>{public:typedef std::true_type type; static const int M = 1; static const int N = 3;};
+template<> class is_glm_mat_type<glm::vec4>{public:typedef std::true_type type; static const int M = 1; static const int N = 4;};
+template<> class is_glm_mat_type<glm::mat4x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 4;};
+template<> class is_glm_mat_type<glm::mat4x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 4;};
+template<> class is_glm_mat_type<glm::mat4x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 4;};
+template<> class is_glm_mat_type<glm::mat3x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 3;};
+template<> class is_glm_mat_type<glm::mat3x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 3;};
+template<> class is_glm_mat_type<glm::mat3x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 3;};
+template<> class is_glm_mat_type<glm::mat2x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 2;};
+template<> class is_glm_mat_type<glm::mat2x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 2;};
+template<> class is_glm_mat_type<glm::mat2x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 2;};
+
+template<int Ni, int Mi> class is_glm_mat_type<Eigen::Matrix<double, Ni, Mi>>{
+public:
+  typedef std::true_type type;
+  static const int M = Mi;
+  static const int N = Ni;
+};
+
+template <typename T> class BoundWidget<T, MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, typename is_glm_mat_type<T>::type> : public MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, public GenericBoundWidget {
+protected:
+  static const int M = is_glm_mat_type<T>::M;
+  static const int N = is_glm_mat_type<T>::N;
+  VariableBinding<T>* mBinding;
+public:
+  BoundWidget(nanogui::Widget *p, VariableBinding<T>* binding) : MatrixBox<N,M,T>(p), mBinding(binding){
+    binding->bindWidget(this);
+    MatrixBox<N, M,T>::setMatrix(binding->getValue());
+    MatrixBox<N, M,T>::setCallback([binding](const T &val) {
+        binding->setValue(val);
+        return true;
+    });
+  }
+  void updateFromBinding(){
+    // update in such a way that the callback does NOT get called.
+    MatrixBox<N,M,T>::mMatrix = convert<T, Eigen::Matrix<double, N,M>>(mBinding->getValue());
+  }
+};
+
+
 /*
 ** _airEnumIndex()
 **
@@ -416,12 +394,11 @@ _airEnumIndex(const airEnum *enm, int val) {
 
 template <> class BoundWidget<int, nanogui::ComboBox, std::true_type> : public nanogui::ComboBox, public GenericBoundWidget {
 protected:
-  VariableBinding<int>* mBinding;
   const airEnum *myAirEnum;
+  VariableBinding<int>* mBinding;
 public:
-  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names) : myAirEnum(0), nanogui::ComboBox(p), mBinding(binding){
+  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, std::vector<std::string> names) : nanogui::ComboBox(p), myAirEnum(0), mBinding(binding){
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
     auto self = this;
     setItems(names,names);
     nanogui::ComboBox::setCallback([binding, self](const int ind) {
@@ -429,25 +406,22 @@ public:
         return true;
     });
   }
-  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, const airEnum* aenum) : myAirEnum(aenum), nanogui::ComboBox(p), mBinding(binding){
+  BoundWidget(nanogui::Widget *p, VariableBinding<int>* binding, const airEnum* aenum) : nanogui::ComboBox(p), myAirEnum(aenum), mBinding(binding){
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
     auto self = this;
 
     std::vector<std::string> names;
-    for(int i=1;i<aenum->M;++i){
+    for(unsigned int i=1;i<aenum->M;++i){
       names.push_back(std::string(aenum->str[i]));
     }
     setItems(names,names);
     nanogui::ComboBox::setCallback([binding, self](const int ind) {
-      fprintf(stderr, "set to %d\n", ind);
       if(self->myAirEnum){
         if(self->myAirEnum->val){
           binding->setValue(self->myAirEnum->val[ind+1]);
         }
         else{
           binding->setValue(ind+1);
-          fprintf(stderr, "actually-> %d\n", ind+1);
         }
       }
       else{
@@ -483,7 +457,6 @@ public:
     mMin = 0;
     mMax = 10;
     binding->bindWidget(this);
-    fprintf(stderr,"\ncreated bound widget.\n");
     auto self = this;
     nanogui::Slider::setCallback([binding, self](const T val) {
         binding->setValue(self->mMin + val*(self->mMax - self->mMin));
@@ -501,41 +474,62 @@ public:
   }
 };
 
+// template <> class BoundWidget<std::string, nanogui::Button, typename std::true_type> : public nanogui::Button, public GenericBoundWidget {
+// protected:
+//   VariableBinding<std::string>* mBinding;
+// public:
+//   BoundWidget(nanogui::Widget *p, VariableBinding<std::string>* binding): nanogui::Slider(p), mBinding(binding){
+//     mMin = 0;
+//     mMax = 10;
+//     binding->bindWidget(this);
+//     auto self = this;
+//     nanogui::Slider::setCallback([binding, self](const T val) {
+//         binding->setValue(self->mMin + val*(self->mMax - self->mMin));
+//         return true;
+//     });
+//   }
+//   void updateFromBinding(){
+//     // update in such a way that the callback does NOT get called.
+//     nanogui::Slider::mValue = (float)(mBinding->getValue()-mMin)/((float)mMax - mMin);
+//   }
+//   void setRange(T vmin, T vmax){
+//     mMin = vmin;
+//     mMax = vmax;
+//     updateFromBinding();
+//   }
+// };
+
 template <typename T>
 int getAirType();
 
 template<typename T>
 int getAirType(){
-  return airTypeOther;
+  return airTypeUnknown;
 }
 
-template<typename T>
-nanogui::Widget *createWidget(nanogui::Widget* parent, VariableBinding<T>* binding, char* widgetType);
-
-
-// template<typename T> typename std::enable_if<std::is_floating_point<T>::value, nanogui::Widget*>::type createWidget(nanogui::Widget* parent, VariableBinding<T>* binding, char* widgetType){
-//   if(!strcmp(widgetType, "floatbox")){
-//     return new BoundWidget<T, nanogui::FloatBox<T>>(parent, binding);
-//   }
-//   else{
-//     fprintf(stderr,"error in GUI::createWidget: type mismatch for BoundWidget type %s\n", widgetType);
-//     exit(0);
-//   }
-// }
-
+/* 
+ * This array<> object has the same bit structure
+ * as a C-array. However, unlike arrays, it can
+ * be passed as a return value from functions.
+ */
+template<typename T, int N>
+struct array{
+  T v[N];
+};
 class HCI{
 protected:
   struct param{
     void* hestPtr;
     GenericVariableBinding* binding;
-    char *flag;
-    char *name;
+    const char *flag;
+    const char *name;
     int type;
     int minargs;
     int maxargs;
-    char* argDefault;
-    char* info;
+    const char* argDefault;
+    const char* info;
     void (*createBindingFun)(param*);
+    void* conversionFunction;
   };
 public:
   static bool initialized;
@@ -547,7 +541,6 @@ public:
   static char *err;
   static hestParm *hparm;
   static airArray *mop;
-
   
 
   // handle input parameters:
@@ -555,27 +548,30 @@ public:
   // Function that creates a variable binding for a
   // particular type inside a given param object.
   // Hest returns data that can be converted bitwise (C-style)
-  // to type R. This is then c++-style casted to a
-  // type T.
+  // to type R. This is then converted to a type T, using a
+  // user-provided conversion function. If no such function
+  // exists, then this step is skipped.
   template<typename T, typename R>
-  static void createVariableBinding(param *pm){
+  static void createVariableBinding(param* pm){
+    std::function<T(R)> *F = (std::function<T(R)>*)(pm->conversionFunction);
     // reinterpret the data which hest gives us to construct a T.
-    T v = T(*((R*)(pm->hestPtr)));
+    fprintf(stderr, "Conversion function: %p\n", F);
+    T v = F ? (*F)(*((R*)(pm->hestPtr))) : *((T*)(pm->hestPtr));
     // then, create a new VariableBinding using that T.
     if(!pm->binding)pm->binding = new VariableBinding<T>(pm->name, v);
     else{
-      fprintf(stderr, "Set Value\n");
+      // unless a VariableBinding already exists. Then, just set the value.
       ((VariableBinding<T>*)(pm->binding))->setValue(v);
     }
-    // debug (and bad code):
 
-    if(sizeof(T) <= sizeof(int)){
-      fprintf(stderr, "%s: populated at %p with %d\n", pm->flag, (pm->hestPtr), *(int*)(pm->hestPtr));      
+    // Debug:
+    int i =0;
+    fprintf(stderr, "%s: populated at %p with [%lu]", pm->flag, (pm->hestPtr), sizeof(R));
+    while(i<sizeof(R)){
+      fprintf(stderr,"%02x",((unsigned char*)(pm->hestPtr))[i]);
+      i+=sizeof(unsigned char);
     }
-    else{
-      fprintf(stderr, "%s: populated at %p with %d %d\n", pm->flag, (pm->hestPtr), *(int*)(pm->hestPtr), *((int*)(pm->hestPtr)+1));      
-    }
-
+    fprintf(stderr,"\n");
     //end debug.
   }
 public:
@@ -596,8 +592,9 @@ public:
   // This R is then more intelligently cast (using a constructor)
   // to an object of type T, which is returned.
   template <typename T, typename R=T>
-  static VariableBinding<T>** buildParameter(char *flag, char* name, int minNumArgs, int maxNumArgs, char* argDefault, unsigned int* sawP, airEnum* enm, hestCB* callback, void* exposureObj, char* exposureName, char* info, int type = 0){
+  static VariableBinding<T>** buildParameter(const char *flag, const char* name, int minNumArgs, int maxNumArgs, const char* argDefault, unsigned int* sawP, airEnum* enm, hestCB* callback, void* exposureObj, const char* exposureName, const char* info, int type = 0, std::function<T(R)> *conversionFunction = 0){
 
+    // initialize hest parameters.
     if(!initialized){
       mop = airMopNew();
       hparm = hestParmNew();
@@ -608,12 +605,13 @@ public:
       initialized = true;
     }
 
+    // if no hest type is specified, then infer it based
+    // on the template parameter.
     if(type == 0)type = getAirType<T>();
-    
-    param* p = new param;
+
     fprintf(stderr,"Retrieving %s from %p\n", exposureName, exposureObj);
-    *p = {(T*)malloc(sizeof(T)), VariableExposure<T>::getVariableBinding(exposureObj, exposureName),flag,name,type,minNumArgs,maxNumArgs,argDefault,info,createVariableBinding<T,R>};
-    fprintf(stderr,"Build param object.\n");
+    param paramobj = {(T*)malloc(sizeof(T)), VariableExposure<T>::getVariableBinding(exposureObj, exposureName),flag,name,type,minNumArgs,maxNumArgs,argDefault,info,createVariableBinding<T,R>, conversionFunction};
+    param *p = new param(paramobj);
     if(sawP){
       hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault,
            p->info, sawP);
@@ -627,7 +625,7 @@ public:
       hestOptAdd(&hopt, p->flag, p->name, p->type, p->minargs, p->maxargs, p->hestPtr, p->argDefault, p->info);
     }
     
-    fprintf(stderr,"%s: allocated %d at %p\n", name, sizeof(T), p->hestPtr);
+    fprintf(stderr,"%s: allocated %lu at %p\n", name, sizeof(T), p->hestPtr);
 
     parameters.push_back(p);
     return (VariableBinding<T>**)&(p->binding);

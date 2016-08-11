@@ -74,99 +74,8 @@ void update(){
     timeBinding->setValue((int)difftime( time(0), start));
 }
 
-class ControllerScreen : public nanogui::Screen{
-  nanogui::GroupLayout *grouplayout;
-  nanogui::Widget *container;
-  bool initialized=false;
-public:
-  ControllerScreen(nanogui::Vector2i s, char* name) : nanogui::Screen(s,name), initialized(false){
-    container = new Widget(this);
-    grouplayout = new nanogui::GroupLayout();
-    setLayout(new nanogui::GroupLayout);
-    container->setLayout(grouplayout);
-    initialized = true;
-  }
-  void addChild(int index, Widget * widget) {
-    fprintf(stderr, ANSI_RED "addchild(%s)" ANSI_RESET "\n", initialized?"true":"false");
-    nanogui::Screen::addChild(index,widget);
-    // if(initialized)container->addChild(index, widget);
-    // else nanogui::Screen::addChild(index,widget);
-  }
-  void performLayout(NVGcontext *ctx) {
-    int w=0,h=0;
-    for (auto c : mChildren) {
-      nanogui::Vector2i sz = c->preferredSize(ctx);
-      nanogui::Vector2i ps = c->position();
-      if(sz[0]+ps[0] > w)w = sz[0]+ps[0];
-      if(sz[1]+ps[1] > h)h = sz[1]+ps[1];
-    }
-    nanogui::Widget::performLayout(ctx);
-  }
-  void setSize(){
-    int w=0,h=0;
-    for (auto c : mChildren) {
-      nanogui::Vector2i sz = c->preferredSize(mNVGContext);
-      nanogui::Vector2i ps = c->position();
-      if(sz[0]+ps[0] > w)w = sz[0]+ps[0];
-      if(sz[1]+ps[1] > h)h = sz[1]+ps[1];
-      fprintf(stderr,"size %d, %d\n", sz[0]+ps[0], sz[1]+ps[1]);
-    }
-    nanogui::Screen::setSize(nanogui::Vector2i(w+grouplayout->margin(),h+grouplayout->margin()));
-  }
-  void performLayout(){
-    nanogui::Screen::performLayout();
-  }
-  void addBoundVariable(){
 
-  }
-  bool resizeEvent(const nanogui::Vector2i &) {
-    performLayout();
-    return false;
-  }
-};
-
-// this array<> object has the same bit structure
-// as a C-array. However, unlike arrays, it can
-// be passed as a return value from functions.
-template<typename T, int N>
-struct array{
-  T v[N];
-};
-template<>
-struct array<float, 3>{
-  array(glm::vec3 &vec){
-    v[0]=vec.x;
-    v[1]=vec.y;
-    v[2]=vec.z;
-  }
-  array(){
-    v[0]=0;
-    v[1]=0;
-    v[2]=0;
-  }
-  float v[3];
-  operator glm::vec3(){
-    return glm::vec3(v[0],v[1],v[2]);
-  }
-};
-template<>
-struct array<unsigned int, 2>{
-  array(nanogui::Vector2i &vec){
-    v[0]=vec[0];
-    v[1]=vec[1];
-  }
-  array(){
-    v[0]=0;
-    v[1]=0;
-  }
-  unsigned int v[3];
-  operator nanogui::Vector2i(){
-    return nanogui::Vector2i(v[0],v[1]);
-  }
-};
-
-int
-main(int argc, const char **argv) {
+int main(int argc, const char **argv) {
 
   const char *me;
   char *err;
@@ -177,7 +86,6 @@ main(int argc, const char **argv) {
   Hale::Scene scene;
   Hale::Viewer viewer(600, 900, "Iso", &scene);
   viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
-
   
   // example: we can create our own exposures externally.
   VariableExposure<nanogui::Vector2i>::expose(&viewer, "size",
@@ -198,6 +106,18 @@ main(int argc, const char **argv) {
   // where T is the first template parameter passed to
   // buildParameter.
 
+  // define functions to create glm::vec3 or
+  // Eigen::Vector2i from raw hest bytes.
+
+  std::function<glm::vec3(array<float, 3>)>
+    makevec3=[](array<float, 3> in){
+      return glm::vec3(in.v[0],in.v[1],in.v[2]);
+    };
+  std::function<nanogui::Vector2i(array<unsigned int, 2>)>
+    makeVector2i= [](array<unsigned int, 2> in){
+      return nanogui::Vector2i(in.v[0],in.v[1]);
+    };
+
   // build parameters. bind to exposed variablebindings.
   auto ninbind = HCI::buildParameter<Nrrd*>(
     "i", "volume", 1, 1, NULL, NULL, NULL, nrrdHestNrrd,0,0,
@@ -205,15 +125,15 @@ main(int argc, const char **argv) {
   );
   auto camfrbind = HCI::buildParameter<glm::vec3, array<float, 3>>(
     "fr", "x y z", 3, 3, "3 4 5",0,0,0,&viewer.camera, "fromvec",
-    "look-from point", airTypeFloat
+    "look-from point", airTypeFloat, &makevec3
   );
   auto camatbind = HCI::buildParameter<glm::vec3, array<float, 3>>(
     "at", "x y z", 3, 3, "0 0 0",0,0,0,&viewer.camera, "atvec",
-    "look-at point", airTypeFloat
+    "look-at point", airTypeFloat, &makevec3
   );
   auto camupbind = HCI::buildParameter<glm::vec3, array<float, 3>>(
     "up", "x y z", 3, 3, "0 0 1",0,0,0,&viewer.camera, "upvec",
-    "up direction", airTypeFloat
+    "up direction", airTypeFloat, &makevec3
   );
   auto camncbind = HCI::buildParameter<double>(
     "nc", "dist", 1, 1, "-2",0,0,0,&viewer.camera, "nearclip",
@@ -229,20 +149,16 @@ main(int argc, const char **argv) {
   );
   auto camsizebind = HCI::buildParameter<nanogui::Vector2i, array<unsigned int, 2>>(
     "sz", "s0 s1", 2, 2, "640 480",0,0,0,&viewer,"size",
-    "# samples (horz vert) of image plane. ", airTypeUInt
+    "# samples (horz vert) of image plane. ", airTypeUInt, &makeVector2i
   );
   auto camorthobind = HCI::buildParameter<bool>(
     "ortho", NULL, 0, 0, NULL,0,0,0,&(viewer.camera),"ortho",
     "use orthographic projection"
   );
-
-  // program parameters. No existing FreeBindings.
   auto hitandquitbind = HCI::buildParameter<bool>(
     "haq", NULL, 0, 0, NULL,0,0,0,0,0,
     "save a screenshot rather than display the viewer"
   );
-
-  // an exposure is not necessary because we handle changes within the main loop.
   auto isovalbind = HCI::buildParameter<double>(
     "v", "isovalue", 1, 1, "nan",0,0,0,0,0,
     "isovalue at which to run Marching Cubes"
@@ -300,67 +216,49 @@ main(int argc, const char **argv) {
   viewer.current();
   viewer.setUpdateFunction(update);
 
+  // sample variable bindings.
+
+  VariableBinding<std::string> *binding =new VariableBinding<std::string>("textname", "string entry");
+  fileBinding = new VariableBinding<std::string>("Filename", "~/~");
+  timeBinding = new VariableBinding<int>("Elapsed Time", 0);
+  formatBinding=new VariableBinding<int>("format", 1);
+  VariableBinding<nanogui::Color> *colorBinding =new VariableBinding<nanogui::Color>("colorbox", 
+      [&viewer, &scene](){
+          glm::vec3 bgcol = scene.bgColor();
+          return nanogui::Color(bgcol[0],bgcol[1],bgcol[2],1.f);
+      },
+      [&viewer, &scene](nanogui::Color in){
+          scene.bgColor(in[0],in[1],in[2]);
+      });
 
   /* now create gui elements */
-
-  ControllerScreen *screen = new ControllerScreen(nanogui::Vector2i(160, 700), "Controls");
+  using Hale::ControllerScreen;
+  ControllerScreen *screen;
+  Window *window;
 
   {
     using namespace nanogui;
-    using std::cout;
-    using std::cerr;
-    using std::endl;
-    using std::string;
-    using std::to_string;
 
-    FormHelper *gui = new FormHelper(&viewer);
-    ref<Window> win = gui->addWindow(Eigen::Vector2i(31, 15), "Form helper example");
-    gui->addGroup("Basic types");
-    gui->addVariable<double>("double",
-        [&](double v) { fprintf(stderr,"setting %f\n",v); },
-        [&]() -> double { return 4.2; });
-
-
-    VariableBinding<std::string> *binding =new VariableBinding<std::string>("textname", "something");
-    fileBinding = new VariableBinding<std::string>("Filename", "~/~");
-    VariableBinding<nanogui::Color> *colorBinding =new VariableBinding<nanogui::Color>("colorbox", 
-        [&viewer, &scene](){
-            glm::vec3 bgcol = scene.bgColor();
-            return nanogui::Color(bgcol[0],bgcol[1],bgcol[2],1.f);
-        },
-        [&viewer, &scene](nanogui::Color in){
-            scene.bgColor(in[0],in[1],in[2]);
-        });
-    timeBinding =new VariableBinding<int>("Elapsed Time", 0);
-
-    formatBinding =new VariableBinding<int>("format", 1);
-
-
-    Window* window = new Window(&viewer, "Hale ISO");
+    // Each nanogui::Window is contained within the parent Viewer.
+    window = new Window(&viewer, "Hale ISO");
     window->setPosition(Vector2i(400, 15));
     window->setLayout(new GroupLayout());
 
     new Label(window, "Controls", "sans-bold", 20);
     new BoundWidget<std::string, nanogui::TextBox>(window, binding);
-    new Label(screen, "Elapsed Time", "sans-bold", 16);
-    new BoundWidget<int, nanogui::IntBox<int>>(screen, timeBinding);
     new Label(window, "ISO Value", "sans-bold", 16);
     new BoundWidget<double, nanogui::FloatBox<double>>(window, isoBinding);
-    auto *sliso = new BoundWidget<double, nanogui::Slider>(window, isoBinding);
-    // createWidget(window, *camorthobind, "checkbox");   // experimental function.
     new BoundWidget<bool, nanogui::CheckBox>(window, *camorthobind);
     new BoundWidget<double, nanogui::FloatBox<double>>(window, *camFOVbind);
     new Label(window, "Background Color", "sans-bold", 16);
     new BoundWidget<nanogui::Color, nanogui::ColorPicker>(window,colorBinding);
-
+    auto *sliso = new BoundWidget<double, nanogui::Slider>(window, isoBinding);
     sliso->setRange(isomin,isomax);
-    binding->setValue("String entry");
  
-
     window = new Window(&viewer, "File");
     window->setPosition(Vector2i(210, 15));
     window->setLayout(new GroupLayout());
-    
+
     new Label(window, "Things With Files", "sans-bold", 20);
     new Label(window, "Filename", "sans-bold", 16);
     new BoundWidget<std::string, nanogui::TextBox>(window, fileBinding);
@@ -375,29 +273,48 @@ main(int argc, const char **argv) {
     });
     b = new Button(tools, "Save");
     b->setCallback([&] {
-        cout << "File dialog result: " << file_dialog(
-                { {airEnumStr(nrrdFormatType, formatBinding->getValue()), airEnumDesc(nrrdFormatType, formatBinding->getValue())}, {"txt", "Text file"} }, true) << endl;
+        fileBinding->setValue(file_dialog(
+                { {airEnumStr(nrrdFormatType, formatBinding->getValue()), airEnumDesc(nrrdFormatType, formatBinding->getValue())}, {"txt", "Text file"} }, true));
     });
 
     new Label(window, "File Format", "sans-bold", 16);
-
-    new Label(screen, "Up Vector", "sans-bold", 16);
-
     new BoundWidget<int, nanogui::ComboBox>(window, formatBinding, nrrdFormatType);
-    new BoundWidget<glm::vec3, MatrixBox<3,1, glm::vec3>>(screen, *camupbind);
+
     auto matbind = new VariableBinding<glm::mat2x3>("matrix",glm::mat2x3());
+
+
+    window = new Window(&viewer, "Vectors");
+    window->setLayout(new GroupLayout());
+    new Label(window, "Elapsed Time", "sans-bold", 16);
+    new BoundWidget<int, nanogui::IntBox<int>>(window, timeBinding);
+    new Label(window, "Up Vector", "sans-bold", 16);
+    new BoundWidget<glm::vec3, MatrixBox<3,1, glm::vec3>>(window, *camupbind);
+    new Label(window, "2x3 Matrix", "sans-bold", 16);
+    new BoundWidget<glm::mat2x3, MatrixBox<2,3, glm::mat2x3>>(window, matbind);
+    window->setVisible(false);
+
+    screen = new ControllerScreen(nanogui::Vector2i(160, 400), "Controls");
+    new Label(screen, "Elapsed Time", "sans-bold", 16);
+    new BoundWidget<int, nanogui::IntBox<int>>(screen, timeBinding);
+    new Label(screen, "Up Vector", "sans-bold", 16);
+    new BoundWidget<glm::vec3, MatrixBox<3,1, glm::vec3>>(screen, *camupbind);
+    new Label(screen, "2x3 Matrix", "sans-bold", 16);
     new BoundWidget<glm::mat2x3, MatrixBox<2,3, glm::mat2x3>>(screen, matbind);
+    screen->addPopInButton(window);
+    screen->performLayout();
+    screen->setSize();
+    screen->setVisible(true);
+
+
+
+    viewer.performLayout();
+    viewer.setUpdateFunction(update);
+    viewer.drawAll();
+    viewer.setVisible(true);
+
     
   }
 
-  viewer.performLayout();
-  viewer.setUpdateFunction(update);
-  viewer.drawAll();
-  viewer.setVisible(true);
-
-  screen->performLayout();
-  screen->setSize();
-  screen->setVisible(true);
 
   try {
 

@@ -30,7 +30,7 @@ IPATH = -I$(TEEM)/include -I$(GLM) -I$(NANOGUI)/include -I$(NANOGUI)/ext/eigen -
 
 CXX = g++
 AR = ar crs
-CXXFLAGS = -Wall -std=c++11 -g
+CXXFLAGS = -Wall -Wno-deprecated-declarations -std=c++11 -g
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h

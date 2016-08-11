@@ -365,6 +365,7 @@ Viewer::windowCloseCB(GLFWwindow *gwin) {
     printf("%s()\n", me);
   }
   finishing = true;
+  nanogui::leave();
 
   return;
 }
@@ -729,6 +730,8 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) : nanogui
   setBackground(nanogui::Vector3f(mTheme->mWindowFillUnfocused[0],mTheme->mWindowFillUnfocused[1],mTheme->mWindowFillUnfocused[2]));
 
   glfwGetFramebufferSize(_window, &_widthBuffer, &_heightBuffer);
+  glfwSetWindowCloseCallback(mGLFWWindow, windowCloseCB);
+
   _nbuffRGBA[0] = nrrdNew();
   _nbuffRGBA[1] = nrrdNew();
   _buffAlloc();
@@ -811,7 +814,7 @@ bool Viewer::mouseButtonEvent(const nanogui::Vector2i &p, int button, bool down,
               if(popup != 0){
                 
                 // this is a popup.
-                fprintf(stderr, "anchor: %f, %f\n", popup->anchorPos()[0], popup->anchorPos()[1]);
+                fprintf(stderr, "anchor: %d, %d\n", popup->anchorPos()[0], popup->anchorPos()[1]);
                 int w = popup->size()[0];
                 int h = popup->size()[1];
                 int absx = popup->absolutePosition()[0];
@@ -1123,7 +1126,7 @@ void Viewer::current() {
 
   glewExperimental = GL_TRUE;
   GLenum glerr = glewInit();
-  GLenum err = glGetError();    
+  glGetError();    
   
   if (glerr != GLEW_OK){
     fprintf(stderr, "GLEW init failed: %d\n\n", glerr);
@@ -1187,6 +1190,70 @@ void Viewer::shapeUpdate() {
   _pixDensity = _widthBuffer/_widthScreen;
   camera.aspect(static_cast<double>(_widthBuffer)/_heightBuffer);
   updateViewportSize();
+}
+
+/* ControllerScreen */
+
+ControllerScreen::ControllerScreen(nanogui::Vector2i s, const char* name) : nanogui::Screen(s,name), initialized(false){
+  // container = new Widget(this);
+  grouplayout = new nanogui::GroupLayout();
+  setLayout(grouplayout);
+  initialized = true;
+
+  glfwSetWindowCloseCallback(mGLFWWindow, ControllerScreen::window_close_callback);
+}
+void ControllerScreen::addChild(int index, Widget * widget) {
+  nanogui::Screen::addChild(index,widget);
+}
+void ControllerScreen::performLayout(NVGcontext *ctx) {
+  int w=0,h=0;
+  for (auto c : mChildren) {
+    nanogui::Vector2i sz = c->preferredSize(ctx);
+    nanogui::Vector2i ps = c->position();
+    if(sz[0]+ps[0] > w)w = sz[0]+ps[0];
+    if(sz[1]+ps[1] > h)h = sz[1]+ps[1];
+  }
+  nanogui::Widget::performLayout(ctx);
+}
+void ControllerScreen::setSize(){
+  int w=0,h=0;
+  for (auto c : mChildren) {
+    nanogui::Vector2i sz = c->preferredSize(mNVGContext);
+    nanogui::Vector2i ps = c->position();
+    if(sz[0]+ps[0] > w)w = sz[0]+ps[0];
+    if(sz[1]+ps[1] > h)h = sz[1]+ps[1];
+    fprintf(stderr,"size %d, %d\n", sz[0]+ps[0], sz[1]+ps[1]);
+  }
+  nanogui::Screen::setSize(nanogui::Vector2i(w+grouplayout->margin(),h+grouplayout->margin()));
+}
+void ControllerScreen::performLayout(){
+  nanogui::Screen::performLayout();
+}
+bool ControllerScreen::resizeEvent(const nanogui::Vector2i &) {
+  performLayout();
+  return false;
+}
+void ControllerScreen::addPopInButton(Widget* forWindow){
+  correspondence = forWindow;
+  nanogui::Button *b = new nanogui::Button(this, "Pop in");
+  b->setCallback([&] {
+    setVisible(false);
+    correspondence->setVisible(true);
+  });
+  popupCorrespondence.insert(std::pair<GLFWwindow*, nanogui::Widget*>(mGLFWWindow, correspondence));
+  nanogui::Button *popout = new nanogui::Button(correspondence, "Pop out");
+  forWindow->layout();
+  popout->setCallback([&]{
+    fprintf(stderr,"callback\n");
+    correspondence->setVisible(false);
+    setVisible(true);
+  });
+}
+
+std::map<GLFWwindow*, nanogui::Widget*> ControllerScreen::popupCorrespondence;
+void ControllerScreen::window_close_callback(GLFWwindow* window){
+  // ControllerScreen::popupCorrespondence[window]->setVisible(true);
+  glfwSetWindowShouldClose(window, GLFW_FALSE);
 }
 
 } // namespace Hale
