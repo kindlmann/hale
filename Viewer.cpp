@@ -1039,16 +1039,10 @@ bool Viewer::keyboardEvent(int key, int scancode, int action, int modifiers) {
         setFocused(_window, true);
         keyCB(_window, key, scancode, action, modifiers);
     }
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        setVisible(false);
-        return true;
-    }
     return true;
 }
 
 void Viewer::draw(NVGcontext *ctx) {
-    /* Animate the scrollbar */
-
     /* Draw the user interface */
     Screen::draw(ctx);
 

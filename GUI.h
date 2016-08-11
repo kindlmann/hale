@@ -18,24 +18,22 @@
 #include <iterator>
 
 
-template<class T>
-class VariableBinding;
+template<typename T> class VariableBinding;
+template<typename T> class VariableExposure;
+template <typename T, typename S, typename sfinae> class BoundWidget;
 
 class GenericBoundWidget {
 public:
   virtual void updateFromBinding() = 0;  
 };
 
-template <typename T, typename S, typename sfinae> class BoundWidget;
-
 class GenericVariableBinding{
 public:
-    GenericVariableBinding(const char* myname) : name(myname), changed(false){
-
-    }
-    virtual ~GenericVariableBinding(){}
-    const char* const name;
-    bool changed;
+  GenericVariableBinding(const char* myname) : name(myname), changed(false){}
+  virtual ~GenericVariableBinding(){}
+  const char* const name;
+protected:
+  bool changed;
 };
 
 /* 
@@ -311,38 +309,6 @@ public:
   }
 };
 
-/*
- * Helper template to determine whether a particular type
- * can be represented as either a glm or an Eigen matrix of
- * doubles.
- *
- */
-template<class T>
-class is_glm_mat_type{
-public: 
-  typedef std::false_type type;
-  static const int M = 0;
-  static const int N = 0;
-};
-template<> class is_glm_mat_type<glm::vec2>{public:typedef std::true_type type; static const int M = 1; static const int N = 2;};
-template<> class is_glm_mat_type<glm::vec3>{public:typedef std::true_type type; static const int M = 1; static const int N = 3;};
-template<> class is_glm_mat_type<glm::vec4>{public:typedef std::true_type type; static const int M = 1; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat4x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 4;};
-template<> class is_glm_mat_type<glm::mat3x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat3x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat3x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 3;};
-template<> class is_glm_mat_type<glm::mat2x4>{public:typedef std::true_type type; static const int M = 4; static const int N = 2;};
-template<> class is_glm_mat_type<glm::mat2x3>{public:typedef std::true_type type; static const int M = 3; static const int N = 2;};
-template<> class is_glm_mat_type<glm::mat2x2>{public:typedef std::true_type type; static const int M = 2; static const int N = 2;};
-
-template<int Ni, int Mi> class is_glm_mat_type<Eigen::Matrix<double, Ni, Mi>>{
-public:
-  typedef std::true_type type;
-  static const int M = Mi;
-  static const int N = Ni;
-};
 
 template <typename T> class BoundWidget<T, MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, typename is_glm_mat_type<T>::type> : public MatrixBox<is_glm_mat_type<T>::N,is_glm_mat_type<T>::M,T>, public GenericBoundWidget {
 protected:
@@ -516,6 +482,13 @@ template<typename T, int N>
 struct array{
   T v[N];
 };
+
+
+/*
+** This class is a user-friendly interface
+** through which a programmer might interact
+** with Hale's GUI.
+*/
 class HCI{
 protected:
   struct param{
@@ -543,14 +516,15 @@ public:
   static airArray *mop;
   
 
-  // handle input parameters:
-
-  // Function that creates a variable binding for a
-  // particular type inside a given param object.
-  // Hest returns data that can be converted bitwise (C-style)
-  // to type R. This is then converted to a type T, using a
-  // user-provided conversion function. If no such function
-  // exists, then this step is skipped.
+  /* handle input parameters:
+  **
+  ** Function that creates a variable binding for a
+  ** particular type inside a given param object.
+  ** Hest returns data that can be converted bitwise (C-style)
+  ** to type R. This is then converted to a type T, using a
+  ** user-provided conversion function. If no such function
+  ** exists, then this step is skipped.
+  */
   template<typename T, typename R>
   static void createVariableBinding(param* pm){
     std::function<T(R)> *F = (std::function<T(R)>*)(pm->conversionFunction);
@@ -558,15 +532,18 @@ public:
     fprintf(stderr, "Conversion function: %p\n", F);
     T v = F ? (*F)(*((R*)(pm->hestPtr))) : *((T*)(pm->hestPtr));
     // then, create a new VariableBinding using that T.
-    if(!pm->binding)pm->binding = new VariableBinding<T>(pm->name, v);
+    if(!pm->binding){
+      pm->binding = new VariableBinding<T>(pm->name, v);
+    }
     else{
-      // unless a VariableBinding already exists. Then, just set the value.
+      // unless a VariableBinding already exists. here, just set the value.
       ((VariableBinding<T>*)(pm->binding))->setValue(v);
     }
 
     // Debug:
     int i =0;
     fprintf(stderr, "%s: populated at %p with [%lu]", pm->flag, (pm->hestPtr), sizeof(R));
+    // print value out as hex.
     while(i<sizeof(R)){
       fprintf(stderr,"%02x",((unsigned char*)(pm->hestPtr))[i]);
       i+=sizeof(unsigned char);
@@ -574,23 +551,24 @@ public:
     fprintf(stderr,"\n");
     //end debug.
   }
-public:
-  // returns a pointer to a VariableBinding pointer.
-  // This is because VariableBinding doesn't have a meaningful NULL/unitialized state.
-  // The return value will, at the end of the function, point to a pointer to NULL.
-  // eg:
-  //   VariableBinding<...> **binding = buildParameter(...);
-  //   assert(*binding == NULL);
-  //   // here, the variable binding is still unitialized.
-  //   loadParameters();
-  //   // here, the binding is now set to something.
-  //   *binding->setValue(...);
 
-
-  // R is the type that Hest outputs. Ie. The data that hest
-  // returns can be C-style (bitwise) cast to a type R.
-  // This R is then more intelligently cast (using a constructor)
-  // to an object of type T, which is returned.
+  /*
+  ** returns a pointer to a VariableBinding pointer.
+  ** This is because VariableBinding doesn't have a meaningful NULL/unitialized state.
+  ** The return value will, at the end of the function, point to a pointer to NULL.
+  ** eg:
+  **   VariableBinding<...> **binding = buildParameter(...);
+  **   assert(*binding == NULL);
+  **   // here, the variable binding is still unitialized.
+  **   loadParameters();
+  **   // here, the binding is now set to something.
+  **   *binding->setValue(...);
+  ** 
+  ** R is the type that Hest outputs. Ie. The data that hest
+  ** returns can be C-style (bitwise) cast to a type R.
+  ** This R is then more intelligently cast (using a constructor)
+  ** to an object of type T, which is returned.
+  */
   template <typename T, typename R=T>
   static VariableBinding<T>** buildParameter(const char *flag, const char* name, int minNumArgs, int maxNumArgs, const char* argDefault, unsigned int* sawP, airEnum* enm, hestCB* callback, void* exposureObj, const char* exposureName, const char* info, int type = 0, std::function<T(R)> *conversionFunction = 0){
 
@@ -637,7 +615,6 @@ public:
     airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestOptFree, airMopAlways);
     airMopAdd(HCI::mop, HCI::hopt, (airMopper)hestParseFree, airMopAlways);
     for(param* m : parameters){
-      fprintf(stderr, "param itr: %p\n", m);
       m->createBindingFun(m);
     }
   }

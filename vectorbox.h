@@ -1,5 +1,5 @@
 /*
-    vectorbox.h -- series of N textboxes to edit vector values.
+    vectorbox.h -- NxM grid of textboxes to edit matrix values.
 
     This widget was created by Ashwin Chetty.
 

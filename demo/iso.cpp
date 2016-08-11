@@ -247,12 +247,12 @@ int main(int argc, const char **argv) {
     new Label(window, "Controls", "sans-bold", 20);
     new BoundWidget<std::string, nanogui::TextBox>(window, binding);
     new Label(window, "ISO Value", "sans-bold", 16);
+    auto *sliso = new BoundWidget<double, nanogui::Slider>(window, isoBinding);
     new BoundWidget<double, nanogui::FloatBox<double>>(window, isoBinding);
     new BoundWidget<bool, nanogui::CheckBox>(window, *camorthobind);
     new BoundWidget<double, nanogui::FloatBox<double>>(window, *camFOVbind);
     new Label(window, "Background Color", "sans-bold", 16);
     new BoundWidget<nanogui::Color, nanogui::ColorPicker>(window,colorBinding);
-    auto *sliso = new BoundWidget<double, nanogui::Slider>(window, isoBinding);
     sliso->setRange(isomin,isomax);
  
     window = new Window(&viewer, "File");
