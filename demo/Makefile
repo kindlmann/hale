@@ -18,7 +18,7 @@ LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM)
 
 CC = g++ -std=c++11
 
-all: iso foo simple
+all: iso simple
 
 # We depend on the installed hale library because in practice that's
 # often what has actually changed when the demo programs need to be rebuilt.
@@ -27,4 +27,4 @@ all: iso foo simple
 	$(CC) $(IPATH) $< -o $@ $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
 
 clean:
-	rm -rf iso foo simple
+	rm -rf iso simple
