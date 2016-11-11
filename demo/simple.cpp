@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 
 #include "unistd.h" // for sleep()
-#include "/Users/gk/src/rokima/rkm.h"
 
 #include <fstream>
 
@@ -29,14 +28,13 @@ main(int argc, const char **argv) {
   double isovalue, sliso;
 
   double evec[9], eval[3];
-  rkmVol *vol;
   double mean[3], cov[9];
 
   Nrrd *nout = nrrdNew();
   unsigned int bins = 2000;
   int type;
 
-  Hale::debugging = 0;
+  Hale::debugging = 1;
 
   /* boilerplate hest code */
   me = argv[0];
