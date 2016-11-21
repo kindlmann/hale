@@ -231,7 +231,7 @@ Viewer::keyCB(GLFWwindow *gwin, int key, int scancode, int action, int mods) {
   } else if (GLFW_KEY_SPACE  == key && GLFW_PRESS == action) {
     if (vwr->_tvalue) {
       *(vwr->_tvalue) = !(*(vwr->_tvalue));
-      printf("%s: toggle is now %d\n", me, *(vwr->_tvalue));
+      //printf("%s: toggle is now %d\n", me, *(vwr->_tvalue));
     }
   }
 
@@ -646,6 +646,8 @@ Viewer::Viewer(int width, int height, const char *label, Scene *scene) {
   // http://www.glfw.org/docs/latest/window.html
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // Use OpenGL Core v3.2
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
   /* look into using this!
