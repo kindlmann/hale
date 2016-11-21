@@ -152,16 +152,19 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
   glErrorCheck(me, "glGetShaderiv");
   /* HEY why does this sometimes set status to 32767 (not 0 or 1)? */
 
+  GLint logSize;
+  glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
+  char logMsg[logSize+1];
+  /* http://gamedev.stackexchange.com/questions/30429/how-to-detect-glsl-warnings
+     suggests something like this to get warnings */
+  if (logSize > 0) {
+    glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
+    fprintf(stderr, "GLSL compiler %s:\n%s\n",
+            (GL_FALSE == status ? "error" : "warning"), logMsg);
+  }
   if (GL_FALSE == status) {
-    GLint logSize;
-    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
-    //printf("!%s: GL_INFO_LOG_LENGTH(%d) = %d\n", me.c_str(), shaderId, logSize);
-    if (logSize) {
-      char logMsg[logSize];
-      glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
-      glDeleteShader(shaderId);
-      throw std::runtime_error(me + ": compiler error:\n" + logMsg);
-    }
+    throw std::runtime_error(me + ": compiler error:\n" + logMsg);
+    glDeleteShader(shaderId);
     return 0;
   }
   return shaderId;
