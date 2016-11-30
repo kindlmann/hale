@@ -26,8 +26,10 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_map>
 #include <map>
 #include <list>
+#include <vector>
 
 /* This will include all the Teem headers at once */
 #include <teem/meet.h>
@@ -169,6 +171,8 @@ typedef struct {
 } glEnumItem;
 /* gadget to map GLenum values to something readable */
 extern std::map<GLenum,glEnumItem> glEnumDesc;
+
+extern GLuint loadTextureImage(const Nrrd *nimg);
 
 /* Camera.cpp: like Teem's limnCamera but simpler: the image plane is
    always considered to be containing look-at point, there is no
@@ -373,8 +377,10 @@ class Program {
   void link();
   GLuint progId() const;
   void use() const;
+
   // will add more of these as needed
   void uniform(std::string, float, bool sticky=false) const;
+  void uniform(std::string, int, bool sticky=false) const;
   void uniform(std::string, glm::vec3, bool sticky=false) const;
   void uniform(std::string, glm::vec4, bool sticky=false) const;
   void uniform(std::string, glm::mat4, bool sticky=false) const;
@@ -385,6 +391,7 @@ class Program {
  protected:
   GLint _vertId, _fragId, _progId;
   GLchar *_vertCode, *_fragCode;
+
 };
 /* Extra functions not in Program: ways to communicate (really,
    broadcast, or shout) uniforms to whatever is current program */
@@ -400,7 +407,9 @@ extern std::map<std::string, glm::vec4> stickyUniformVec4;
 extern std::map<std::string, glm::mat4> stickyUniformMat4;
 extern void stickyUniform(void);
 /* way to access one of the "pre-programs"; will compile as needed */
-extern const Program *ProgramLib(preprogram pp);
+extern const Program *ProgramLib(preprogram pp); 
+extern const Program *ProgramLib(const char *vertFname, const char *fragFname, const char *nameTexture,
+                const char *nameXYZW, const char *nameRGBA, const char *nameNorm, const char *nameTex2);
 
 class Polydata {
  public:
@@ -418,7 +427,8 @@ class Polydata {
   void colorSolid(glm::vec3 rgb);
   void colorSolid(glm::vec4 rgba);
   glm::vec4 colorSolid() const;
-
+  void setTexture(char *varName, Nrrd *nimg);
+  void bindTexture() const;
   /* set/get model transformation */
   void model(glm::mat4 mat);
   glm::mat4 model() const;
@@ -458,6 +468,9 @@ class Polydata {
   GLuint _elms;
   /* the program used for rendering */
   const Program *_program;
+
+  std::vector<GLuint> _textureIds;
+  std::unordered_map<char*, unsigned int> _textureVars;
 };
 
 /*

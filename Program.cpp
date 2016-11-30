@@ -370,6 +370,21 @@ Program::uniform(std::string name, float vv, bool sticky) const {
   }
 }
 
+void
+Program::uniform(std::string name, int vv, bool sticky) const {
+  static const std::string me="Program::uniform";
+  auto iter = uniformType.find(name);
+  if (uniformType.end() == iter) {
+    throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+  }
+  
+  glUniform1i(uniformLocation.at(name), vv);
+  glErrorCheck(me, std::string("glUniform1i(") + name + ")");
+  if (debugging) {
+    printf("# glUniform1i(%u, %d);\n", uniformLocation.at(name), vv);
+  }
+}
+
 // HEY: what's right way to avoid copy+paste?
 void uniform(std::string name, glm::vec3 vv, bool sticky) {
   if (_programCurrent) {
@@ -471,6 +486,8 @@ void stickyUniform(void) {
   }
 }
 
+
+
 /* ------------------------------------------------------------ */
 
 const Program *
@@ -496,11 +513,13 @@ ProgramLib(preprogram pp) {
     prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
     prog->bindAttribute(Hale::vertAttrIdxRGBA, "colorVA");
     prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
+    prog->bindAttribute(Hale::vertAttrIdxTex2, "tex2VA"); // HEY Tex2, Tang
     break;
   case preprogramAmbDiffSolid:
   case preprogramAmbDiff2SideSolid:
     prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
     prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
+    prog->bindAttribute(Hale::vertAttrIdxTex2, "tex2VA");
     break;
   default:
     throw std::runtime_error(me + ": sorry, prog " + std::to_string(pp)
@@ -509,6 +528,34 @@ ProgramLib(preprogram pp) {
   }
   prog->link();
   _program[pp] = prog;
+  return prog;
+}
+
+const Program *
+ProgramLib(const char *vertFname, const char *fragFname, const char *nameTexture, const char *nameXYZW, 
+          const char *nameRGBA, const char *nameNorm, const char *nameTex2) {
+  static const std::string me = "Hale::ProgramLib";
+
+  Program *prog = new Program(vertFname,fragFname);
+  prog->compile();
+
+  if (nameXYZW!=NULL)
+  {
+    prog->bindAttribute(Hale::vertAttrIdxXYZW, nameXYZW);
+  }
+  if (nameRGBA!=NULL)
+  {
+    prog->bindAttribute(Hale::vertAttrIdxRGBA, nameRGBA);
+  }
+  if (nameNorm!=NULL)
+  {
+    prog->bindAttribute(Hale::vertAttrIdxNorm, nameNorm);
+  }
+  if (nameTex2!=NULL)
+  {
+    prog->bindAttribute(Hale::vertAttrIdxTex2, nameTex2);
+  }
+  prog->link();  
   return prog;
 }
 

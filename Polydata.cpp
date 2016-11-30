@@ -83,7 +83,22 @@ Polydata::_buffer(bool newaddr) {
   }
 
   /* HEY: tang and tex2 */
-
+  if (ibits & (1 << limnPolyDataInfoTex2)) {
+    printf("inside binding tex2 attribute\n");
+    glBindBuffer(GL_ARRAY_BUFFER, _buff[_buffIdx[vertAttrIdxTex2]]);
+    if (debugging)
+      printf("# glBindBuffer(GL_ARRAY_BUFFER, %u);\n", _buff[_buffIdx[vertAttrIdxTex2]]);
+    if (newaddr) {
+      glBufferData(GL_ARRAY_BUFFER, lpd->tex2Num*sizeof(float)*2, lpd->tex2, GL_DYNAMIC_DRAW);
+      if (debugging)
+        printf("# glBufferData(GL_ARRAY_BUFFER, %u, lpd->tex2, GL_DYNAMIC_DRAW);\n", (unsigned int)(lpd->tex2Num*sizeof(float)*2));
+    } else {
+      glBufferSubData(GL_ARRAY_BUFFER, 0, lpd->tex2Num*sizeof(float)*2,lpd->tex2);
+    }
+    glVertexAttribPointer(Hale::vertAttrIdxTex2, 2, GL_FLOAT,GL_FALSE, 0, 0);
+    if (debugging)
+      printf("# glVertexAttribPointer(%u, 3, GL_FLOAT, GL_FALSE, 0, 0);\n", Hale::vertAttrIdxTex2);
+  }
 
   if (!_elms || newaddr) {
     if (_elms) {
@@ -281,6 +296,51 @@ std::string Polydata::name() const {
   return _name;
 }
 
+
+void Polydata::setTexture(char *varName, Nrrd *nimg)
+{
+  GLuint curId = loadTextureImage(nimg);
+  _textureIds.push_back(curId);
+  unsigned int curTex = _textureIds.size()-1;
+  _textureVars[varName] = curTex;
+}
+
+void Polydata::bindTexture() const 
+{
+  for (auto it : _textureVars)
+  {
+    switch (it.second)
+    {
+      case 0:
+        glActiveTexture(GL_TEXTURE0);            
+        break;
+      case 1:
+        glActiveTexture(GL_TEXTURE1);
+        break;
+      case 2:
+        glActiveTexture(GL_TEXTURE2);
+        break;
+      case 3:
+        glActiveTexture(GL_TEXTURE3);
+        break;
+      case 4:
+        glActiveTexture(GL_TEXTURE4);
+        break;
+      case 5:
+        glActiveTexture(GL_TEXTURE5);
+        break;
+      case 6:
+        glActiveTexture(GL_TEXTURE6);
+        break;
+      default:
+        break;
+    }
+    glBindTexture(GL_TEXTURE_2D, _textureIds[it.second]);
+    _program->uniform(it.first,(int)it.second);
+  }
+  
+}
+
 void
 Polydata::draw() const {
   static const char me[]="Hale::Polydata::draw";
@@ -294,12 +354,18 @@ Polydata::draw() const {
   if (!(ibits & (1 << limnPolyDataInfoRGBA))) {
     _program->uniform("colorSolid", _colorSolid);
   }
+    
+  if (ibits & (1 << limnPolyDataInfoTex2)) {
+
+    bindTexture();
+  }  
+
   _program->uniform("modelMat", _model);
   /* would be nice to call this only if the values have changed;
      but the Program pointer is to a const Program, so we can't easily
      make this into a stateful/conditional call to uniform() */
-  _program->uniform("phongKa", 0.2);
-  _program->uniform("phongKd", 0.8);
+  _program->uniform("phongKa", (float)0.2);
+  _program->uniform("phongKd", (float)0.8);
   if (debugging)
     printf("!%s: (done setting uniforms)\n", me);
 
