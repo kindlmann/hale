@@ -364,8 +364,8 @@ Polydata::draw() const {
   /* would be nice to call this only if the values have changed;
      but the Program pointer is to a const Program, so we can't easily
      make this into a stateful/conditional call to uniform() */
-  _program->uniform("phongKa", (float)0.2);
-  _program->uniform("phongKd", (float)0.8);
+  _program->uniform("phongKa", 0.2f);
+  _program->uniform("phongKd", 0.8f);
   if (debugging)
     printf("!%s: (done setting uniforms)\n", me);
 
