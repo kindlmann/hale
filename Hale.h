@@ -408,8 +408,6 @@ extern std::map<std::string, glm::mat4> stickyUniformMat4;
 extern void stickyUniform(void);
 /* way to access one of the "pre-programs"; will compile as needed */
 extern const Program *ProgramLib(preprogram pp); 
-extern const Program *ProgramLib(const char *vertFname, const char *fragFname, const char *nameTexture,
-                const char *nameXYZW, const char *nameRGBA, const char *nameNorm, const char *nameTex2);
 
 class Polydata {
  public:

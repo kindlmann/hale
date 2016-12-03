@@ -531,32 +531,4 @@ ProgramLib(preprogram pp) {
   return prog;
 }
 
-const Program *
-ProgramLib(const char *vertFname, const char *fragFname, const char *nameTexture, const char *nameXYZW, 
-          const char *nameRGBA, const char *nameNorm, const char *nameTex2) {
-  static const std::string me = "Hale::ProgramLib";
-
-  Program *prog = new Program(vertFname,fragFname);
-  prog->compile();
-
-  if (nameXYZW!=NULL)
-  {
-    prog->bindAttribute(Hale::vertAttrIdxXYZW, nameXYZW);
-  }
-  if (nameRGBA!=NULL)
-  {
-    prog->bindAttribute(Hale::vertAttrIdxRGBA, nameRGBA);
-  }
-  if (nameNorm!=NULL)
-  {
-    prog->bindAttribute(Hale::vertAttrIdxNorm, nameNorm);
-  }
-  if (nameTex2!=NULL)
-  {
-    prog->bindAttribute(Hale::vertAttrIdxTex2, nameTex2);
-  }
-  prog->link();  
-  return prog;
-}
-
 }
