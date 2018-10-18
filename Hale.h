@@ -37,6 +37,7 @@
 ** will expect or need. Hale's own source does use GLM_FORCE_RADIANS but
 ** that's in privateHale.h
 */
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 
 /*
