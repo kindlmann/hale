@@ -10,7 +10,7 @@ else
 OS_LIBS = -lGL -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 endif
 
-LIBS = -lglfw3 -lhale -lteem -lpng -lz
+LIBS = -lglfw -lhale -lteem -lpng -lz
 
 RPATH = -Wl,-rpath,$(TEEM)/lib
 IPATH = -I$(HALE)/include -I$(TEEM)/include -I$(GLM)
