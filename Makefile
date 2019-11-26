@@ -46,7 +46,7 @@ all: $(LIB)
 $(OBJS): $(HDR) $(PRIV_HDR)
 
 .cpp.o:
-	$(CXX) -c $(CXXFLAGS) $(IPATH) -o $@ $<
+	$(CXX) -DGL_SILENCE_DEPRECATION -c $(CXXFLAGS) $(IPATH) -o $@ $<
 
 $(LIB): $(OBJS)
 	$(AR) $(LIB) $(OBJS)
