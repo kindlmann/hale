@@ -231,6 +231,47 @@ init() {
   return;
 }
 
+//Test Func
+GLuint loadTextureImage(const Nrrd *nimg){
+
+  unsigned int width, height;
+  // Actual RGB data
+  unsigned char * data;
+
+  width = (unsigned int)nimg->axis[1].size;
+  height = (unsigned int)nimg->axis[2].size;
+  data = (unsigned char*)nimg->data;
+
+  // Create one OpenGL texture
+  GLuint textureID;
+  glGenTextures(1, &textureID);
+  
+  // "Bind" the newly created texture : all future texture functions will modify this texture
+  glBindTexture(GL_TEXTURE_2D, textureID);
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  // Give the image to OpenGL
+  glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+  // OpenGL has now copied the data. Free our own version
+  delete [] data;
+
+  // Poor filtering, or ...
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+
+  // ... nice trilinear filtering.
+  
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+  glGenerateMipmap(GL_TEXTURE_2D);
+  
+  // Return the ID of the texture we just created
+  return textureID;
+}
+
 void
 done() {
 
