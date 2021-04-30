@@ -23,7 +23,7 @@ Thus to build Hale you'll need to first install:
    svn co https://svn.code.sf.net/p/teem/code/teem/trunk teem
    and follow info at http://teem.sourceforge.net/build.html
 2. GLFW3: http://www.glfw.org
-3. GLM: http://glm.g-truc.net
+3. GLM: https://github.com/g-truc/glm
 
 Help is welcome for simplifying/automating how the build process finds
 these dependencies.
