@@ -1,6 +1,6 @@
 # NOTE: Change these next three lines as needed
-TEEM = ../../teem-install
-HALE = ../../hale-install
+TEEM = ../../../teem-install
+HALE = ../../../tmphale-install
 GLM = /usr/local/include/glm/
 
 OS := $(shell uname)
