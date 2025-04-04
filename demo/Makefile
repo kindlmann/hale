@@ -1,11 +1,15 @@
-# NOTE: Change these next three lines as needed
-TEEM = ../../../teem-install
-HALE = ../../../tmphale-install
-GLM = /usr/local/include/glm/
+# NOTE: Change these next lines as needed, or override via, e.g.
+# "GLM=/other/path make"
+TEEM ?= ../../teem-install
+HALE ?= ../../hale-install
+GLM ?= /opt/homebrew/Cellar/glm/1.0.1
+GLFW ?= /opt/homebrew/Cellar/glfw/3.4
+PNG ?= /opt/homebrew/Cellar/libpng/1.6.47
 
 OS := $(shell uname)
 ifeq ($(OS), Darwin)
-OS_LIBS = -framework CoreVideo  -framework Cocoa -framework OpenGL -framework IOKit
+# OS_LIBS = -framework CoreVideo  -framework Cocoa -framework OpenGL -framework IOKit
+OS_LIBS = -framework Cocoa -framework OpenGL -framework IOKit
 else
 OS_LIBS = -lGL -lX11 -lXxf86vm -lXrandr -lpthread -lXi
 endif
@@ -13,10 +17,10 @@ endif
 LIBS = -lglfw -lhale -lteem -lpng -lz
 
 RPATH = -Wl,-rpath,$(TEEM)/lib
-IPATH = -I$(HALE)/include -I$(TEEM)/include -I$(GLM)
-LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLM)
+IPATH = -I$(HALE)/include -I$(TEEM)/include -I$(GLFW)/include -I$(GLM)/include
+LPATH = -L$(HALE)/lib -L$(TEEM)/lib -L$(GLFW)/lib -L$(GLM)/lib -L$(PNG)/lib
 
-CC = g++ -std=c++11
+CC = g++ -std=c++11 -g
 
 all: iso simple
 
@@ -27,4 +31,4 @@ all: iso simple
 	$(CC) $(IPATH) $< -o $@ $(RPATH) $(LPATH) $(LIBS) $(OS_LIBS)
 
 clean:
-	rm -rf iso simple
+	rm -rf iso iso.dSYM simple simple.dSYM

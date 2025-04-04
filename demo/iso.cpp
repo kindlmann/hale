@@ -1,9 +1,10 @@
 #include <iostream>
 #include <Hale.h>
+#include <teem/seek.h>
 #include <glm/glm.hpp>
 
 void
-render(Hale::Viewer *viewer) {
+render(Hale::Viewer3 *viewer) {
     viewer->draw();
     viewer->bufferSwap();
 }
@@ -93,21 +94,23 @@ main(int argc, const char **argv) {
     Hale::init();
     Hale::Scene scene;
     /* then create viewer (in order to create the OpenGL context) */
-    Hale::Viewer viewer(camsize[0], camsize[1], "Iso", &scene);
+    Hale::Viewer3 viewer(camsize[0], camsize[1], "Iso", &scene);
     viewer.lightDir(glm::vec3(-1.0f, 1.0f, 3.0f));
     viewer.camera.init(glm::vec3(camfr[0], camfr[1], camfr[2]),
                        glm::vec3(camat[0], camat[1], camat[2]),
                        glm::vec3(camup[0], camup[1], camup[2]), camFOV,
                        (float)camsize[0] / camsize[1], camnc, camfc, camortho);
-    viewer.refreshCB((Hale::ViewerRefresher)render);
+    viewer.refreshCB((Hale::Viewer3Refresher)render);
     viewer.refreshData(&viewer);
     sliso = isovalue;
     viewer.slider(&sliso, isomin, isomax);
     viewer.current();
 
     /* then create geometry, and add it to scene */
-    Hale::Polydata hply(lpld, true, // hply now owns lpld
-                        Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
+    Hale::Polydata hply(lpld,
+                        true, // hply now owns lpld
+                              //   Hale::ProgramLib(Hale::preprogramAmbDiff2SideSolid));
+                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid));
     scene.add(&hply);
 
     scene.drawInit();
@@ -128,6 +131,7 @@ main(int argc, const char **argv) {
     }
     while (!Hale::finishing) {
         glfwWaitEvents();
+
         if (viewer.sliding() && sliso != isovalue) {
             isovalue = sliso;
             printf("%s: isosurfacing at %g\n", me, isovalue);
