@@ -1,0 +1,25 @@
+# This file is what provides info to "clang-format -style=file" when run in this
+# directory or a subdirectory. See https://clang.llvm.org/docs/ClangFormat.html
+# and https://clang.llvm.org/docs/ClangFormatStyleOptions.html for more info.
+---
+BasedOnStyle: LLVM
+ColumnLimit: 89
+AlwaysBreakAfterDefinitionReturnType: All
+AlwaysBreakAfterReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 400
+AllowShortIfStatementsOnASingleLine: WithoutElse
+PenaltyBreakBeforeFirstCallParameter: 100
+PenaltyBreakAssignment: 50
+AlignOperands: AlignAfterOperator
+BreakBeforeBinaryOperators: All
+PenaltyBreakOpenParenthesis: 300
+PPIndentWidth: 2
+IndentWidth: 4
+ContinuationIndentWidth: 2
+SortIncludes: false
+ExperimentalAutoDetectBinPacking: true
+IndentPPDirectives: AfterHash
+AllowShortEnumsOnASingleLine: false
+AlignConsecutiveMacros: AcrossComments
+AllowShortFunctionsOnASingleLine: All
+...
