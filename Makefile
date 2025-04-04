@@ -23,13 +23,16 @@
 LIB = libhale.a
 
 TEEM = $(HOME)/teem-install
-GLM = /usr/local/include/glm/
+# over-ride these as needed, e.g. "GLM=/other/path make"
+GLM ?= /opt/homebrew/Cellar/glm/1.0.1
+GLFW ?= /opt/homebrew/Cellar/glfw/3.4
 
-IPATH = -I$(TEEM)/include -I$(GLM)
+IPATH = -I$(TEEM)/include -I$(GLFW)/include -I$(GLM)/include
 
 CXX = g++
 AR = ar crs
-CXXFLAGS = -Wall -std=c++11 -g
+# -Wno-deprecated-declarations because I know how to use sprintf()
+CXXFLAGS = -Wall -std=c++11 -g -Wno-deprecated-declarations
 
 HDR = Hale.h
 PRIV_HDR = privateHale.h
