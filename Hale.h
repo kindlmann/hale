@@ -419,6 +419,11 @@ class Polydata {
                       const Program *prog, std::string name = "");
     explicit Polydata(limnPolyData *poly, bool own, // may or may not own
                       const Program *prog, std::string name = "");
+    explicit Polydata(bool fpIsDouble, const void *_xyzw, const void *_norm,
+                      unsigned int vertNum, unsigned int indxNum,
+                      const unsigned int *indx, unsigned int primNum,
+                      const unsigned char *type, const unsigned int *icnt,
+                      const Program *prog, std::string name);
     ~Polydata();
     /* if you want to get the underlying limn representation */
     const limnPolyData *

@@ -23,6 +23,8 @@
 #include "Hale.h"
 #include "privateHale.h"
 
+#include <teem/ell.h>
+
 namespace Hale {
 
 void
@@ -207,6 +209,64 @@ Polydata::Polydata(limnPolyData *poly, bool own, const Program *prog, std::strin
         _lpld = poly;
         _lpldOwn = NULL;
     }
+    _program = prog;
+    _init(name);
+}
+
+// to make a PolyData from something that has the parts of a limnPolyData but isn't one
+Polydata::Polydata(
+  bool fpIsDouble,   // following two void* are double* (else they are float *)
+  const void *_xyzw, // (float or double) (always allocated) vertNum position 4-tuples
+  const void *_norm, // (float or double) if non-NULL, vertNum (x,y,z) unit normals
+  uint vertNum,      // logical size of _xyzw (and _norm, if it non-NULL)
+  uint indxNum,      // there are indxNum vertex indices in indx[]
+  const uint *indx,  /* all indices (into above arrays) for all primitives, concatenated
+                        together into one array */
+  uint primNum,      // there are primNum primitives (e.g. tristrips)
+  const uchar *type, // primitive ii (0<=i<primNum) is a type[ii] (limnPrimitive* enum)
+  const uint *icnt,  // primitive ii (0<=i<primNum) has icnt[ii] vertex indices
+  const Program *prog, std::string name) {
+    // static const char me[] = "Polydata::Polydata(from parts)";
+    // printf("%s: Polydata from parts!\n", me);
+    _lpld = NULL;
+    _lpldOwn = limnPolyDataNew();
+    uint infoBitFlag = _norm ? (1 << limnPolyDataInfoNorm) : 0;
+    // printf("%s: Polydata from parts! (infoBitFlag=%u)\n", me, infoBitFlag);
+    if (limnPolyDataAlloc(_lpldOwn, infoBitFlag, vertNum, indxNum, primNum)) {
+        char *err = biffGetDone(LIMN);
+        fprintf(stderr, "%s: problem creating own limnPolyData\n%s", me, err);
+        free(err);
+    }
+    if (fpIsDouble) {
+        float *xyzwDst = _lpldOwn->xyzw;
+        float *normDst = _lpldOwn->norm;
+        const double *xyzwSrc = (const double *)_xyzw;
+        const double *normSrc = (const double *)_norm;
+        for (uint vi = 0; vi < vertNum; vi++) {
+            ELL_4V_COPY(xyzwDst + 4 * vi, xyzwSrc + 4 * vi);
+            if (normDst) {
+                ELL_3V_COPY(normDst + 3 * vi, normSrc + 3 * vi);
+            }
+        }
+    } else {
+        memcpy(_lpldOwn->xyzw, _xyzw, 4 * vertNum * sizeof(float));
+        if (_lpldOwn->norm) {
+            memcpy(_lpldOwn->norm, _norm, 3 * vertNum * sizeof(float));
+        }
+    }
+    // for now not touching _lpldOwn->rgba
+    // for now not touching _lpldOwn->tex2
+    // for now not touching _lpldOwn->tang
+    memcpy(_lpldOwn->indx, indx, indxNum * sizeof(uint));
+    // for (uint ii = 0; ii < indxNum; ii++)  _lpldOwn->indx[ii] = indx[ii];
+    memcpy(_lpldOwn->type, type, primNum * sizeof(uchar));
+    memcpy(_lpldOwn->icnt, icnt, primNum * sizeof(uint));
+    /*
+    for (uint pi = 0; pi < primNum; pi++) {
+        _lpldOwn->type[ii] = type[ii];
+        _lpldOwn->icnt[ii] = icnt[ii];
+    }
+    */
     _program = prog;
     _init(name);
 }

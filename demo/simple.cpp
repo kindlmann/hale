@@ -35,7 +35,7 @@ main(int argc, const char **argv) {
     unsigned int bins = 2000;
     int type;
 
-    Hale::debugging = 1;
+    Hale::debugging = 0;
 
     /* boilerplate hest code */
     me = argv[0];
@@ -96,6 +96,27 @@ main(int argc, const char **argv) {
                         "square");
     hpld.colorSolid(1, 0.5, 0.5);
     scene.add(&hpld);
+
+    limnPolyData *spld = limnPolyDataNew();
+    limnPolyDataIcoSphere(spld, 1 << limnPolyDataInfoNorm, 4);
+#if 0
+    Hale::Polydata tpld(spld, true, Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
+                        "sphere");
+#else
+    Hale::Polydata tpld(false,
+                        spld->xyzw,
+                        spld->norm,
+                        spld->xyzwNum,
+                        spld->indxNum,
+                        spld->indx,
+                        spld->primNum,
+                        spld->type,
+                        spld->icnt,
+                        Hale::ProgramLib(Hale::preprogramAmbDiffSolid),
+                        "sphere");
+#endif
+    tpld.colorSolid(0.5, 1.0, 0.5);
+    scene.add(&tpld);
 
     scene.drawInit();
     render(&viewer);
