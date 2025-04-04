@@ -27,68 +27,50 @@ namespace Hale {
 /* ------------------------------------------------------------- */
 
 #define VIEWER_MODE_NUM 14
-const char *
-_viewerModeStr[VIEWER_MODE_NUM+1] = {
-  "unknown mode",    /* (0) */
-  "none",            /*  1 */
-  "fov",             /*  2 */
-  "depth-scale",     /*  3 */
-  "translate-N",     /*  4 */
-  "rotate-UV",       /*  5 */
-  "rotate-U",        /*  6 */
-  "rotate-V",        /*  7 */
-  "rotate-N",        /*  8 */
-  "vertigo",         /*  9 */
-  "translate-UV",    /* 10 */
-  "translate-U",     /* 11 */
-  "translate-V",     /* 12 */
-  "zoom",            /* 13 */
-  "slider"           /* 14 */
+const char *_viewerModeStr[VIEWER_MODE_NUM + 1] = {
+  "unknown mode", /* (0) */
+  "none",         /*  1 */
+  "fov",          /*  2 */
+  "depth-scale",  /*  3 */
+  "translate-N",  /*  4 */
+  "rotate-UV",    /*  5 */
+  "rotate-U",     /*  6 */
+  "rotate-V",     /*  7 */
+  "rotate-N",     /*  8 */
+  "vertigo",      /*  9 */
+  "translate-UV", /* 10 */
+  "translate-U",  /* 11 */
+  "translate-V",  /* 12 */
+  "zoom",         /* 13 */
+  "slider"        /* 14 */
 };
 
-airEnum
-_viewerMode = {
-  "viewer mode",
-  VIEWER_MODE_NUM,
-  _viewerModeStr, NULL,
-  NULL,
-  NULL, NULL,
-  AIR_FALSE
-};
+airEnum _viewerMode = {"viewer mode", VIEWER_MODE_NUM, _viewerModeStr, NULL, NULL, NULL,
+                       NULL,          AIR_FALSE};
 
-airEnum *
-viewerMode = &_viewerMode;
+airEnum *viewerMode = &_viewerMode;
 
 /* ------------------------------------------------------------- */
 
 #define FINISHING_STATUS_NUM 3
 
-const char *
-_finishingStatusStr[FINISHING_STATUS_NUM+1] = {
+const char *_finishingStatusStr[FINISHING_STATUS_NUM + 1] = {
   "unknown finishing status", /* (0) */
   "not",                      /* 1 */
   "okay",                     /* 2 */
   "error"                     /* 3 */
 };
 
-airEnum
-_finishingStatus = {
-  "finishing status",
-  FINISHING_STATUS_NUM,
-  _finishingStatusStr, NULL,
-  NULL,
-  NULL, NULL,
-  AIR_FALSE
-};
+airEnum _finishingStatus = {
+  "finishing status", FINISHING_STATUS_NUM, _finishingStatusStr, NULL, NULL, NULL, NULL,
+  AIR_FALSE};
 
-airEnum *
-finishingStatus = &_finishingStatus;
+airEnum *finishingStatus = &_finishingStatus;
 
 /* ------------------------------------------------------------- */
 
 #define VERT_ATTR_INDX_NUM 5
-const char *
-_vertAttrIndxStr[VERT_ATTR_INDX_NUM+1] = {
+const char *_vertAttrIndxStr[VERT_ATTR_INDX_NUM + 1] = {
   "unknown vert attr index", /* (-1) */
   "xyzw",                    /*  0 */
   "rgba"                     /*  1 */
@@ -97,17 +79,15 @@ _vertAttrIndxStr[VERT_ATTR_INDX_NUM+1] = {
   "tang"                     /*  4 */
 };
 
-airEnum
-_vertAttrIndex = {
-  "vertex attribute index",
-  VERT_ATTR_INDX_NUM,
-  _vertAttrIndxStr, NULL,
-  NULL,
-  NULL, NULL,
-  AIR_FALSE
-};
+airEnum _vertAttrIndex = {"vertex attribute index",
+                          VERT_ATTR_INDX_NUM,
+                          _vertAttrIndxStr,
+                          NULL,
+                          NULL,
+                          NULL,
+                          NULL,
+                          AIR_FALSE};
 
-airEnum *
-vertAttrIndex = &_vertAttrIndex;
+airEnum *vertAttrIndex = &_vertAttrIndex;
 
 } // namespace Hale
