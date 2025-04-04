@@ -1,14 +1,3 @@
-
-uniform renaming:
-proj  -> projectMat
-view -> viewMat
-model -> modelMat
-
-vert attr renaming:
-position -> positionVA
-norm -> normalVA
-color -> colorVA
-
 Specialized window for AntTweakBar parameters
 
 Specialized window just for displaying a 2D RGB image
