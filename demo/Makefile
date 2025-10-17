@@ -1,10 +1,10 @@
 # NOTE: Change these next lines as needed, or override via, e.g.
 # "GLM=/other/path make"
-TEEM ?= ../../teem-install
+TEEM ?= $(HOME)/teem-git/teem-install
 HALE ?= ../../hale-install
 GLM ?= /opt/homebrew/Cellar/glm/1.0.1
 GLFW ?= /opt/homebrew/Cellar/glfw/3.4
-PNG ?= /opt/homebrew/Cellar/libpng/1.6.47
+PNG ?= /opt/homebrew/Cellar/libpng/1.6.50
 
 OS := $(shell uname)
 ifeq ($(OS), Darwin)

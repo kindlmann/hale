@@ -28,10 +28,9 @@ main(int argc, const char **argv) {
     me = argv[0];
     mop = airMopNew();
     hparm = hestParmNew();
-    hparm->respFileEnable = AIR_TRUE;
     airMopAdd(mop, hparm, (airMopper)hestParmFree, airMopAlways);
     /* setting up the command-line options */
-    hparm->respFileEnable = AIR_TRUE;
+    hparm->responseFileEnable = AIR_TRUE;
     hestOptAdd(&hopt, "i", "volume", airTypeOther, 1, 1, &nin, NULL,
                "input volume to isosurface", NULL, NULL, nrrdHestNrrd);
     hestOptAdd(&hopt, "v", "isovalue", airTypeDouble, 1, 1, &isovalue, "nan",
@@ -56,8 +55,7 @@ main(int argc, const char **argv) {
     hestOptAdd(&hopt, "haq", NULL, airTypeBool, 0, 0, &(hitandquit), NULL,
                "save a screenshot rather than display the viewer");
 
-    hestParseOrDie(hopt, argc - 1, argv + 1, hparm, me, "demo program", AIR_TRUE,
-                   AIR_TRUE, AIR_TRUE);
+    hestParseOrDie(hopt, argc - 1, argv + 1, hparm, me, "demo program");
     airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
     airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
 

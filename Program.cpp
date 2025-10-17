@@ -25,97 +25,96 @@
 
 namespace Hale {
 
-/* gadgets to map uniform names to variables */
-std::map<std::string, float> stickyUniformFloat;
-std::map<std::string, glm::vec3> stickyUniformVec3;
-std::map<std::string, glm::vec4> stickyUniformVec4;
-std::map<std::string, glm::mat3> stickyUniformMat3;
-std::map<std::string, glm::mat4> stickyUniformMat4;
+  /* gadgets to map uniform names to variables */
+  std::map<std::string, float> stickyUniformFloat;
+  std::map<std::string, glm::vec3> stickyUniformVec3;
+  std::map<std::string, glm::vec4> stickyUniformVec4;
+  std::map<std::string, glm::mat3> stickyUniformMat3;
+  std::map<std::string, glm::mat4> stickyUniformMat4;
 
 // #define VERSION "#version 150 core\n "
 #define VERSION "#version 410\n "
-static const char *AmbDiff_vert
-  = (VERSION "uniform mat4 projectMat;\n "
-             "uniform mat4 viewMat;\n "
-             "uniform mat4 modelMat;\n "
-             "in vec4 positionVA;\n "
-             "in vec3 normalVA;\n "
-             "in vec4 colorVA;\n "
-             "layout(location = 0) out vec3 norm_frag;\n "
-             "layout(location = 1) out vec4 color_frag;\n "
-             // HEY this needs fixing, like the one below
-             "mat4 modIT = transpose(inverse(modelMat));\n "
-             "void main(void) {\n "
-             "  gl_Position = projectMat * viewMat * modelMat * positionVA;\n "
-             "  norm_frag = mat3(modIT) * normalVA;\n "
-             "  color_frag = colorVA;\n "
-             "}\n ");
+  static const char *AmbDiff_vert
+    = (VERSION "uniform mat4 projectMat;\n "
+               "uniform mat4 viewMat;\n "
+               "uniform mat4 modelMat;\n "
+               "in vec4 positionVA;\n "
+               "in vec3 normalVA;\n "
+               "in vec4 colorVA;\n "
+               "layout(location = 0) out vec3 norm_frag;\n "
+               "layout(location = 1) out vec4 color_frag;\n "
+               // HEY this needs fixing, like the one below
+               "mat4 modIT = transpose(inverse(modelMat));\n "
+               "void main(void) {\n "
+               "  gl_Position = projectMat * viewMat * modelMat * positionVA;\n "
+               "  norm_frag = mat3(modIT) * normalVA;\n "
+               "  color_frag = colorVA;\n "
+               "}\n ");
 
-static const char *AmbDiffSolid_vert
-  = (VERSION "uniform mat4 projectMat;\n "
-             "uniform mat4 viewMat;\n "
-             "uniform mat4 modelMat;\n "
-             "uniform mat3 model3IT;\n "
-             "uniform vec4 colorSolid;\n "
-             "in vec4 positionVA;\n "
-             "in vec3 normalVA;\n "
-             "layout(location = 0) out vec3 norm_frag;\n "
-             "layout(location = 1) out vec4 color_frag;\n "
-             "void main(void) {\n "
-             "  gl_Position = projectMat * viewMat * modelMat * positionVA;\n "
-             "  norm_frag = model3IT * normalVA;\n "
-             "  color_frag = colorSolid;\n "
-             "}\n ");
+  static const char *AmbDiffSolid_vert
+    = (VERSION "uniform mat4 projectMat;\n "
+               "uniform mat4 viewMat;\n "
+               "uniform mat4 modelMat;\n "
+               "uniform mat3 model3IT;\n "
+               "uniform vec4 colorSolid;\n "
+               "in vec4 positionVA;\n "
+               "in vec3 normalVA;\n "
+               "layout(location = 0) out vec3 norm_frag;\n "
+               "layout(location = 1) out vec4 color_frag;\n "
+               "void main(void) {\n "
+               "  gl_Position = projectMat * viewMat * modelMat * positionVA;\n "
+               "  norm_frag = model3IT * normalVA;\n "
+               "  color_frag = colorSolid;\n "
+               "}\n ");
 
-static const char *AmbDiff_frag
-  = (VERSION "uniform vec3 lightDir;\n "
-             "uniform float phongKa;\n "
-             "uniform float phongKd;\n "
-             "layout(location = 0) in vec3 norm_frag;\n "
-             "layout(location = 1) in vec4 color_frag;\n "
-             "out vec4 fcol;\n "
-             "void main(void) {\n "
-             "  float ldot = max(0, dot(lightDir, normalize(norm_frag)));\n "
-             "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
-             "  fcol.a = color_frag.a;\n "
-             "}\n");
+  static const char *AmbDiff_frag
+    = (VERSION "uniform vec3 lightDir;\n "
+               "uniform float phongKa;\n "
+               "uniform float phongKd;\n "
+               "layout(location = 0) in vec3 norm_frag;\n "
+               "layout(location = 1) in vec4 color_frag;\n "
+               "out vec4 fcol;\n "
+               "void main(void) {\n "
+               "  float ldot = max(0, dot(lightDir, normalize(norm_frag)));\n "
+               "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
+               "  fcol.a = color_frag.a;\n "
+               "}\n");
 
-static const char *AmbDiff2Side_frag
-  = (VERSION "uniform vec3 lightDir;\n "
-             "uniform float phongKa;\n "
-             "uniform float phongKd;\n "
-             "layout(location = 0) in vec3 norm_frag;\n "
-             "layout(location = 1) in vec4 color_frag;\n "
-             "out vec4 fcol;\n "
-             "void main(void) {\n "
-             // here's the two-sided lighting
-             "  float ldot = max(dot(lightDir, -normalize(norm_frag)),\n "
-             "                   dot(lightDir, normalize(norm_frag)));\n "
-             "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
-             "  fcol.a = color_frag.a;\n "
-             "}\n");
+  static const char *AmbDiff2Side_frag
+    = (VERSION "uniform vec3 lightDir;\n "
+               "uniform float phongKa;\n "
+               "uniform float phongKd;\n "
+               "layout(location = 0) in vec3 norm_frag;\n "
+               "layout(location = 1) in vec4 color_frag;\n "
+               "out vec4 fcol;\n "
+               "void main(void) {\n "
+               // here's the two-sided lighting
+               "  float ldot = max(dot(lightDir, -normalize(norm_frag)),\n "
+               "                   dot(lightDir, normalize(norm_frag)));\n "
+               "  fcol = color_frag*(phongKa + phongKd*ldot);\n "
+               "  fcol.a = color_frag.a;\n "
+               "}\n");
 
-static GLchar * // HEY what's the right way to do this
-strdupe(const char *str) {
+  static GLchar * // HEY what's the right way to do this
+  strdupe(const char *str) {
     GLchar *ret;
     ret = new GLchar[strlen(str) + 1];
     strcpy(ret, str);
     return ret;
-}
+  }
 
-static GLchar *
-fileContents(const char *fname) {
+  static GLchar *fileContents(const char *fname) {
     static const std::string me = "Hale::fileContents";
     GLchar *ret;
     FILE *file;
     long len;
 
     if (!fname) {
-        throw std::runtime_error(me + ": got NULL fname");
+      throw std::runtime_error(me + ": got NULL fname");
     }
     if (!(file = fopen(fname, "r"))) {
-        throw std::runtime_error(me + ": unable to open \"" + fname
-                                 + "\": " + std::strerror(errno));
+      throw std::runtime_error(me + ": unable to open \"" + fname
+                               + "\": " + std::strerror(errno));
     }
     /* learn length of file contents */
     fseek(file, 0L, SEEK_END);
@@ -127,10 +126,9 @@ fileContents(const char *fname) {
     ret[len] = '\0';
     fclose(file);
     return ret;
-}
+  }
 
-static GLint
-shaderNew(GLint shtype, const GLchar *shaderSrc) {
+  static GLint shaderNew(GLint shtype, const GLchar *shaderSrc) {
     static const std::string me = "Hale::shaderNew";
     GLuint shaderId;
     GLint status;
@@ -146,60 +144,63 @@ shaderNew(GLint shtype, const GLchar *shaderSrc) {
     glErrorCheck(me, "glCompileShader");
     glGetShaderiv(shaderId, GL_COMPILE_STATUS, &status);
     if (debugging)
-        printf("# glGetShaderiv(%u, GL_COMPILE_STATUS, &) -> %d (%s)\n", shaderId,
-               status, GLBOOLSTR(status));
+      printf("# glGetShaderiv(%u, GL_COMPILE_STATUS, &) -> %d (%s)\n", shaderId, status,
+             GLBOOLSTR(status));
     glErrorCheck(me, "glGetShaderiv");
     /* HEY why does this sometimes set status to 32767 (not 0 or 1)? */
 
     GLint logSize;
     glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logSize);
-    char logMsg[logSize + 1];
+    char *logMsg = AIR_CALLOC(logSize + 1, char);
+    assert(logMsg);
     /* http://gamedev.stackexchange.com/questions/30429/how-to-detect-glsl-warnings
        suggests something like this to get warnings */
     if (logSize > 0) {
-        glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
-        fprintf(stderr, "GLSL compiler %s:\n%s\n",
-                (GL_FALSE == status ? "error" : "warning"), logMsg);
+      glGetShaderInfoLog(shaderId, logSize, NULL, logMsg);
+      fprintf(stderr, "GLSL compiler %s:\n%s\n",
+              (GL_FALSE == status ? "error" : "warning"), logMsg);
     }
     if (GL_FALSE == status) {
-        throw std::runtime_error(me + ": compiler error:\n" + logMsg);
-        glDeleteShader(shaderId);
-        return 0;
+      throw std::runtime_error(me + ": compiler error:\n" + logMsg);
+      glDeleteShader(shaderId);
+      free(logMsg);
+      return 0;
     }
+    free(logMsg);
     return shaderId;
-}
+  }
 
-Program::Program(preprogram prog) {
+  Program::Program(preprogram prog) {
     static const std::string me = "Hale::Program::Program(prog)";
 
     if (preprogramAmbDiff == prog || preprogramAmbDiff2Side == prog) {
-        _vertCode = strdupe(AmbDiff_vert);
+      _vertCode = strdupe(AmbDiff_vert);
     } else if (preprogramAmbDiffSolid == prog || preprogramAmbDiff2SideSolid == prog) {
-        _vertCode = strdupe(AmbDiffSolid_vert);
+      _vertCode = strdupe(AmbDiffSolid_vert);
     } else {
-        throw std::runtime_error(me + ": prog " + std::to_string(prog)
-                                 + " not recognized");
+      throw std::runtime_error(me + ": prog " + std::to_string(prog)
+                               + " not recognized");
     }
     if (preprogramAmbDiff2Side == prog || preprogramAmbDiff2SideSolid == prog) {
-        _fragCode = strdupe(AmbDiff2Side_frag);
+      _fragCode = strdupe(AmbDiff2Side_frag);
     } else {
-        _fragCode = strdupe(AmbDiff_frag);
+      _fragCode = strdupe(AmbDiff_frag);
     }
     _vertId = 0;
     _fragId = 0;
     _progId = 0;
-}
+  }
 
-Program::Program(const char *vertFname, const char *fragFname) {
+  Program::Program(const char *vertFname, const char *fragFname) {
 
     _vertCode = fileContents(vertFname);
     _vertId = 0;
     _fragCode = fileContents(fragFname);
     _fragId = 0;
     _progId = 0;
-}
+  }
 
-Program::~Program() {
+  Program::~Program() {
 
     delete _vertCode;
     delete _fragCode;
@@ -208,10 +209,9 @@ Program::~Program() {
     glDeleteShader(_fragId);
     // "A value of 0 for program will be silently ignored."
     glDeleteProgram(_progId);
-}
+  }
 
-void
-Program::compile() {
+  void Program::compile() {
     static const std::string me = "Hale::Program::compile";
 
     /* would need these if you can re-use a Hale::Program
@@ -234,23 +234,21 @@ Program::compile() {
     glErrorCheck(me, "glAttachShader(fragId " + std::to_string(_fragId) + ")");
 
     return;
-}
+  }
 
-void
-Program::bindAttribute(GLuint idx, const GLchar *name) {
+  void Program::bindAttribute(GLuint idx, const GLchar *name) {
     static const std::string me = "Hale::Program::bindAttribute";
     glBindAttribLocation(_progId, idx, name);
     if (debugging)
-        printf("# glBindAttribLocation(%u, %u, %s) -> (void)\n", _progId, idx, name);
+      printf("# glBindAttribLocation(%u, %u, %s) -> (void)\n", _progId, idx, name);
     /* had hoped to use something like glGetVertexAttribiv to learn
        about the type of variable "name" (to enable the kind of type
        checking we support for uniforms), but those functions don't even
        take a program index ... */
     glErrorCheck(me, std::string("glBindAttribLocation(") + name + ")");
-}
+  }
 
-void
-Program::link() {
+  void Program::link() {
     static const std::string me = "Hale::Program::use";
     GLint status;
 
@@ -258,28 +256,30 @@ Program::link() {
     if (debugging) printf("# glLinkProgram(%u);\n", _progId);
     glGetProgramiv(_progId, GL_LINK_STATUS, &status);
     if (debugging)
-        printf("# glGetProgramiv(%u, GL_LINK_STATUS, &) -> %d (%s);\n", _progId, status,
-               GLBOOLSTR(status));
+      printf("# glGetProgramiv(%u, GL_LINK_STATUS, &) -> %d (%s);\n", _progId, status,
+             GLBOOLSTR(status));
     if (GL_FALSE == status) {
-        GLint logSize;
-        glGetProgramiv(_progId, GL_INFO_LOG_LENGTH, &logSize);
-        if (logSize) {
-            char logMsg[logSize];
-            glGetProgramInfoLog(_progId, logSize, NULL, logMsg);
-            throw std::runtime_error(me + ": linking error: " + logMsg);
-        }
-        throw std::runtime_error("compilation failed");
+      GLint logSize;
+      glGetProgramiv(_progId, GL_INFO_LOG_LENGTH, &logSize);
+      if (logSize) {
+        char *logMsg = AIR_CALLOC(logSize + 1, char);
+        assert(logMsg);
+        glGetProgramInfoLog(_progId, logSize, NULL, logMsg);
+        throw std::runtime_error(me + ": linking error: " + logMsg);
+        free(logMsg);
+      }
+      throw std::runtime_error("compilation failed");
     }
 
     if (debugging) {
-        GLint idx;
+      GLint idx;
 #define GETALOC(str)                                                                    \
-    idx = glGetAttribLocation(_progId, str);                                            \
-    printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
-        /* these two were added for initial debugging; ideally which ones
-           are queried should depend on which attributes are used */
-        GETALOC("positionVA");
-        GETALOC("normalVA");
+  idx = glGetAttribLocation(_progId, str);                                              \
+  printf("# glGetAttribLocation(%d, \"" str "\") -> %d\n", _progId, idx);
+      /* these two were added for initial debugging; ideally which ones
+         are queried should depend on which attributes are used */
+      GETALOC("positionVA");
+      GETALOC("normalVA");
 #undef GETALOC
     }
 
@@ -293,39 +293,37 @@ Program::link() {
     uniformLocation.clear();
     glGetProgramiv(_progId, GL_ACTIVE_UNIFORMS, &uniN);
     if (debugging)
-        printf("# glGetProgramiv(%d, GL_ACTIVE_UNIFORMS, &); -> %d; ... instrospection "
-               "to get uniform types ...\n",
-               _progId, uniN);
+      printf("# glGetProgramiv(%d, GL_ACTIVE_UNIFORMS, &); -> %d; ... instrospection "
+             "to get uniform types ...\n",
+             _progId, uniN);
     glErrorCheck(me, "glGetProgramiv(GL_ACTIVE_UNIFORMS)");
     for (uniI = 0; uniI < uniN; uniI++) {
-        glGetActiveUniform(_progId, uniI, sizeof(uniName), NULL, &uniSize, &uniType,
-                           uniName);
-        glErrorCheck(me,
-                     std::string("glGetActiveUniform(") + std::to_string(uniI) + ")");
-        uniformType[uniName] = glEnumDesc[uniType];
-        GLint uniLoc = glGetUniformLocation(_progId, uniName);
-        glErrorCheck(me, std::string("glGetUniformLocation(") + uniName + ")");
-        if (-1 == uniLoc) {
-            throw std::runtime_error(me + ": \"" + uniName
-                                     + "\" is not a known uniform name");
-        }
-        uniformLocation[uniName] = uniLoc;
-        if (debugging)
-            printf("!%s: uniform[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
-                   uniI, uniName, uniformType[uniName].enumStr.c_str(), uniSize,
-                   uniformLocation[uniName]);
+      glGetActiveUniform(_progId, uniI, sizeof(uniName), NULL, &uniSize, &uniType,
+                         uniName);
+      glErrorCheck(me, std::string("glGetActiveUniform(") + std::to_string(uniI) + ")");
+      uniformType[uniName] = glEnumDesc[uniType];
+      GLint uniLoc = glGetUniformLocation(_progId, uniName);
+      glErrorCheck(me, std::string("glGetUniformLocation(") + uniName + ")");
+      if (-1 == uniLoc) {
+        throw std::runtime_error(me + ": \"" + uniName
+                                 + "\" is not a known uniform name");
+      }
+      uniformLocation[uniName] = uniLoc;
+      if (debugging)
+        printf("!%s: uniform[%d]: \"%s\": type %s size %d location %d\n", me.c_str(),
+               uniI, uniName, uniformType[uniName].enumStr.c_str(), uniSize,
+               uniformLocation[uniName]);
     }
 
     return;
-}
+  }
 
-void
-Program::use() const {
+  void Program::use() const {
     static const std::string me = "Hale::Program::use";
 
     if (Hale::_programCurrent == this) {
-        /* we're already using this program; nothing to do here */
-        return;
+      /* we're already using this program; nothing to do here */
+      return;
     }
     glUseProgram(_progId);
     if (debugging) printf("# glUseProgram(%u)\n", _progId);
@@ -335,226 +333,211 @@ Program::use() const {
     /* re-set the sticky uniforms */
     stickyUniform();
     return;
-}
+  }
 
-GLuint
-Program::progId() const {
-    return _progId;
-}
+  GLuint Program::progId() const { return _progId; }
 
-/* ------------------------------------------------------------ */
+  /* ------------------------------------------------------------ */
 
-// HEY: what's right way to avoid copy+paste?
-void
-uniform(std::string name, float vv, bool sticky) {
+  // HEY: what's right way to avoid copy+paste?
+  void uniform(std::string name, float vv, bool sticky) {
     if (_programCurrent) {
-        _programCurrent->uniform(name, vv, sticky);
+      _programCurrent->uniform(name, vv, sticky);
     }
-}
-void
-Program::uniform(std::string name, float vv, bool sticky) const {
+  }
+  void Program::uniform(std::string name, float vv, bool sticky) const {
     static const std::string me = "Program::uniform";
     auto iter = uniformType.find(name);
     if (uniformType.end() == iter) {
-        throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+      throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
     }
     glEnumItem ii = iter->second;
     if (GL_FLOAT != ii.enumVal) {
-        throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
-                                 + " but got a float");
+      throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
+                               + " but got a float");
     }
     glUniform1f(uniformLocation.at(name), vv);
     glErrorCheck(me, std::string("glUniform1f(") + name + ")");
     if (debugging) {
-        printf("# glUniform1f(%u, %f);\n", uniformLocation.at(name), vv);
+      printf("# glUniform1f(%u, %f);\n", uniformLocation.at(name), vv);
     }
     if (sticky) {
-        stickyUniformFloat[name] = vv;
+      stickyUniformFloat[name] = vv;
     }
-}
+  }
 
-// HEY: what's right way to avoid copy+paste?
-void
-uniform(std::string name, glm::vec3 vv, bool sticky) {
+  // HEY: what's right way to avoid copy+paste?
+  void uniform(std::string name, glm::vec3 vv, bool sticky) {
     if (_programCurrent) {
-        _programCurrent->uniform(name, vv, sticky);
+      _programCurrent->uniform(name, vv, sticky);
     }
-}
-void
-Program::uniform(std::string name, glm::vec3 vv, bool sticky) const {
+  }
+  void Program::uniform(std::string name, glm::vec3 vv, bool sticky) const {
     static const std::string me = "Program::uniform";
     auto iter = uniformType.find(name);
     if (uniformType.end() == iter) {
-        throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+      throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
     }
     glEnumItem ii = iter->second;
     if (GL_FLOAT_VEC3 != ii.enumVal) {
-        throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
-                                 + " but got a vec3");
+      throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
+                               + " but got a vec3");
     }
     glUniform3fv(uniformLocation.at(name), 1, glm::value_ptr(vv));
     glErrorCheck(me, std::string("glUniform3fv(") + name + ")");
     if (debugging) {
-        printf("# glUniform3fv(%u, 1, %s);\n", uniformLocation.at(name),
-               glm::to_string(vv).c_str());
+      printf("# glUniform3fv(%u, 1, %s);\n", uniformLocation.at(name),
+             glm::to_string(vv).c_str());
     }
     if (sticky) {
-        stickyUniformVec3[name] = vv;
+      stickyUniformVec3[name] = vv;
     }
-}
+  }
 
-// HEY: what's right way to avoid copy+paste?
-void
-uniform(std::string name, glm::vec4 vv, bool sticky) {
+  // HEY: what's right way to avoid copy+paste?
+  void uniform(std::string name, glm::vec4 vv, bool sticky) {
     if (_programCurrent) {
-        _programCurrent->uniform(name, vv, sticky);
+      _programCurrent->uniform(name, vv, sticky);
     }
-}
-void
-Program::uniform(std::string name, glm::vec4 vv, bool sticky) const {
+  }
+  void Program::uniform(std::string name, glm::vec4 vv, bool sticky) const {
     static const std::string me = "Program::uniform";
     auto iter = uniformType.find(name);
     if (uniformType.end() == iter) {
-        throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+      throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
     }
     glEnumItem ii = iter->second;
     if (GL_FLOAT_VEC4 != ii.enumVal) {
-        throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
-                                 + " but got a vec4");
+      throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
+                               + " but got a vec4");
     }
     glUniform4fv(uniformLocation.at(name), 1, glm::value_ptr(vv));
     glErrorCheck(me, std::string("glUniform4fv(") + name + ")");
     if (debugging) {
-        printf("# glUniform4fv(%u, 1, %s);\n", uniformLocation.at(name),
-               glm::to_string(vv).c_str());
+      printf("# glUniform4fv(%u, 1, %s);\n", uniformLocation.at(name),
+             glm::to_string(vv).c_str());
     }
     if (sticky) {
-        stickyUniformVec4[name] = vv;
+      stickyUniformVec4[name] = vv;
     }
-}
+  }
 
-// HEY: what's right way to avoid copy+paste?
-void
-uniform(std::string name, glm::mat3 vv, bool sticky) {
+  // HEY: what's right way to avoid copy+paste?
+  void uniform(std::string name, glm::mat3 vv, bool sticky) {
     if (_programCurrent) {
-        _programCurrent->uniform(name, vv, sticky);
+      _programCurrent->uniform(name, vv, sticky);
     }
-}
-void
-Program::uniform(std::string name, glm::mat3 vv, bool sticky) const {
+  }
+  void Program::uniform(std::string name, glm::mat3 vv, bool sticky) const {
     static const std::string me = "Program::uniform";
     auto iter = uniformType.find(name);
     if (uniformType.end() == iter) {
-        throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+      throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
     }
     glEnumItem ii = iter->second;
     if (GL_FLOAT_MAT3 != ii.enumVal) {
-        throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
-                                 + " but got a mat4");
+      throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
+                               + " but got a mat4");
     }
     glUniformMatrix3fv(uniformLocation.at(name), 1, 0, glm::value_ptr(vv));
     glErrorCheck(me, std::string("glUniformMatrix3fv(") + name + ")");
     if (debugging) {
-        printf("# glUniformMatrix3fv(%u, 1, 0, %s);\n", uniformLocation.at(name),
-               glm::to_string(vv).c_str());
+      printf("# glUniformMatrix3fv(%u, 1, 0, %s);\n", uniformLocation.at(name),
+             glm::to_string(vv).c_str());
     }
     if (sticky) {
-        stickyUniformMat3[name] = vv;
+      stickyUniformMat3[name] = vv;
     }
-}
+  }
 
-// HEY: what's right way to avoid copy+paste?
-void
-uniform(std::string name, glm::mat4 vv, bool sticky) {
+  // HEY: what's right way to avoid copy+paste?
+  void uniform(std::string name, glm::mat4 vv, bool sticky) {
     if (_programCurrent) {
-        _programCurrent->uniform(name, vv, sticky);
+      _programCurrent->uniform(name, vv, sticky);
     }
-}
-void
-Program::uniform(std::string name, glm::mat4 vv, bool sticky) const {
+  }
+  void Program::uniform(std::string name, glm::mat4 vv, bool sticky) const {
     static const std::string me = "Program::uniform";
     auto iter = uniformType.find(name);
     if (uniformType.end() == iter) {
-        throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
+      throw std::runtime_error(me + ": \"" + name + "\" is not an active uniform");
     }
     glEnumItem ii = iter->second;
     if (GL_FLOAT_MAT4 != ii.enumVal) {
-        throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
-                                 + " but got a mat4");
+      throw std::runtime_error(me + ": \"" + name + "\" is a " + ii.glslStr
+                               + " but got a mat4");
     }
     glUniformMatrix4fv(uniformLocation.at(name), 1, 0, glm::value_ptr(vv));
     glErrorCheck(me, std::string("glUniformMatrix4fv(") + name + ")");
     if (debugging) {
-        printf("# glUniformMatrix4fv(%u, 1, 0, %s);\n", uniformLocation.at(name),
-               glm::to_string(vv).c_str());
+      printf("# glUniformMatrix4fv(%u, 1, 0, %s);\n", uniformLocation.at(name),
+             glm::to_string(vv).c_str());
     }
     if (sticky) {
-        stickyUniformMat4[name] = vv;
+      stickyUniformMat4[name] = vv;
     }
-}
+  }
 
-/* ------------------------------------------------------------ */
+  /* ------------------------------------------------------------ */
 
-/* HEY: there's currently no way to unstick a sticky uniform; perhaps there
-   needs to be a new "unstick" argument to the uniform() calls, or the
-   "sticky" argument can have 1 of 3 values: "true", "false", or "unstick" */
-void
-stickyUniform(void) {
+  /* HEY: there's currently no way to unstick a sticky uniform; perhaps there
+     needs to be a new "unstick" argument to the uniform() calls, or the
+     "sticky" argument can have 1 of 3 values: "true", "false", or "unstick" */
+  void stickyUniform(void) {
     for (auto si = stickyUniformFloat.begin(); si != stickyUniformFloat.end(); si++) {
-        Hale::uniform(si->first, si->second);
+      Hale::uniform(si->first, si->second);
     }
     for (auto si = stickyUniformVec3.begin(); si != stickyUniformVec3.end(); si++) {
-        Hale::uniform(si->first, si->second);
+      Hale::uniform(si->first, si->second);
     }
     for (auto si = stickyUniformVec4.begin(); si != stickyUniformVec4.end(); si++) {
-        Hale::uniform(si->first, si->second);
+      Hale::uniform(si->first, si->second);
     }
     for (auto si = stickyUniformMat3.begin(); si != stickyUniformMat3.end(); si++) {
-        Hale::uniform(si->first, si->second);
+      Hale::uniform(si->first, si->second);
     }
     for (auto si = stickyUniformMat4.begin(); si != stickyUniformMat4.end(); si++) {
-        Hale::uniform(si->first, si->second);
+      Hale::uniform(si->first, si->second);
     }
-}
+  }
 
-/* ------------------------------------------------------------ */
+  /* ------------------------------------------------------------ */
 
-const Program *
-ProgramLib(preprogram pp) {
+  const Program *ProgramLib(preprogram pp) {
     static const std::string me = "Hale::ProgramLib";
 
     if (!(preprogramUnknown < pp && pp < preprogramLast)) {
-        throw std::runtime_error(me + ": prog " + std::to_string(pp) + " not valid");
+      throw std::runtime_error(me + ": prog " + std::to_string(pp) + " not valid");
     }
     if (_program[pp]) {
-        /* this preprogram has already been compiled; re-use */
-        if (debugging)
-            printf("!%s: re-using pre-compiled %d (GL %u)\n", me.c_str(), pp,
-                   _program[pp]->progId());
-        return _program[pp];
+      /* this preprogram has already been compiled; re-use */
+      if (debugging)
+        printf("!%s: re-using pre-compiled %d (GL %u)\n", me.c_str(), pp,
+               _program[pp]->progId());
+      return _program[pp];
     }
     Program *prog = new Program(pp);
     prog->compile();
     switch (pp) {
     case preprogramAmbDiff:
     case preprogramAmbDiff2Side:
-        prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
-        prog->bindAttribute(Hale::vertAttrIdxRGBA, "colorVA");
-        prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
-        break;
+      prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
+      prog->bindAttribute(Hale::vertAttrIdxRGBA, "colorVA");
+      prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
+      break;
     case preprogramAmbDiffSolid:
     case preprogramAmbDiff2SideSolid:
-        prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
-        prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
-        break;
+      prog->bindAttribute(Hale::vertAttrIdxXYZW, "positionVA");
+      prog->bindAttribute(Hale::vertAttrIdxNorm, "normalVA"); // HEY Tex2, Tang
+      break;
     default:
-        throw std::runtime_error(me + ": sorry, prog " + std::to_string(pp)
-                                 + " not implemented");
-        break;
+      throw std::runtime_error(me + ": sorry, prog " + std::to_string(pp)
+                               + " not implemented");
+      break;
     }
     prog->link();
     _program[pp] = prog;
     return prog;
-}
+  }
 
 } // namespace Hale
