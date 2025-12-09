@@ -64,7 +64,7 @@ main(int argc, const char **argv) {
   hestOptAdd(&hopt, "n", "name", airTypeString, 1, 1, &name, "foo", "name of data set");
   camortho = 0;
 
-  hestParseOrDie(hopt, argc - 1, argv + 1, hparm, me, "demo program");
+  hestParseOrExit(hopt, argc - 1, argv + 1, hparm, me, "demo program");
   airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
 

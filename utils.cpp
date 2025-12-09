@@ -282,7 +282,7 @@ init() {
     int iret;
 
     /* sanity check for Teem */
-    nrrdSanityOrDie(me.c_str());
+    nrrdSanityOrExit(me.c_str());
 
     /* HEY: should make sure that Hale:vertAttrIdx really mirrors
        limnPolyDataInfo */

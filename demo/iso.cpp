@@ -51,7 +51,7 @@ main(int argc, const char **argv) {
   int hitandquit;
   hestOptAdd_Flag(&hopt, "haq", &(hitandquit),
                   "save a screenshot rather than display the viewer");
-  hestParseOrDie(hopt, argc - 1, argv + 1, hparm, me, "demo program");
+  hestParseOrExit(hopt, argc - 1, argv + 1, hparm, me, "demo program");
   airMopAdd(mop, hopt, (airMopper)hestOptFree, airMopAlways);
   airMopAdd(mop, hopt, (airMopper)hestParseFree, airMopAlways);
 
